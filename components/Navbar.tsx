@@ -21,13 +21,7 @@ const Navbar = async () => {
       <div className="flex content-between items-center p-2 px-4">
         <div className="flex-1 flex items-center">
           <Link href="/" className="flex items-center">
-            <Image
-              src="/logo.svg"
-              width={35}
-              height={38}
-              alt="logo"
-              className="opacity-70"
-            />
+            <Image src="/logo.svg" width={35} height={38} alt="logo" />
             <h2 className="h2 font-bold ml-2 text-brand">ManuConnect</h2>
           </Link>
         </div>

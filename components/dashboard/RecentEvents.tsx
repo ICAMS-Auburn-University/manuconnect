@@ -92,7 +92,7 @@ export function RecentEvents({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className={`h-[${height}] pr-4`} style={{ height }}>
+        <ScrollArea className={`h-[${height}]`} style={{ height }}>
           {loading ? (
             // Loading skeleton
             Array.from({ length: 5 }).map((_, i) => (
@@ -109,11 +109,12 @@ export function RecentEvents({
               No recent events found
             </p>
           ) : (
-            <div className="">
+            <div className="flex flex-col gap-1">
               {events.map((event) => (
-                <div
+                <Link
                   key={event.id}
-                  className="flex items-start space-x-4 border-b py-2 pl-2 last:border-0 hover:bg-slate-50 transition-colors duration-200 rounded-md"
+                  className="flex items-start space-x-4 border p-2 hover:bg-slate-50 transition-colors duration-200 rounded-md"
+                  href={`/orders/${event.order_id}`}
                 >
                   <div className="mt-1 bg-muted rounded-full p-2">
                     {getEventIcon(event.event_type)}
@@ -122,21 +123,16 @@ export function RecentEvents({
                     <p className="text-sm font-medium leading-none">
                       {event.description}
                     </p>
-                    <div className="flex items-center pt-1">
-                      <Link
-                        className="text-xs text-muted-foreground"
-                        href={`/orders/${event.order_id}`}
-                      >
-                        Order #
-                        {event.order_id.toLocaleString('en-US', {
-                          minimumIntegerDigits: 6,
-                          useGrouping: false,
-                        })}{' '}
-                        •{' '}
-                        {formatDistanceToNow(new Date(event.created_at), {
-                          addSuffix: true,
-                        })}
-                      </Link>
+                    <div className="flex items-center pt-1 text-xs text-muted-foreground">
+                      Order #
+                      {event.order_id.toLocaleString('en-US', {
+                        minimumIntegerDigits: 6,
+                        useGrouping: false,
+                      })}{' '}
+                      •{' '}
+                      {formatDistanceToNow(new Date(event.created_at), {
+                        addSuffix: true,
+                      })}
                     </div>
                     {event.metadata &&
                       Object.keys(event.metadata).length > 0 && (
@@ -147,7 +143,7 @@ export function RecentEvents({
                         </div>
                       )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

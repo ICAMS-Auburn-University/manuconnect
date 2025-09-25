@@ -246,3 +246,7 @@
       'calt' 1;
   }
 }
+
+canvas {
+  height: 500px !important;
+}

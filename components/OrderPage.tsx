@@ -1,15 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  Download,
   Truck,
   User as LucideUser,
   Mail,
   Phone,
 } from 'lucide-react';
-import { Canvas } from '@react-three/fiber';
-import { Environment, OrbitControls } from '@react-three/drei';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,6 +35,7 @@ import ViewOffers from './ViewOffers';
 import ShippingDialog from './ShippingDialog';
 import { getUserById } from '@/utils/adminUtils';
 import AddLivestreamForm from './AddLivestreamForm';
+import View3DModel from '@/utils/3d-models/viewer';
 
 type OrderPageProps = {
   order: Order;
@@ -136,7 +134,7 @@ const OrderPage = ({
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-8">
+    <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button variant="outline" size="icon" asChild>
@@ -182,13 +180,21 @@ const OrderPage = ({
         className="w-full"
         onValueChange={setActiveTab}
       >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="details">Order Details</TabsTrigger>
-          {/* <TabsTrigger value="model">**WIP** 3D Model</TabsTrigger> */}
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          {/* {order.livestream_url && (
-            <TabsTrigger value="livestream">Livestream View</TabsTrigger>
-          )} */}
+        <TabsList className="flex w-full">
+          <TabsTrigger value="details" className="flex-1">
+            Order Details
+          </TabsTrigger>
+          <TabsTrigger value="model" className="flex-1">
+            3D Model
+          </TabsTrigger>
+          {order.livestream_url && (
+            <TabsTrigger value="livestream" className="flex-1">
+              Livestream View
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="timeline" className="flex-1">
+            Timeline
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
@@ -340,31 +346,8 @@ const OrderPage = ({
                 View and interact with the 3D model
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="w-full h-[500px] bg-muted rounded-md overflow-hidden">
-                <Canvas>
-                  <ambientLight intensity={0.5} />
-                  <spotLight
-                    position={[10, 10, 10]}
-                    angle={0.15}
-                    penumbra={1}
-                  />
-                  <pointLight position={[-10, -10, -10]} />
-                  <OrbitControls />
-                  <Environment preset="studio" />
-                  {/* 3D model would be loaded here */}
-                  <mesh>
-                    <boxGeometry args={[1, 1, 1]} />
-                    <meshStandardMaterial color="#ff6b6b" />
-                  </mesh>
-                </Canvas>
-              </div>
-              <div className="mt-4 flex justify-between">
-                <Button variant="outline" size="sm">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Model
-                </Button>
-              </div>
+            <CardContent className="h-full">
+              <View3DModel order={order} />
             </CardContent>
           </Card>
 
@@ -418,10 +401,53 @@ const OrderPage = ({
           onSubmit={handleLivestreamSubmit}
         />
 
+        <TabsContent value="livestream" className="space-y-6">
+          {(order.livestream_url || UserType === 'admin') && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Live Feed</CardTitle>
+                <CardDescription>
+                  Livestream provided by manufacturer
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {order.livestream_url ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${order.livestream_url.substring(
+                      order.livestream_url.length - 11
+                    )}?autoplay=1`}
+                    title="Live Stream"
+                    className="w-full h-96"
+                    allowFullScreen
+                  />
+                ) : (
+                  <>
+                    <p>No live stream available.</p>
+                    {UserType === 'admin' && (
+                      <Button
+                        variant="outline"
+                        className="text-muted-foreground"
+                        onClick={() => setIsLivestreamDialogOpen(true)}
+                      >
+                        Add Live Stream
+                      </Button>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
         <TabsContent value="timeline" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Order Status</CardTitle>
+              <CardTitle className="flex justify-between">
+                <p>Order Status</p>
+                <p className="text-base">
+                  Due Date: {new Date(order.due_date).toLocaleDateString()}
+                </p>
+              </CardTitle>
               <CardDescription>
                 <div className="flex flex-row justify-between items-center">
                   Track the progress of your order
@@ -444,42 +470,6 @@ const OrderPage = ({
             </CardContent>
           </Card>
 
-          {(order.livestream_url || UserType === 'admin') && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Live Feed</CardTitle>
-                <CardDescription>
-                  Livestream provided by manufacturer
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {order.livestream_url ? (
-                  <iframe
-                    src={`https://www.youtube.com/embed/${order.livestream_url.substring(
-                      order.livestream_url.length - 11
-                    )}`}
-                    title="Live Stream"
-                    className="w w-96"
-                    allowFullScreen
-                  />
-                ) : (
-                  <>
-                    <p>No live stream available.</p>
-                    {UserType === 'admin' && (
-                      <Button
-                        variant="outline"
-                        className="text-muted-foreground"
-                        onClick={() => setIsLivestreamDialogOpen(true)}
-                      >
-                        Add Live Stream
-                      </Button>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
           {order.shipping_info?.tracking_number && (
             <Card>
               <CardHeader>
@@ -497,27 +487,16 @@ const OrderPage = ({
               </CardContent>
             </Card>
           )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Due Date</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-4">
-                <p className="text-2xl font-bold">
-                  {new Date(order.due_date).toLocaleDateString()}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
 
-      <div className="flex justify-end space-x-2">
+      <div className="flex justify-end">
         <Link href="mailto:support@manuconnect.org">
-          <Button variant="outline">Contact Support</Button>
+          <Button variant="outline">
+            <Mail className="mr-2 h-4 w-4" />
+            Contact Support
+          </Button>
         </Link>
-        <Button className="bg-brand hover:bg-brand-100">Update Order</Button>
       </div>
     </div>
   );
