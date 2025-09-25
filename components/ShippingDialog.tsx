@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -6,8 +6,8 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "./ui/dialog";
-import { Button } from "./ui/button";
+} from './ui/dialog';
+import { Button } from './ui/button';
 import {
   Form,
   FormControl,
@@ -15,28 +15,28 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "./ui/input";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+} from '@/components/ui/form';
+import { Input } from './ui/input';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "./ui/select";
+} from './ui/select';
 
 const formSchema = z.object({
   trackingNumber: z
     .string({
-      required_error: "Please enter a tracking number.",
+      required_error: 'Please enter a tracking number.',
     })
-    .min(2, { message: "Tracking number must be at least 2 characters long" })
-    .max(50, { message: "Tracking number can not exceed 50 characters long" }),
-  carrier: z.enum(["UPS", "FedEx", "DHL", "USPS", "Other"], {
-    required_error: "Please select a carrier.",
+    .min(2, { message: 'Tracking number must be at least 2 characters long' })
+    .max(50, { message: 'Tracking number can not exceed 50 characters long' }),
+  carrier: z.enum(['UPS', 'FedEx', 'DHL', 'USPS', 'Other'], {
+    required_error: 'Please select a carrier.',
   }),
 });
 
@@ -59,7 +59,7 @@ const ShippingDialog = ({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      trackingNumber: "",
+      trackingNumber: '',
       carrier: undefined,
     },
   });

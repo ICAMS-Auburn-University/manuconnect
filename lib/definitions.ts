@@ -1,4 +1,4 @@
-import { User } from "@supabase/supabase-js";
+import { User } from '@supabase/supabase-js';
 
 export type Order = {
   id: number;
@@ -66,120 +66,120 @@ export type Event = {
 };
 
 export enum OrderStatus {
-  OrderCreated = "Order Created",
-  ManufacturerOffer = "Manufacturer Offer",
-  OrderAccepted = "Order Accepted",
-  MachineSetup = "Machine Setup",
-  StartedManufacturing = "Started Manufacturing",
-  QualityCheck = "Quality Check",
-  Shipped = "Shipping",
-  Completed = "Completed",
+  OrderCreated = 'Order Created',
+  ManufacturerOffer = 'Manufacturer Offer',
+  OrderAccepted = 'Order Accepted',
+  MachineSetup = 'Machine Setup',
+  StartedManufacturing = 'Started Manufacturing',
+  QualityCheck = 'Quality Check',
+  Shipped = 'Shipping',
+  Completed = 'Completed',
 }
 
 export const ProcessTags = [
   {
-    id: "cnc_machining",
-    label: "CNC Machining",
+    id: 'cnc_machining',
+    label: 'CNC Machining',
   },
   {
-    id: "3d_printing",
-    label: "3D Printing",
+    id: '3d_printing',
+    label: '3D Printing',
   },
   {
-    id: "injection_molding",
-    label: "Injection Molding",
+    id: 'injection_molding',
+    label: 'Injection Molding',
   },
   {
-    id: "sheet_metal_fabrication",
-    label: "Sheet Metal Fabrication",
+    id: 'sheet_metal_fabrication',
+    label: 'Sheet Metal Fabrication',
   },
   {
-    id: "casting",
-    label: "Casting",
+    id: 'casting',
+    label: 'Casting',
   },
   {
-    id: "forging",
-    label: "Forging",
+    id: 'forging',
+    label: 'Forging',
   },
   {
-    id: "welding",
-    label: "Welding",
+    id: 'welding',
+    label: 'Welding',
   },
   {
-    id: "laser_cutting",
-    label: "Laser Cutting",
+    id: 'laser_cutting',
+    label: 'Laser Cutting',
   },
   {
-    id: "waterjet_cutting",
-    label: "Waterjet Cutting",
+    id: 'waterjet_cutting',
+    label: 'Waterjet Cutting',
   },
   {
-    id: "plasma_cutting",
-    label: "Plasma Cutting",
+    id: 'plasma_cutting',
+    label: 'Plasma Cutting',
   },
   {
-    id: "extrusion",
-    label: "Extrusion",
+    id: 'extrusion',
+    label: 'Extrusion',
   },
   {
-    id: "surface_finishing",
-    label: "Surface Finishing",
+    id: 'surface_finishing',
+    label: 'Surface Finishing',
   },
   {
-    id: "anodizing",
-    label: "Anodizing",
+    id: 'anodizing',
+    label: 'Anodizing',
   },
   {
-    id: "powder_coating",
-    label: "Powder Coating",
+    id: 'powder_coating',
+    label: 'Powder Coating',
   },
 ] as const;
 
 export const MaterialTags = [
   {
-    id: "metal",
-    label: "Metal",
+    id: 'metal',
+    label: 'Metal',
   },
   {
-    id: "plastic",
-    label: "Plastic",
+    id: 'plastic',
+    label: 'Plastic',
   },
   {
-    id: "composite",
-    label: "Composite",
+    id: 'composite',
+    label: 'Composite',
   },
   {
-    id: "ceramic",
-    label: "Ceramic",
+    id: 'ceramic',
+    label: 'Ceramic',
   },
   {
-    id: "wood",
-    label: "Wood",
+    id: 'wood',
+    label: 'Wood',
   },
   {
-    id: "glass",
-    label: "Glass",
+    id: 'glass',
+    label: 'Glass',
   },
   {
-    id: "rubber",
-    label: "Rubber",
+    id: 'rubber',
+    label: 'Rubber',
   },
   {
-    id: "carbon_fiber",
-    label: "Carbon Fiber",
+    id: 'carbon_fiber',
+    label: 'Carbon Fiber',
   },
 ] as const;
 export const MiscTags = [
   {
-    id: "mass_production",
-    label: "Mass Production",
+    id: 'mass_production',
+    label: 'Mass Production',
   },
   {
-    id: "low_volume_production",
-    label: "Low Volume Production",
+    id: 'low_volume_production',
+    label: 'Low Volume Production',
   },
   {
-    id: "high_volume_production",
-    label: "High Volume Production",
+    id: 'high_volume_production',
+    label: 'High Volume Production',
   },
 ] as const;

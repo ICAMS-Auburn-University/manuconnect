@@ -1,11 +1,11 @@
-"use client";
-import { Order } from "@/lib/definitions";
-import React, { useEffect, useState } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+'use client';
+import { Order } from '@/lib/definitions';
+import React, { useEffect, useState } from 'react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -14,35 +14,33 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { getUserId } from "@/utils/supabase/utils";
-import { updateOrder } from "@/utils/supabase/orders";
-import { createOffer } from "@/utils/supabase/offers";
-import { toast } from "sonner";
-import { Separator } from "./ui/separator";
-import Image from "next/image";
-import { DialogClose, DialogFooter } from "./ui/dialog";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { getUserId } from '@/utils/supabase/utils';
+import { updateOrder } from '@/utils/supabase/orders';
+import { createOffer } from '@/utils/supabase/offers';
+import { toast } from 'sonner';
+import { Separator } from './ui/separator';
+import Image from 'next/image';
+import { DialogClose, DialogFooter } from './ui/dialog';
 
 const OfferSchema = z.object({
-  id: z.number().min(1, { message: "Please enter a valid ID" }),
-  unit_cost: z
-    .string()
-    .min(1, { message: "Please enter a valid cost" })
-    .transform((v) => Number(v) || 0),
-  projected_cost: z.number().min(1, { message: "Please enter a valid cost" }),
-  projected_units: z
-    .string()
-    .min(1, { message: "Please enter a valid number" })
-    .transform((v) => Number(v) || 0),
-  shipping_cost: z
-    .string()
-    .min(1, { message: "Please enter a valid cost" })
-    .transform((v) => Number(v) || 0),
-  lead_time: z
-    .string()
-    .min(1, { message: "Please enter a valid number" })
-    .transform((v) => Number(v) || 0),
+  id: z.coerce.number().int().positive({ message: 'Please enter a valid ID' }),
+  unit_cost: z.coerce
+    .number()
+    .min(0.001, { message: 'Please enter a valid cost' }),
+  projected_cost: z.coerce
+    .number()
+    .min(0, { message: 'Please enter a valid cost' }),
+  projected_units: z.coerce
+    .number()
+    .min(1, { message: 'Please enter a valid number' }),
+  shipping_cost: z.coerce
+    .number()
+    .min(0, { message: 'Please enter a valid cost' }),
+  lead_time: z.coerce
+    .number()
+    .min(0, { message: 'Please enter a valid number' }),
 });
 
 interface OfferFormProps {
@@ -67,15 +65,15 @@ const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (
-        name === "unit_cost" ||
-        name === "projected_units" ||
-        name === "shipping_cost"
+        name === 'unit_cost' ||
+        name === 'projected_units' ||
+        name === 'shipping_cost'
       ) {
         const unitCost = value.unit_cost || 0;
         const projectedUnits = value.projected_units || 0;
         const shippingCost = value.shipping_cost || 0;
         const projected_cost = unitCost * projectedUnits + shippingCost * 1; // TS shits itself if you don't multiply the additive number by 1 ???
-        form.setValue("projected_cost", projected_cost);
+        form.setValue('projected_cost', projected_cost);
       }
     });
     return () => subscription.unsubscribe();
@@ -97,19 +95,19 @@ const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
         projected_units: values.projected_units,
         shipping_cost: values.shipping_cost,
         lead_time: values.lead_time,
-        manufacturer_email: Manufacturer.email || "",
+        manufacturer_email: Manufacturer.email || '',
         manufacturer_name: Manufacturer.user_metadata.company_name,
       });
 
       form.reset();
 
       toast.success(
-        "Offer created successfully. The creator will be notified."
+        'Offer created successfully. The creator will be notified.'
       );
     } catch (error) {
       console.error(error);
       toast.error(
-        "Failed to create offer. Please try again or contact support."
+        'Failed to create offer. Please try again or contact support.'
       );
     }
     setLoading(false);
@@ -165,6 +163,13 @@ const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
                       min={1}
                       max={10000}
                       placeholder="0"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const numericValue = Number(value);
+                        if (numericValue >= 1 && numericValue <= 10000) {
+                          field.onChange(value);
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormDescription>

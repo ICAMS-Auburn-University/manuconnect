@@ -1,19 +1,22 @@
-import React, { useState } from "react";
-import { twMerge } from "tailwind-merge";
-import { ProcessTags, MaterialTags, MiscTags } from "@/lib/definitions";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Search, X } from "lucide-react";
+import React, { useState } from 'react';
+import { twMerge } from 'tailwind-merge';
+import { ProcessTags, MaterialTags, MiscTags } from '@/lib/definitions';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Search, X } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Combine all tag types
-type TagType = typeof ProcessTags[number] | typeof MaterialTags[number] | typeof MiscTags[number];
+type TagType =
+  | (typeof ProcessTags)[number]
+  | (typeof MaterialTags)[number]
+  | (typeof MiscTags)[number];
 
 interface OrderSearchBarProps {
   className?: string;
@@ -21,45 +24,47 @@ interface OrderSearchBarProps {
   onTagsChange?: (selectedTags: TagType[]) => void;
 }
 
-const OrderSearchBar = ({ 
+const OrderSearchBar = ({
   className,
   onSearchChange,
-  onTagsChange 
+  onTagsChange,
 }: OrderSearchBarProps) => {
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] = useState('');
   const [selectedTags, setSelectedTags] = useState<TagType[]>([]);
-  
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchText(value);
     if (onSearchChange) onSearchChange(value);
   };
-  
+
   const handleTagSelect = (tag: TagType) => {
-    if (!selectedTags.some(t => t.id === tag.id)) {
+    if (!selectedTags.some((t) => t.id === tag.id)) {
       const newSelectedTags = [...selectedTags, tag];
       setSelectedTags(newSelectedTags);
       if (onTagsChange) onTagsChange(newSelectedTags);
     }
   };
-  
+
   const handleTagRemove = (tagToRemove: TagType) => {
-    const newSelectedTags = selectedTags.filter(tag => tag.id !== tagToRemove.id);
+    const newSelectedTags = selectedTags.filter(
+      (tag) => tag.id !== tagToRemove.id
+    );
     setSelectedTags(newSelectedTags);
     if (onTagsChange) onTagsChange(newSelectedTags);
   };
-  
+
   const clearSearch = () => {
-    setSearchText("");
-    if (onSearchChange) onSearchChange("");
+    setSearchText('');
+    if (onSearchChange) onSearchChange('');
   };
 
   const isTagSelected = (tagId: string) => {
-    return selectedTags.some(tag => tag.id === tagId);
+    return selectedTags.some((tag) => tag.id === tagId);
   };
 
   return (
-    <div className={twMerge("flex flex-col space-y-2 mb-2", className)}>
+    <div className={twMerge('flex flex-col space-y-2 mb-2', className)}>
       <div className="relative flex items-center">
         <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
         <Input
@@ -77,10 +82,14 @@ const OrderSearchBar = ({
           </button>
         )}
       </div>
-      
+
       <div className="flex flex-wrap gap-2">
         {selectedTags.map((tag) => (
-          <Badge key={tag.id} variant="secondary" className="flex items-center gap-1 border-black">
+          <Badge
+            key={tag.id}
+            variant="secondary"
+            className="flex items-center gap-1 border-black"
+          >
             {tag.label}
             <X
               className="h-3 w-3 cursor-pointer"
@@ -88,7 +97,7 @@ const OrderSearchBar = ({
             />
           </Badge>
         ))}
-        
+
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-7">

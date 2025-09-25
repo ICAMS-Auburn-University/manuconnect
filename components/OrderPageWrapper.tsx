@@ -1,12 +1,12 @@
-"use client";
-import { useEffect, useState } from "react";
-import OrderPage from "./OrderPage";
-import { getOrderById } from "@/utils/supabase/orders";
-import { getUserData } from "@/utils/supabase/utils";
-import { Order } from "@/lib/definitions";
-import { User as SupabaseUser } from "@supabase/supabase-js";
-import { Loader } from "lucide-react";
-import { getUserById } from "@/utils/adminUtils";
+'use client';
+import { useEffect, useState } from 'react';
+import OrderPage from './OrderPage';
+import { getOrderById } from '@/utils/supabase/orders';
+import { getUserData } from '@/utils/supabase/utils';
+import { Order } from '@/lib/definitions';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { Loader } from 'lucide-react';
+import { getUserById } from '@/utils/adminUtils';
 
 type OrderPageProps = {
   orderId: string;
@@ -34,7 +34,7 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
         if (
           userData?.id === orderData?.creator ||
           userData?.id === orderData?.manufacturer ||
-          userData?.user_metadata.account_type === "admin"
+          userData?.user_metadata.account_type === 'admin'
         ) {
           setIsAuthorized(true);
         }
@@ -73,7 +73,14 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
     return <div>Order not found</div>;
   }
 
-  return <OrderPage order={order} userData={userData} manufacturerData={manufacturerData} creatorData={creatorData} />;
+  return (
+    <OrderPage
+      order={order}
+      userData={userData}
+      manufacturerData={manufacturerData}
+      creatorData={creatorData}
+    />
+  );
 };
 
 export default OrderPageWrapper;

@@ -1,5 +1,5 @@
-import AuthForm from "@/components/AuthForm";
-import { Metadata } from "next";
+import AuthForm from '@/components/AuthForm';
+import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: `Sign In`,

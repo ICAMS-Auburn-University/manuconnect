@@ -1,12 +1,12 @@
-"use client";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import OrdersList from "./OrdersList";
-import OrderDetails from "./OrderDetails";
-import { useEffect, useState } from "react";
-import { getOrderById, getUnclaimedOrders } from "@/utils/supabase/orders";
-import { Order } from "@/lib/definitions";
-import OrderSearchBar from "./OrderSearchBar";
-import { Skeleton } from "./ui/skeleton";
+'use client';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import OrdersList from './OrdersList';
+import OrderDetails from './OrderDetails';
+import { useEffect, useState } from 'react';
+import { getOrderById, getUnclaimedOrders } from '@/utils/supabase/orders';
+import { Order } from '@/lib/definitions';
+import OrderSearchBar from './OrderSearchBar';
+import { Skeleton } from './ui/skeleton';
 
 const BrowseOrdersCard = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);

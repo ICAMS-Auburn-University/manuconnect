@@ -1,5 +1,5 @@
-import type React from "react";
-import { useState, useEffect } from "react";
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import {
   Check,
   X,
@@ -9,8 +9,8 @@ import {
   ChevronUp,
   Search,
   HandCoins,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -26,21 +26,21 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "./ui/tooltip";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Offer, Order } from "@/lib/definitions";
-import { acceptOffer, declineOffer, getOffers } from "@/utils/supabase/offers";
-import Link from "next/link";
-import { toast } from "sonner";
-import { updateOrder } from "@/utils/supabase/orders";
-import { redirect } from "next/navigation";
+} from './ui/tooltip';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Offer, Order } from '@/lib/definitions';
+import { acceptOffer, declineOffer, getOffers } from '@/utils/supabase/offers';
+import Link from 'next/link';
+import { toast } from 'sonner';
+import { updateOrder } from '@/utils/supabase/orders';
+import { redirect } from 'next/navigation';
 
 interface ViewOffersProps {
   order: Order;
@@ -49,11 +49,11 @@ interface ViewOffersProps {
 export default function ViewOffers({ order }: ViewOffersProps) {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [sortField, setSortField] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [searchTerm, setSearchTerm] = useState('');
   const [counterofferDialogOpen, setCounterofferDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
-  const [counterofferAmount, setCounterofferAmount] = useState("");
+  const [counterofferAmount, setCounterofferAmount] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -63,8 +63,8 @@ export default function ViewOffers({ order }: ViewOffersProps) {
         const fetchedOffers = await getOffers(order.id);
         setOffers(fetchedOffers);
       } catch (error) {
-        toast.error("Error fetching offers");
-        console.error("Error fetching offers:", error);
+        toast.error('Error fetching offers');
+        console.error('Error fetching offers:', error);
       }
       setLoading(false);
     }
@@ -88,10 +88,10 @@ export default function ViewOffers({ order }: ViewOffersProps) {
   // Handle sorting
   const handleSort = (field: string) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
-      setSortDirection("asc");
+      setSortDirection('asc');
     }
 
     const sortedOffers = [...offers].sort((a, b) => {
@@ -100,14 +100,14 @@ export default function ViewOffers({ order }: ViewOffersProps) {
       // @ts-ignore - Dynamic field access
       const valueB = b[field];
 
-      if (typeof valueA === "string") {
-        if (sortDirection === "asc") {
+      if (typeof valueA === 'string') {
+        if (sortDirection === 'asc') {
           return valueA.localeCompare(valueB);
         } else {
           return valueB.localeCompare(valueA);
         }
       } else {
-        if (sortDirection === "asc") {
+        if (sortDirection === 'asc') {
           return valueA - valueB;
         } else {
           return valueB - valueA;
@@ -123,7 +123,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
     const term = e.target.value;
     setSearchTerm(term);
 
-    if (term === "") {
+    if (term === '') {
       setOffers(offers);
       return;
     }
@@ -146,12 +146,12 @@ export default function ViewOffers({ order }: ViewOffersProps) {
     // In a real app, this would send the acceptance to an API
     try {
       acceptOffer(offerId);
-      toast.success("Offer accepted!");
+      toast.success('Offer accepted!');
       setOffers(offers.filter((offer) => offer.id !== offerId));
-      redirect("/orders"); // Redirect to orders page after accepting
+      redirect('/orders'); // Redirect to orders page after accepting
     } catch (error) {
-      toast.error("Error accepting offer");
-      console.error("Error accepting offer:", error);
+      toast.error('Error accepting offer');
+      console.error('Error accepting offer:', error);
     }
   };
 
@@ -162,10 +162,10 @@ export default function ViewOffers({ order }: ViewOffersProps) {
       declineOffer(offerId);
       const updatedOffers = offers.filter((offer) => offer.id !== offerId);
       setOffers(updatedOffers);
-      toast.success("Offer declined!");
+      toast.success('Offer declined!');
     } catch (error) {
-      toast.error("Error declining offer");
-      console.error("Error declining offer:", error);
+      toast.error('Error declining offer');
+      console.error('Error declining offer:', error);
     }
   };
 
@@ -185,7 +185,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
   // Render sort indicator
   const renderSortIndicator = (field: string) => {
     if (sortField !== field) return null;
-    return sortDirection === "asc" ? (
+    return sortDirection === 'asc' ? (
       <ChevronUp className="ml-1 h-4 w-4" />
     ) : (
       <ChevronDown className="ml-1 h-4 w-4" />
@@ -196,7 +196,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
     <>
       <Dialog>
         <DialogTrigger asChild>
-          <Button className="bg-auburnBlue relative" size={"sm"}>
+          <Button className="bg-auburnBlue relative" size={'sm'}>
             View Offers
             <span className="bg-red absolute inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500  rounded-full -top-2 -end-2">
               {offers.length}
@@ -208,7 +208,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
             <DialogTitle>Manufacturing Offers</DialogTitle>
             <DialogDescription>
               Review and respond to offers for order #
-              {order.id.toLocaleString("en-US", {
+              {order.id.toLocaleString('en-US', {
                 minimumIntegerDigits: 6,
                 useGrouping: false,
               })}
@@ -236,30 +236,30 @@ export default function ViewOffers({ order }: ViewOffersProps) {
                 <TableRow>
                   <TableHead
                     className="cursor-pointer"
-                    onClick={() => handleSort("manufacturerName")}
+                    onClick={() => handleSort('manufacturerName')}
                   >
                     <div className="flex items-center">
                       Manufacturer
-                      {renderSortIndicator("manufacturerName")}
+                      {renderSortIndicator('manufacturerName')}
                     </div>
                   </TableHead>
                   <TableHead
                     className="cursor-pointer text-right"
-                    onClick={() => handleSort("unitCost")}
+                    onClick={() => handleSort('unitCost')}
                   >
                     <div className="flex items-center justify-end">
                       Unit Cost
-                      {renderSortIndicator("unitCost")}
+                      {renderSortIndicator('unitCost')}
                     </div>
                   </TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
                   <TableHead
                     className="cursor-pointer text-right"
-                    onClick={() => handleSort("shippingCost")}
+                    onClick={() => handleSort('shippingCost')}
                   >
                     <div className="flex items-center justify-end">
                       Shipping
-                      {renderSortIndicator("shippingCost")}
+                      {renderSortIndicator('shippingCost')}
                     </div>
                   </TableHead>
                   <TableHead className="text-right">Est. Total</TableHead>
@@ -272,7 +272,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
                     <TableCell>
                       <div>
                         <div className="font-medium">
-                          {offer.manufacturer_name || "Unknown Manufacturer"}
+                          {offer.manufacturer_name || 'Unknown Manufacturer'}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           Delivery: {offer.lead_time} months
@@ -381,7 +381,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
                   value={
                     selectedOffer
                       ? `$${selectedOffer.unit_cost.toFixed(2)}`
-                      : ""
+                      : ''
                   }
                   disabled
                 />

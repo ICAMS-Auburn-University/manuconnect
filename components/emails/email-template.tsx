@@ -6,7 +6,7 @@ import {
   Section,
   Tailwind,
   Link,
-} from "@react-email/components";
+} from '@react-email/components';
 interface EmailTemplateProps {
   children: React.ReactNode;
   email: string;
@@ -30,7 +30,7 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
         <Section className="text-center text-sm text-gray-500 mt-4">
           <p>
             This email was sent to {email}. If you did not expect to receive
-            this email, please{" "}
+            this email, please{' '}
             <Link href="mailto:support@manuconnect.org">contact us</Link>.
           </p>
           <p>© {new Date().getFullYear()} ManuConnect. All rights reserved.</p>

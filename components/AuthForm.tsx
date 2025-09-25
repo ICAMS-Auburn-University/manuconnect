@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -12,63 +12,94 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { login, signup } from "@/utils/supabase/auth";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import {
+  login,
+  signup,
+  type LoginData,
+  type SignupData,
+} from '@/utils/supabase/auth';
 
-type FormType = "sign-in" | "sign-up";
+type FormType = 'sign-in' | 'sign-up';
+
+const isNextRedirectError = (error: unknown): error is { digest: string } =>
+  typeof error === 'object' &&
+  error !== null &&
+  'digest' in error &&
+  typeof (error as any).digest === 'string' &&
+  (error as any).digest.startsWith('NEXT_REDIRECT');
+
+const baseSchema = {
+  email: z.string().email(),
+  password: z.string().min(6).max(100),
+};
 
 const authFormSchema = (formType: FormType) => {
   return z.object({
-    email: z.string().email(),
-    password: z.string().min(6).max(100),
-    firstName:
-      formType === "sign-up"
-        ? z.string().min(2).max(50)
-        : z.string().optional(),
-    lastName:
-      formType === "sign-up"
-        ? z.string().min(2).max(50)
-        : z.string().optional(),
+    ...baseSchema,
+    firstName: z.string(),
+    lastName: z.string(),
+    accountType: z.enum(['creator', 'manufacturer', 'admin']),
+    companyName: z.string(),
   });
 };
 
 const AuthForm = ({ type }: { type: FormType }) => {
   const [isLoading, setisLoading] = useState(false);
-  const [errorMessage, seterrorMessage] = useState("");
+  const [errorMessage, seterrorMessage] = useState('');
   const [isSuccess, setisSuccess] = useState(false);
 
   const formSchema = authFormSchema(type);
-  // 1. Define your form.
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
-      password: "",
-      firstName: "",
-      lastName: "",
-    },
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      accountType: 'creator',
+      companyName: 'abc',
+    } as z.infer<typeof formSchema>,
   });
 
-  // 2. Define a submit handler.
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setisLoading(true);
-    seterrorMessage("");
-
+    seterrorMessage('');
+    console.log('Form Values:', values);
     try {
-      if (type === "sign-in") {
-        await login(values);
+      if (type === 'sign-in') {
+        const payload: LoginData = {
+          email: values.email,
+          password: values.password,
+        };
+
+        await login(payload);
       } else {
-        await signup(values);
+        console.log('Signing up user with values:', values);
+        const payload: SignupData = {
+          email: values.email,
+          password: values.password,
+          firstName: values.firstName,
+          lastName: values.lastName,
+          accountType: values.accountType,
+          companyName: values.companyName,
+        };
+
+        await signup(payload);
       }
 
       console.log(values);
     } catch (error) {
+      if (isNextRedirectError(error)) {
+        throw error;
+      }
       console.error(error);
-      seterrorMessage("Something went wrong. Please try again.");
+      seterrorMessage('Something went wrong. Please try again.');
     } finally {
       setisLoading(false);
     }
@@ -78,11 +109,14 @@ const AuthForm = ({ type }: { type: FormType }) => {
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="auth-form max-w-sm">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="auth-form max-w-sm"
+        >
           <h1 className="h1 mb-2 text-[#0c2340]">
-            {type === "sign-in" ? "Sign In" : "Sign Up"}
+            {type === 'sign-in' ? 'Sign In' : 'Sign Up'}
           </h1>
-          {type === "sign-up" && (
+          {type === 'sign-up' && (
             <div>
               <FormField
                 control={form.control}
@@ -171,8 +205,9 @@ const AuthForm = ({ type }: { type: FormType }) => {
             type="submit"
             className="bg-[#e87722] text-white w-full rounded-full my-4"
             disabled={isLoading}
+            onClick={() => console.log(form.getValues())}
           >
-            {type === "sign-in" ? "Sign In" : "Sign Up"}
+            {type === 'sign-in' ? 'Sign In' : 'Sign Up'}
             {isLoading && (
               <Image
                 src="/loader.svg"
@@ -187,37 +222,39 @@ const AuthForm = ({ type }: { type: FormType }) => {
           <div className="body-2 flex flex-col justify-center text-center">
             <div className="flex justify-center">
               <p>
-                {type === "sign-in"
+                {type === 'sign-in'
                   ? "Don't have an account?"
-                  : "Already have an account?"}
+                  : 'Already have an account?'}
               </p>
               <Link
-                href={type === "sign-in" ? "/sign-up" : "/sign-in"}
+                href={type === 'sign-in' ? '/sign-up' : '/sign-in'}
                 className="ml-1 font-medium text-[#e87722]"
               >
-                {" "}
-                {type === "sign-in" ? "Sign Up" : "Sign In"}
+                {' '}
+                {type === 'sign-in' ? 'Sign Up' : 'Sign In'}
               </Link>
             </div>
-            {type === "sign-in" && (
+            {type === 'sign-in' && (
               <Link
                 href="/forgot-password"
                 className="ml-1 font-medium text-[#e87722]"
               >
-                {" "}
+                {' '}
                 Forgot Password?
               </Link>
             )}
           </div>
-          {isSuccess && type === "sign-up" && (
-        <div className="flex justify-center text-center mt-3 font-semibold">
-          <p>Success! Please check your email for a confirmation link from us.</p>
-        </div>
-      )}
+          {isSuccess && type === 'sign-up' && (
+            <div className="flex justify-center text-center mt-3 font-semibold">
+              <p>
+                Success! Please check your email for a confirmation link from
+                us.
+              </p>
+            </div>
+          )}
         </form>
       </Form>
       {/* OTP Verification */}
-
     </>
   );
 };

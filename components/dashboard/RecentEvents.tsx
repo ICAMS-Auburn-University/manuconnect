@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { formatDistanceToNow } from "date-fns";
+import { useState, useEffect } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import {
   Activity,
   AlertCircle,
@@ -11,19 +11,19 @@ import {
   Package,
   ShoppingCart,
   User,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import { getRecentEvents } from "@/utils/supabase/events";
-import { Event } from "@/lib/definitions";
-import Link from "next/link";
+} from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { getRecentEvents } from '@/utils/supabase/events';
+import { Event } from '@/lib/definitions';
+import Link from 'next/link';
 
 // Type definition based on the provided schema
 interface RecentEventsProps {
@@ -35,9 +35,9 @@ interface RecentEventsProps {
 
 export function RecentEvents({
   limit = 10,
-  height = "400px",
-  title = "Recent Events",
-  description = "Latest activity in your system",
+  height = '400px',
+  title = 'Recent Events',
+  description = 'Latest activity in your system',
 }: RecentEventsProps) {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ export function RecentEvents({
         setEvents(data);
         setLoading(false);
       } catch (error) {
-        console.error("Failed to fetch events:", error);
+        console.error('Failed to fetch events:', error);
         setLoading(false);
       }
     };
@@ -65,21 +65,21 @@ export function RecentEvents({
   // Function to determine which icon to show based on event type
   const getEventIcon = (eventType: string) => {
     switch (eventType.toLowerCase()) {
-      case "order":
+      case 'order':
         return <ShoppingCart className="h-4 w-4 text-blue" />;
-      case "user":
+      case 'user':
         return <User className="h-4 w-4 text-green" />;
-      case "system":
+      case 'system':
         return <Activity className="h-4 w-4 text-purple-500" />;
-      case "error":
+      case 'error':
         return <AlertCircle className="h-4 w-4 text-red" />;
-      case "success":
+      case 'success':
         return <CheckCircle className="h-4 w-4 text-green" />;
-      case "shipment":
+      case 'shipment':
         return <Package className="h-4 w-4 text-orange-500" />;
-      case "offer":
+      case 'offer':
         return <HandCoins className="h-4 w-4 text-yellow-500" />;
-      
+
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
     }
@@ -128,11 +128,11 @@ export function RecentEvents({
                         href={`/orders/${event.order_id}`}
                       >
                         Order #
-                        {event.order_id.toLocaleString("en-US", {
+                        {event.order_id.toLocaleString('en-US', {
                           minimumIntegerDigits: 6,
                           useGrouping: false,
-                        })}{" "}
-                        •{" "}
+                        })}{' '}
+                        •{' '}
                         {formatDistanceToNow(new Date(event.created_at), {
                           addSuffix: true,
                         })}

@@ -1,5 +1,5 @@
-import { OrderStatus } from "@/lib/definitions";
-import { Separator } from "./ui/separator";
+import { OrderStatus } from '@/lib/definitions';
+import { Separator } from './ui/separator';
 
 const ManufacturerOrderProgressBar = ({
   currentStatus,
@@ -26,12 +26,12 @@ const ManufacturerOrderProgressBar = ({
           <div key={status} className="flex flex-col items-center z-10">
             <div
               className={`h-4 w-4 rounded-full ${
-                index <= currentStep ? "bg-brand" : "bg-muted"
+                index <= currentStep ? 'bg-brand' : 'bg-muted'
               }`}
             ></div>
             <span
               className={`text-xs mt-2 text-center max-w-16 ${
-                index <= currentStep ? "text-brand" : "text-muted-foreground"
+                index <= currentStep ? 'text-brand' : 'text-muted-foreground'
               }`}
             >
               {status}
@@ -47,7 +47,7 @@ const ManufacturerOrderProgressBar = ({
                 <div
                   key={`bar-${index}`}
                   className={`h-[2px] flex-1 mx-2 ${
-                    index < currentStep ? "bg-brand" : "bg-muted"
+                    index < currentStep ? 'bg-brand' : 'bg-muted'
                   }`}
                 ></div>
               )

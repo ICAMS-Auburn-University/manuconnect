@@ -1,6 +1,6 @@
-import { Offer, Order } from "@/lib/definitions";
-import { EmailTemplate } from "./email-template";
-import { Link, Preview, Text } from "@react-email/components";
+import { Offer, Order } from '@/lib/definitions';
+import { EmailTemplate } from './email-template';
+import { Link, Preview, Text } from '@react-email/components';
 
 interface OfferAcceptanceEmailProps {
   offer?: Offer;
@@ -17,7 +17,7 @@ export const OfferAcceptanceEmail: React.FC<
     </Text>
     <Text>
       Your offer has been accepted on order #
-      {offer?.order_id.toLocaleString("en-US", {
+      {offer?.order_id.toLocaleString('en-US', {
         minimumIntegerDigits: 6,
         useGrouping: false,
       })}
@@ -27,7 +27,7 @@ export const OfferAcceptanceEmail: React.FC<
       to finalize details and payment of the order.
     </Text>
     <Text>
-      You can now view the order details on the{" "}
+      You can now view the order details on the{' '}
       <Link href={`https://manuconnect.org/orders/${offer?.order_id}`}>
         order's page
       </Link>

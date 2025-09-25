@@ -1,6 +1,6 @@
-import { Offer } from "@/lib/definitions";
-import { EmailTemplate } from "./email-template";
-import { Link, Preview, Text } from "@react-email/components";
+import { Offer } from '@/lib/definitions';
+import { EmailTemplate } from './email-template';
+import { Link, Preview, Text } from '@react-email/components';
 
 interface NewOfferEmailProps {
   offer: Offer;
@@ -17,7 +17,7 @@ export const NewOffer: React.FC<Readonly<NewOfferEmailProps>> = ({
       <h3>New Offer</h3>
     </Text>
     <Text>
-      You have a new offer from {offer.manufacturer_name}.{" "}
+      You have a new offer from {offer.manufacturer_name}.{' '}
       <span className="font-bold">
         Please login to view and decline or accept the offer.
       </span>
@@ -27,7 +27,7 @@ export const NewOffer: React.FC<Readonly<NewOfferEmailProps>> = ({
       finalize details and payment.
     </Text>
     <Text>
-      View your offer details on your{" "}
+      View your offer details on your{' '}
       <Link href={`https://manuconnect.org/orders/`}>orders page</Link>.
     </Text>
   </EmailTemplate>

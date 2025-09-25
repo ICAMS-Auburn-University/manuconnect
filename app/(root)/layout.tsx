@@ -1,17 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata } from 'next';
 
-import "../globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import '../globals.css';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import { Toaster } from '@/components/ui/sonner';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | ManuConnect",
-    default: "ManuConnect",
+    template: '%s | ManuConnect',
+    default: 'ManuConnect',
   },
-  description: "Connecting Ideas With Manufacturers",
+  description: 'Connecting Ideas With Manufacturers',
 };
 
 export default function RootLayout({

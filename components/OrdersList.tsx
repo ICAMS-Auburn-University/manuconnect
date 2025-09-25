@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
-import OrderSearchBar from "./OrderSearchBar";
-import { Badge } from "./ui/badge";
-import { ScrollArea, ScrollBar } from "./ui/scroll-area";
-import { Order, ProcessTags, MaterialTags, MiscTags } from "@/lib/definitions";
-import { Separator } from "./ui/separator";
-import { Skeleton } from "./ui/skeleton";
+import { useState, useMemo, useEffect } from 'react';
+import OrderSearchBar from './OrderSearchBar';
+import { Badge } from './ui/badge';
+import { ScrollArea, ScrollBar } from './ui/scroll-area';
+import { Order, ProcessTags, MaterialTags, MiscTags } from '@/lib/definitions';
+import { Separator } from './ui/separator';
+import { Skeleton } from './ui/skeleton';
 
 // Combine all tag types
 type TagType =
@@ -19,7 +19,7 @@ interface OrdersListProps {
 
 const OrdersList = ({ onOrderSelect, unclaimedOrders }: OrdersListProps) => {
   const orders = unclaimedOrders;
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] = useState('');
   const [selectedTags, setSelectedTags] = useState<TagType[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,7 +37,7 @@ const OrdersList = ({ onOrderSelect, unclaimedOrders }: OrdersListProps) => {
     return orders.filter((order) => {
       // Filter by search text
       const matchesSearch =
-        searchText === "" ||
+        searchText === '' ||
         order.title.toLowerCase().includes(searchText.toLowerCase()) ||
         order.description?.toLowerCase().includes(searchText.toLowerCase()) ||
         order.id.toString().includes(searchText);
@@ -62,7 +62,7 @@ const OrdersList = ({ onOrderSelect, unclaimedOrders }: OrdersListProps) => {
 
       <div className="">
         <ScrollArea
-          type={"auto"}
+          type={'auto'}
           className=" h-[22rem] w-full rounded-md border"
         >
           {loading && // Repeats skeleton 3 times
@@ -109,7 +109,7 @@ const OrdersList = ({ onOrderSelect, unclaimedOrders }: OrdersListProps) => {
                       <p className="h4">{order.title}</p>
                       <p className="text-neutral-500 text-sm">
                         #
-                        {order.id.toLocaleString("en-US", {
+                        {order.id.toLocaleString('en-US', {
                           minimumIntegerDigits: 6,
                           useGrouping: false,
                         })}
@@ -134,7 +134,7 @@ const OrdersList = ({ onOrderSelect, unclaimedOrders }: OrdersListProps) => {
                         return (
                           <Badge
                             key={tagId}
-                            variant={"outline"}
+                            variant={'outline'}
                             className=" text-xs"
                           >
                             {tagDetails?.label || tagId}

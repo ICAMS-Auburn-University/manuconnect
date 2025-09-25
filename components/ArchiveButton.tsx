@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { ArchiveIcon } from "lucide-react";
-import { Button } from "./ui/button";
-import { updateOrder } from "@/utils/supabase/orders";
-import { Order } from "@/lib/definitions";
-import { toast } from "sonner";
+import { ArchiveIcon } from 'lucide-react';
+import { Button } from './ui/button';
+import { updateOrder } from '@/utils/supabase/orders';
+import { Order } from '@/lib/definitions';
+import { toast } from 'sonner';
 
 interface ArchiveButtonProps {
   order: Order;
@@ -20,11 +20,11 @@ const ArchiveButton: React.FC<ArchiveButtonProps> = ({ order, onArchive }) => {
     });
 
     if (response?.error) {
-      console.error("Failed to archive order:", response.error);
-      toast.error("Error archiving order");
+      console.error('Failed to archive order:', response.error);
+      toast.error('Error archiving order');
     } else {
-      toast.success("Order archived successfully");
-      console.log("Order archived successfully:", response?.data);
+      toast.success('Order archived successfully');
+      console.log('Order archived successfully:', response?.data);
       onArchive(order.id);
     }
   };

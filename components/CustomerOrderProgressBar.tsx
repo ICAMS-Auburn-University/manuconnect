@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { OrderStatus } from "@/lib/definitions";
-import { Check } from "lucide-react";
+import { OrderStatus } from '@/lib/definitions';
+import { Check } from 'lucide-react';
 
 // Using the enum provided by the parent component
 
@@ -23,10 +23,10 @@ export function OrderProgressBar({ currentStatus }: OrderProgressBarProps) {
         <div
           className="relative flex justify-between"
           style={{
-            gap: "clamp(8px, 2vw, 24px)",
-            margin: "0 auto",
-            width: "fit-content",
-            minWidth: "100%",
+            gap: 'clamp(8px, 2vw, 24px)',
+            margin: '0 auto',
+            width: 'fit-content',
+            minWidth: '100%',
           }}
         >
           {allStatuses.map((status, index) => {
@@ -37,15 +37,15 @@ export function OrderProgressBar({ currentStatus }: OrderProgressBarProps) {
               <div
                 key={status}
                 className="flex flex-col items-center"
-                style={{ flex: "1" }}
+                style={{ flex: '1' }}
               >
                 <div
                   className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mb-2 z-10 transition-colors duration-300 ${
                     isCompleted
-                      ? "bg-brand text-white"
+                      ? 'bg-brand text-white'
                       : isCurrent
-                        ? "bg-brand text-white border-2 border-blue-600"
-                        : "bg-gray-200 text-gray-500"
+                        ? 'bg-brand text-white border-2 border-blue-600'
+                        : 'bg-gray-200 text-gray-500'
                   }`}
                 >
                   {isCompleted ? (
@@ -56,7 +56,7 @@ export function OrderProgressBar({ currentStatus }: OrderProgressBarProps) {
                 </div>
                 <span
                   className={`text-[8px] sm:text-xs text-center ${
-                    isCurrent ? "font-medium text-brand" : "text-gray-500"
+                    isCurrent ? 'font-medium text-brand' : 'text-gray-500'
                   }`}
                 >
                   {status}

@@ -1,5 +1,5 @@
-"use client";
-import React, { useEffect, useState } from "react";
+'use client';
+import React, { useEffect, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -9,22 +9,22 @@ import {
   TableHeader,
   TableRow,
   TableFooter,
-} from "@/components/ui/table";
-import Link from "next/link";
-import { Button } from "./ui/button";
-import { Order } from "@/lib/definitions";
+} from '@/components/ui/table';
+import Link from 'next/link';
+import { Button } from './ui/button';
+import { Order } from '@/lib/definitions';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "./ui/tooltip";
+} from './ui/tooltip';
 
-import ArchiveButton from "./ArchiveButton";
-import { HandCoins } from "lucide-react";
-import { Badge } from "./ui/badge";
-import ViewOffers from "./ViewOffers";
-import { getUserById } from "@/utils/adminUtils";
+import ArchiveButton from './ArchiveButton';
+import { HandCoins } from 'lucide-react';
+import { Badge } from './ui/badge';
+import ViewOffers from './ViewOffers';
+import { getUserById } from '@/utils/adminUtils';
 
 interface ManufacturerOrdersTableProps {
   Orders: Order[];
@@ -75,7 +75,7 @@ const ManufacturerOrdersTable: React.FC<ManufacturerOrdersTableProps> = ({
                 <TableRow key={order.id}>
                   <TableCell>
                     #
-                    {order.id.toLocaleString("en-US", {
+                    {order.id.toLocaleString('en-US', {
                       minimumIntegerDigits: 6,
                       useGrouping: false,
                     })}
@@ -85,21 +85,19 @@ const ManufacturerOrdersTable: React.FC<ManufacturerOrdersTableProps> = ({
                   </TableCell>
                   <TableCell>{order.title}</TableCell>
                   <TableCell>
-                    {new Date(order.last_update).toLocaleString("en-us")}
+                    {new Date(order.last_update).toLocaleString('en-us')}
                   </TableCell>
                   <TableCell>
-                    {new Date(order.created_at).toLocaleString("en-us", {
-                      timeZone: "CST",
+                    {new Date(order.created_at).toLocaleString('en-us', {
+                      timeZone: 'America/Chicago',
                     })}
                   </TableCell>
-                  <TableCell>
-                    {order.creator_name || "Unknown"}
-                  </TableCell>
+                  <TableCell>{order.creator_name || 'Unknown'}</TableCell>
                   <TableCell className="flex flex-row gap-2">
-                    <Link href={"/orders/" + order.id}>
+                    <Link href={'/orders/' + order.id}>
                       <Button
                         className="bg-brand hover:bg-brand-100 transition text-white "
-                        size={"sm"}
+                        size={'sm'}
                       >
                         View Order
                       </Button>

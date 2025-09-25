@@ -1,7 +1,7 @@
-import { getOrderById } from "@/utils/supabase/orders";
+import { getOrderById } from '@/utils/supabase/orders';
 
-import OrderPageWrapper from "@/components/OrderPageWrapper";
-import { getUserById } from "@/utils/adminUtils";
+import OrderPageWrapper from '@/components/OrderPageWrapper';
+import { getUserById } from '@/utils/adminUtils';
 
 export default async function OrderDetailsPage({
   params,
@@ -16,10 +16,5 @@ export default async function OrderDetailsPage({
     return <div>Order not found</div>;
   }
 
-  return (
-    <OrderPageWrapper
-      orderId={slug}
-
-    />
-  );
+  return <OrderPageWrapper orderId={slug} />;
 }

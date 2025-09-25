@@ -1,9 +1,7 @@
-import React from 'react'
+import React from 'react';
 
 const ActiveOrders = () => {
-  return (
-    <div>Work In Progress</div>
-  )
-}
+  return <div>Work In Progress</div>;
+};
 
-export default ActiveOrders
+export default ActiveOrders;

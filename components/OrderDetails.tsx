@@ -1,9 +1,9 @@
-"use client";
-import { Order } from "@/lib/definitions";
-import { Badge } from "./ui/badge";
-import { ProcessTags, MaterialTags, MiscTags } from "@/lib/definitions";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Separator } from "./ui/separator";
+'use client';
+import { Order } from '@/lib/definitions';
+import { Badge } from './ui/badge';
+import { ProcessTags, MaterialTags, MiscTags } from '@/lib/definitions';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Separator } from './ui/separator';
 import {
   CalendarIcon,
   ClipboardList,
@@ -12,7 +12,7 @@ import {
   PlusCircle,
   TagIcon,
   UserIcon,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   Dialog,
   DialogClose,
@@ -22,11 +22,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
+} from './ui/dialog';
 
-import { Button } from "./ui/button";
-import Link from "next/link";
-import OfferForm from "./OfferForm";
+import { Button } from './ui/button';
+import Link from 'next/link';
+import OfferForm from './OfferForm';
 
 const OrderDetails = ({ order }: { order: Order | null }) => {
   if (!order) {
@@ -49,9 +49,9 @@ const OrderDetails = ({ order }: { order: Order | null }) => {
             <div className="flex items-center gap-2 text-muted-foreground">
               <ClipboardList className="h-4 w-4" />
               <span className="text-sm">
-                {" "}
+                {' '}
                 #
-                {order.id.toLocaleString("en-US", {
+                {order.id.toLocaleString('en-US', {
                   minimumIntegerDigits: 6,
                   useGrouping: false,
                 })}
@@ -72,7 +72,7 @@ const OrderDetails = ({ order }: { order: Order | null }) => {
                 <UserIcon className="h-4 w-4" />
                 <span className="text-sm">Creator</span>
               </div>
-              <p className="font-medium">{order.creator_name || "-"}</p>
+              <p className="font-medium">{order.creator_name || '-'}</p>
             </div>
 
             <div className="space-y-1">
@@ -146,7 +146,7 @@ const OrderDetails = ({ order }: { order: Order | null }) => {
                   </DialogTitle>
                   <span className="text-muted-foreground font-medium text-sm">
                     Order: #
-                    {order.id.toLocaleString("en-US", {
+                    {order.id.toLocaleString('en-US', {
                       minimumIntegerDigits: 6,
                       useGrouping: false,
                     })}
@@ -156,11 +156,10 @@ const OrderDetails = ({ order }: { order: Order | null }) => {
                   Fill out the form below to create an offer for this order.
                 </DialogDescription>
                 <OfferForm order={order} />
-
               </DialogContent>
             </Dialog>
             {order.creator && (
-              <Link href={"mailto:" + order.creator_email}>
+              <Link href={'mailto:' + order.creator_email}>
                 <Button variant="outline" size="sm">
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Contact

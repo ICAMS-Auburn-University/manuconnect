@@ -1,10 +1,10 @@
-"use client";
-import React, { useState } from "react";
-import { Card, CardContent, CardTitle } from "./ui/card";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
+'use client';
+import React, { useState } from 'react';
+import { Card, CardContent, CardTitle } from './ui/card';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -13,50 +13,50 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import Image from "next/image";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import Image from 'next/image';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import { createClient } from "@/utils/supabase/client";
-import { redirect } from "next/navigation";
-import { isMobilePhone } from "validator";
+} from './ui/select';
+import { createClient } from '@/utils/supabase/client';
+import { redirect } from 'next/navigation';
+import { isMobilePhone } from 'validator';
 
 const phoneRegex = new RegExp(
   /^([+]?[\s0-9]+)?(\d{3}|[(]?[0-9]+[)])?([-]?[\s]?[0-9])+$/
 );
 
 const onboardingFormSchema = z.object({
-  accountType: z.enum(["creator", "manufacturer"]),
+  accountType: z.enum(['creator', 'manufacturer', 'admin']),
   manufacturerName: z.string().max(30).optional(),
   phoneNumber: z.string().regex(phoneRegex, {
-    message: "Please enter a valid phone number.",
+    message: 'Please enter a valid phone number.',
   }),
 });
 
 const OnboardingForm = () => {
   const [isLoading, setisLoading] = useState(false);
-  const [errorMessage, seterrorMessage] = useState("");
+  const [errorMessage, seterrorMessage] = useState('');
 
   // 1. Define your form.
   const form = useForm<z.infer<typeof onboardingFormSchema>>({
     resolver: zodResolver(onboardingFormSchema),
     defaultValues: {
       accountType: undefined,
-      manufacturerName: "",
-      phoneNumber: "",
+      manufacturerName: '',
+      phoneNumber: '',
     },
   });
 
   // 2. Define a submit handler.
   const onSubmit = async (values: z.infer<typeof onboardingFormSchema>) => {
     setisLoading(true);
-    seterrorMessage("");
+    seterrorMessage('');
     const supabase = createClient();
 
     try {
@@ -67,15 +67,15 @@ const OnboardingForm = () => {
           phone_number: values.phoneNumber,
         },
       });
-      console.log("User profile updated:", data, error);
+      console.log('User profile updated:', data, error);
     } catch (error) {
       console.error(error);
-      seterrorMessage("Something went wrong. Please try again." + error);
+      seterrorMessage('Something went wrong. Please try again.' + error);
     } finally {
       setisLoading(false);
     }
 
-    redirect("/");
+    redirect('/');
   };
 
   return (
@@ -141,27 +141,25 @@ const OnboardingForm = () => {
                 </FormItem>
               )}
             />
-            {form.watch("accountType") === "manufacturer" && (
-              <FormField
-                control={form.control}
-                name="manufacturerName"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="shad-form-item mt-2">
-                      <FormLabel className="pb-1">Company Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter your company name"
-                          className="shad-input"
-                          {...field}
-                        />
-                      </FormControl>
-                    </div>
-                    <FormMessage className="shad-form-message" />
-                  </FormItem>
-                )}
-              />
-            )}
+            <FormField
+              control={form.control}
+              name="manufacturerName"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="shad-form-item mt-2">
+                    <FormLabel className="pb-1">Company Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter your company name"
+                        className="shad-input"
+                        {...field}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage className="shad-form-message" />
+                </FormItem>
+              )}
+            />
           </div>
 
           <Button

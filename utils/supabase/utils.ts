@@ -1,6 +1,6 @@
-"use server";
+'use server';
 
-import { createClient } from "./server";
+import { createClient } from './server';
 
 export async function getInitials() {
   const supabase = await createClient();
@@ -43,7 +43,7 @@ export async function getUserId() {
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data?.user?.id) {
-    throw new Error("User ID not found");
+    throw new Error('User ID not found');
   }
   return data.user;
 }

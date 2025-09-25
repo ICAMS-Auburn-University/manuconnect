@@ -1,15 +1,15 @@
-import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
-import Link from "next/link";
-import Image from "next/image";
-import SignOut from "./SignOut";
-import { Button } from "./ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
+import Link from 'next/link';
+import Image from 'next/image';
+import SignOut from './SignOut';
+import { Button } from './ui/button';
 import {
   getAccountType,
   getInitials,
   getUserData,
-} from "@/utils/supabase/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import MobileMenu from "./MobileMenu";
+} from '@/utils/supabase/utils';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import MobileMenu from './MobileMenu';
 
 const Navbar = async () => {
   const userType = await getAccountType();
@@ -37,7 +37,7 @@ const Navbar = async () => {
           <Link href="/orders">
             <p className="navbarLink hover:underline">Your Orders</p>
           </Link>
-          {(userType === "creator" || userType === "admin") && (
+          {(userType === 'creator' || userType === 'admin') && (
             <>
               <Link href="/orders/new">
                 <Button className="bg-brand px-2 py-1 h-fit hover:bg-brand-100 transition">
@@ -53,7 +53,7 @@ const Navbar = async () => {
             </>
           )}
 
-          {(userType === "manufacturer" || userType === "admin") && (
+          {(userType === 'manufacturer' || userType === 'admin') && (
             <>
               <Link href="/orders/browse">
                 <Button className="bg-brand px-2 py-1 h-fit hover:bg-brand-100 transition">
@@ -75,7 +75,7 @@ const Navbar = async () => {
                 <AvatarImage
                   src={
                     process.env.NEXT_PUBLIC_SUPABASE_URL +
-                    "/storage/v1/object/public/" +
+                    '/storage/v1/object/public/' +
                     userData?.user_metadata.profile_picture
                   }
                 ></AvatarImage>
@@ -85,7 +85,7 @@ const Navbar = async () => {
               </Avatar>
             </PopoverTrigger>
             <PopoverContent className="bg-white w-40 p-2" align="end">
-              <p className="h4">{userData?.user_metadata.display_name}</p>{" "}
+              <p className="h4">{userData?.user_metadata.display_name}</p>{' '}
               <p className="text-sm text-muted-foreground">
                 {userData?.user_metadata.account_type}
               </p>
@@ -105,7 +105,7 @@ const Navbar = async () => {
             userType={userType}
             userData={userData}
             initials={initials}
-          />{" "}
+          />{' '}
           {/* Pass initials as a prop */}
         </div>
       </div>

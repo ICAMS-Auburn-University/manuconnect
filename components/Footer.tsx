@@ -1,6 +1,6 @@
-import { getAccountType } from "@/utils/supabase/utils";
-import Image from "next/image";
-import Link from "next/link";
+import { getAccountType } from '@/utils/supabase/utils';
+import Image from 'next/image';
+import Link from 'next/link';
 
 const Footer = async () => {
   const userType = await getAccountType();
@@ -39,7 +39,7 @@ const Footer = async () => {
             <li>
               <Link href="/tos">Terms of Service</Link>
             </li>
-            {userType === "admin" && (
+            {userType === 'admin' && (
               <li>
                 <Link href="/admin">Admin Portal</Link>
                 <p className="text-muted-foreground">{process.env.NODE_ENV}</p>

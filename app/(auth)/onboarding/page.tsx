@@ -1,5 +1,5 @@
-import OnboardingForm from "@/components/OnboardingForm";
-import React from "react";
+import OnboardingForm from '@/components/OnboardingForm';
+import React from 'react';
 
 const Onboarding = () => {
   return (

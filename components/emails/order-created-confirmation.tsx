@@ -1,6 +1,6 @@
-import { Offer, Order } from "@/lib/definitions";
-import { EmailTemplate } from "./email-template";
-import { Link, Preview, Text } from "@react-email/components";
+import { Offer, Order } from '@/lib/definitions';
+import { EmailTemplate } from './email-template';
+import { Link, Preview, Text } from '@react-email/components';
 
 interface NewOrderConfirmationEmailProps {
   order: Order;
@@ -13,19 +13,19 @@ export const NewOrderConfirmation: React.FC<
   <EmailTemplate email={email}>
     <Preview>
       Order #
-      {order.id.toLocaleString("en-US", {
+      {order.id.toLocaleString('en-US', {
         minimumIntegerDigits: 6,
         useGrouping: false,
-      })}{" "}
+      })}{' '}
       Confirmation
     </Preview>
     <Text>
       <h3>
         Order #
-        {order.id.toLocaleString("en-US", {
+        {order.id.toLocaleString('en-US', {
           minimumIntegerDigits: 6,
           useGrouping: false,
-        })}{" "}
+        })}{' '}
         Confirmation
       </h3>
     </Text>
@@ -37,7 +37,7 @@ export const NewOrderConfirmation: React.FC<
       payment.
     </Text>
     <Text>
-      View your order details on your{" "}
+      View your order details on your{' '}
       <Link href={`https://manuconnect.org/orders/`}>orders page</Link>.
     </Text>
   </EmailTemplate>

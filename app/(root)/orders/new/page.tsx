@@ -1,16 +1,16 @@
-import { Metadata } from "next";
-import OrderForm from "@/components/OrderForm";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { redirect } from "next/navigation";
-import { getAccountType } from "@/utils/supabase/utils";
+import { Metadata } from 'next';
+import OrderForm from '@/components/OrderForm';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { redirect } from 'next/navigation';
+import { getAccountType } from '@/utils/supabase/utils';
 
 export const metadata: Metadata = {
-  title: "New Order",
+  title: 'New Order',
 };
 
 const NewOrder = async () => {
-  if ((await getAccountType()) === "manufacturer") {
-    redirect("/");
+  if ((await getAccountType()) === 'manufacturer') {
+    redirect('/');
   }
 
   return (

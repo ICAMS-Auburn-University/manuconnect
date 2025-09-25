@@ -1,36 +1,38 @@
-import Image from "next/image";
-import Link from "next/link";
-import "../globals.css";
-import type { Metadata } from "next";
-import { Inter, Montserrat } from "next/font/google";
+import Image from 'next/image';
+import Link from 'next/link';
+import type { Metadata } from 'next';
+import { Inter, Montserrat } from 'next/font/google';
 
 const interFont = Inter({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  variable: "--font-inter",
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  variable: '--font-inter',
 });
 
 const montserratFont = Montserrat({
-  subsets: ["latin"],
-  variable: "--font-montserrat",
+  subsets: ['latin'],
+  variable: '--font-montserrat',
 });
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | ManuConnect",
-    default: "ManuConnect",
+    template: '%s | ManuConnect',
+    default: 'ManuConnect',
   },
-  description: "Connecting Ideas With Manufacturers",
+  description: 'Connecting Ideas With Manufacturers',
 };
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex min-h-screen">
       <section className="bg-[#e87722] hidden w-1/2  lg:flex lg:flex-col xl:w-2/5">
-        <div className="p-8 flex flex-row items-center gap-2">
-          <Image src="/logo-white.svg" width={38} height={41} alt="logo" />
-          <Link href="/">
-            <h2 className="h2 text-white">ManuConnect</h2>
+        <div className="flex">
+          <Link
+            href="/"
+            className="flex flex-row items-center gap-2 bg-white p-4 m-4 rounded-sm"
+          >
+            <Image src="/logo.svg" width={38} height={41} alt="logo" />
+            <h2 className="h2 text-[#e87722]">ManuConnect</h2>
           </Link>
         </div>
 

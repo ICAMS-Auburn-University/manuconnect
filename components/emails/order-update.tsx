@@ -1,6 +1,6 @@
-import { Offer, Order } from "@/lib/definitions";
-import { EmailTemplate } from "./email-template";
-import { Link, Preview, Text } from "@react-email/components";
+import { Offer, Order } from '@/lib/definitions';
+import { EmailTemplate } from './email-template';
+import { Link, Preview, Text } from '@react-email/components';
 
 interface OrderUpdateEmailProps {
   order?: Order;
@@ -18,18 +18,18 @@ export const OrderUpdateEmail: React.FC<Readonly<OrderUpdateEmailProps>> = ({
     </Text>
     <Text>
       Your order #
-      {order?.id.toLocaleString("en-US", {
+      {order?.id.toLocaleString('en-US', {
         minimumIntegerDigits: 6,
         useGrouping: false,
-      })}{" "}
-      has been updated on{" "}
+      })}{' '}
+      has been updated on{' '}
       {order?.last_update
         ? new Date(order.last_update).toLocaleString()
-        : "N/A"}
+        : 'N/A'}
       .
     </Text>
     <Text>
-      You can view the order details on the{" "}
+      You can view the order details on the{' '}
       <Link href={`https://manuconnect.org/orders/${order?.id}`}>
         order's page
       </Link>

@@ -1,33 +1,45 @@
-"use client"
+'use client';
 
-import type React from "react"
-import { Menu } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "./ui/button"
-import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar"
-import SignOut from "./SignOut"
-import { getInitials } from "@/utils/supabase/utils"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import type React from 'react';
+import { Menu } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Button } from './ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
+import SignOut from './SignOut';
+import { getInitials } from '@/utils/supabase/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 interface MobileMenuProps {
-  userType: string | null
-  userData: any
-  initials: string
+  userType: string | null;
+  userData: any;
+  initials: string;
 }
 
-const MobileMenu: React.FC<MobileMenuProps> = ({ userType, userData, initials }) => {
+const MobileMenu: React.FC<MobileMenuProps> = ({
+  userType,
+  userData,
+  initials,
+}) => {
   return (
     <>
       <Avatar className="md:hidden">
         <AvatarImage
           src={
             process.env.NEXT_PUBLIC_SUPABASE_URL +
-            "/storage/v1/object/public/" +
+            '/storage/v1/object/public/' +
             userData?.user_metadata.profile_picture
           }
         ></AvatarImage>
-        <AvatarFallback className="bg-brand font-semibold">{initials}</AvatarFallback>
+        <AvatarFallback className="bg-brand font-semibold">
+          {initials}
+        </AvatarFallback>
       </Avatar>
 
       <Sheet>
@@ -50,16 +62,24 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ userType, userData, initials })
                   <AvatarImage
                     src={
                       process.env.NEXT_PUBLIC_SUPABASE_URL +
-                      "/storage/v1/object/public/" +
+                      '/storage/v1/object/public/' +
                       userData?.user_metadata.profile_picture
                     }
                   ></AvatarImage>
-                  <AvatarFallback className="bg-brand font-semibold">{initials}</AvatarFallback>
+                  <AvatarFallback className="bg-brand font-semibold">
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{userData?.user_metadata.display_name}</p>
-                  <p className="text-sm text-muted-foreground">{userData?.user_metadata.account_type}</p>
-                  <p className="text-sm text-muted-foreground">{userData?.user_metadata.company_name}</p>
+                  <p className="font-medium">
+                    {userData?.user_metadata.display_name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {userData?.user_metadata.account_type}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {userData?.user_metadata.company_name}
+                  </p>
                 </div>
               </div>
               <SignOut className="w-full mt-2" />
@@ -67,13 +87,19 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ userType, userData, initials })
 
             {/* Navigation Links */}
             <nav className="flex flex-col gap-2">
-              <Link href="/" className="py-2 px-3 hover:bg-muted rounded-md transition-colors">
+              <Link
+                href="/"
+                className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
+              >
                 Home
               </Link>
 
-              {(userType === "creator" || userType === "admin") && (
+              {(userType === 'creator' || userType === 'admin') && (
                 <>
-                  <Link href="/orders" className="py-2 px-3 hover:bg-muted rounded-md transition-colors">
+                  <Link
+                    href="/orders"
+                    className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
+                  >
                     View Orders
                   </Link>
                   <Link
@@ -81,15 +107,23 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ userType, userData, initials })
                     className="py-2 px-3 bg-brand text-white rounded-md hover:bg-brand-100 transition-colors"
                   >
                     <div className="flex items-center gap-2">
-                      <Image src="/plus.svg" width="18" height="18" alt="plus icon" />
+                      <Image
+                        src="/plus.svg"
+                        width="18"
+                        height="18"
+                        alt="plus icon"
+                      />
                       <span>Request</span>
                     </div>
                   </Link>
                 </>
               )}
 
-              {(userType === "manufacturer" || userType === "admin") && (
-                <Link href="/orders/browse" className="py-2 px-3 hover:bg-muted rounded-md transition-colors">
+              {(userType === 'manufacturer' || userType === 'admin') && (
+                <Link
+                  href="/orders/browse"
+                  className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
+                >
                   Browse Orders
                 </Link>
               )}
@@ -98,8 +132,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ userType, userData, initials })
         </SheetContent>
       </Sheet>
     </>
-  )
-}
+  );
+};
 
-export default MobileMenu
-
+export default MobileMenu;

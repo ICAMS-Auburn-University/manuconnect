@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowLeft,
   Download,
@@ -7,37 +7,37 @@ import {
   User as LucideUser,
   Mail,
   Phone,
-} from "lucide-react";
-import { Canvas } from "@react-three/fiber";
-import { Environment, OrbitControls } from "@react-three/drei";
+} from 'lucide-react';
+import { Canvas } from '@react-three/fiber';
+import { Environment, OrbitControls } from '@react-three/drei';
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Order, OrderStatus } from "@/lib/definitions";
-import { User as SupabaseUser } from "@supabase/supabase-js";
-import OrderProgressBar from "./CustomerOrderProgressBar";
-import { updateOrder } from "@/utils/supabase/orders";
-import { getNextOrderStatus } from "@/lib/utils";
-import { toast } from "sonner";
-import ViewOffers from "./ViewOffers";
-import ShippingDialog from "./ShippingDialog";
-import { getUserById } from "@/utils/adminUtils";
-import AddLivestreamForm from "./AddLivestreamForm";
+} from '@/components/ui/accordion';
+import { Order, OrderStatus } from '@/lib/definitions';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import OrderProgressBar from './CustomerOrderProgressBar';
+import { updateOrder } from '@/utils/supabase/orders';
+import { getNextOrderStatus } from '@/lib/utils';
+import { toast } from 'sonner';
+import ViewOffers from './ViewOffers';
+import ShippingDialog from './ShippingDialog';
+import { getUserById } from '@/utils/adminUtils';
+import AddLivestreamForm from './AddLivestreamForm';
 
 type OrderPageProps = {
   order: Order;
@@ -52,22 +52,22 @@ const OrderPage = ({
   manufacturerData,
   creatorData,
 }: OrderPageProps) => {
-  const [activeTab, setActiveTab] = useState("details");
+  const [activeTab, setActiveTab] = useState('details');
   const [currentStatus, setCurrentStatus] = useState(order.status); // Local state for status
   const [isShippingDialogOpen, setIsShippingDialogOpen] = useState(false);
   const [isLivestreamDialogOpen, setIsLivestreamDialogOpen] = useState(false);
   const [shippingInfo, setShippingInfo] = useState({
-    trackingNumber: "",
-    carrier: "",
+    trackingNumber: '',
+    carrier: '',
   });
-  const [livestreamUrl, setLivestreamUrl] = useState("");
+  const [livestreamUrl, setLivestreamUrl] = useState('');
 
   const UserType = userData?.user_metadata.account_type;
 
   const handleUpdateStatus = async () => {
     const nextStatus = getNextOrderStatus(currentStatus);
     if (!nextStatus) {
-      console.log("No next status available");
+      console.log('No next status available');
       return;
     }
 
@@ -79,10 +79,10 @@ const OrderPage = ({
     try {
       await updateOrder({ id: order.id, status: nextStatus });
       setCurrentStatus(nextStatus);
-      toast.success("Order status updated successfully");
+      toast.success('Order status updated successfully');
     } catch (error) {
-      console.error("Failed to update order status:", error);
-      toast.error("Failed to update order status");
+      console.error('Failed to update order status:', error);
+      toast.error('Failed to update order status');
     }
   };
 
@@ -91,7 +91,7 @@ const OrderPage = ({
     carrier: string;
   }) => {
     if (!formValues.trackingNumber || !formValues.carrier) {
-      toast.error("Please fill in all shipping details");
+      toast.error('Please fill in all shipping details');
       return;
     }
 
@@ -106,10 +106,10 @@ const OrderPage = ({
       });
       setCurrentStatus(OrderStatus.Shipped);
       setIsShippingDialogOpen(false);
-      toast.success("Order status updated to Shipped");
+      toast.success('Order status updated to Shipped');
     } catch (error) {
-      console.error("Failed to update order status:", error);
-      toast.error("Failed to update order status");
+      console.error('Failed to update order status:', error);
+      toast.error('Failed to update order status');
     }
   };
 
@@ -117,7 +117,7 @@ const OrderPage = ({
     livestreamUrl: string;
   }) => {
     if (!formValues.livestreamUrl) {
-      toast.error("Please enter a livestream URL");
+      toast.error('Please enter a livestream URL');
       return;
     }
 
@@ -128,10 +128,10 @@ const OrderPage = ({
       });
 
       setIsLivestreamDialogOpen(false);
-      toast.success("Link to livestream added successfully");
+      toast.success('Link to livestream added successfully');
     } catch (error) {
-      console.error("Failed to add livestream link:", error);
-      toast.error("Failed to add livestream link");
+      console.error('Failed to add livestream link:', error);
+      toast.error('Failed to add livestream link');
     }
   };
 
@@ -148,23 +148,23 @@ const OrderPage = ({
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
               Order #
-              {order.id.toLocaleString("en-US", {
+              {order.id.toLocaleString('en-US', {
                 minimumIntegerDigits: 6,
                 useGrouping: false,
               })}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Placed on {new Date(order.created_at).toLocaleDateString()}{" "}
+              Placed on {new Date(order.created_at).toLocaleDateString()}{' '}
             </p>
             <p className="text-sm text-muted-foreground">
-              Last Updated at{" "}
-              {new Date(order.last_update).toLocaleString()}{" "}
+              Last Updated at{' '}
+              {new Date(order.last_update).toLocaleString()}{' '}
             </p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
           <Badge
-            variant={order.status === "Completed" ? "default" : "secondary"}
+            variant={order.status === 'Completed' ? 'default' : 'secondary'}
           >
             {order.status}
           </Badge>
@@ -231,13 +231,13 @@ const OrderPage = ({
                                 order.price.unit_cost *
                                 order.price.projected_units
                               ).toFixed(2)
-                            : "Unknown"}
+                            : 'Unknown'}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Shipping</span>
                         <span>
-                          ${order.price?.shipping_cost.toFixed(2) || "Unknown"}
+                          ${order.price?.shipping_cost.toFixed(2) || 'Unknown'}
                         </span>
                       </div>
                       <Separator className="my-2" />
@@ -256,7 +256,7 @@ const OrderPage = ({
             </Card>
 
             <div className="space-y-6">
-              {(UserType === "creator" || UserType === "admin") && (
+              {(UserType === 'creator' || UserType === 'admin') && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
@@ -267,25 +267,25 @@ const OrderPage = ({
                   <CardContent>
                     <div className="space-y-1">
                       <p className="font-medium">
-                        {order.manufacturer_name || "Unassigned"}
+                        {order.manufacturer_name || 'Unassigned'}
                       </p>
                       <p className="text-sm flex">
                         <Mail className="mr-2 h-4 w-4" />
-                        <Link href={`mailto:${manufacturerData?.email || ""}`}>
-                          {manufacturerData?.email || "Not Found"}
+                        <Link href={`mailto:${manufacturerData?.email || ''}`}>
+                          {manufacturerData?.email || 'Not Found'}
                         </Link>
                       </p>
                       <p className="text-sm flex">
                         <Phone className="mr-2 h-4 w-4" />
                         {manufacturerData?.user_metadata.phone_number ||
-                          "Not Found"}
+                          'Not Found'}
                       </p>
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {(UserType === "manufacturer" || UserType === "admin") && (
+              {(UserType === 'manufacturer' || UserType === 'admin') && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
@@ -298,13 +298,13 @@ const OrderPage = ({
                       <p className="font-medium">{order.creator_name}</p>
                       <p className="text-sm flex">
                         <Mail className="mr-2 h-4 w-4" />
-                        <Link href={`mailto:${creatorData?.email || ""}`}>
-                          {creatorData?.email || "Not Found"}
+                        <Link href={`mailto:${creatorData?.email || ''}`}>
+                          {creatorData?.email || 'Not Found'}
                         </Link>
                       </p>
                       <p className="text-sm flex">
                         <Phone className="mr-2 h-4 w-4" />
-                        {creatorData?.user_metadata.phone_number || "Not Found"}
+                        {creatorData?.user_metadata.phone_number || 'Not Found'}
                       </p>
                     </div>
                   </CardContent>
@@ -321,8 +321,8 @@ const OrderPage = ({
                 <CardContent>
                   <p className="text-sm">{order.delivery_address?.street}</p>
                   <p className="text-sm">
-                    {order.delivery_address?.city},{" "}
-                    {order.delivery_address?.state}{" "}
+                    {order.delivery_address?.city},{' '}
+                    {order.delivery_address?.state}{' '}
                     {order.delivery_address?.postal_code}
                   </p>
                   <p className="text-sm">United States of America</p>
@@ -425,7 +425,7 @@ const OrderPage = ({
               <CardDescription>
                 <div className="flex flex-row justify-between items-center">
                   Track the progress of your order
-                  {(UserType === "manufacturer" || UserType === "admin") && (
+                  {(UserType === 'manufacturer' || UserType === 'admin') && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -438,67 +438,65 @@ const OrderPage = ({
               </CardDescription>
             </CardHeader>
             <CardContent className="w-full">
-              {(UserType === "creator" || UserType === "admin") && (
+              {(UserType === 'creator' || UserType === 'admin') && (
                 <OrderProgressBar currentStatus={currentStatus} />
               )}
             </CardContent>
           </Card>
 
-          
-            {(order.livestream_url || UserType === "admin") && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Live Feed</CardTitle>
-                  <CardDescription>
-                    Livestream provided by manufacturer
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {order.livestream_url ? (
-                    <iframe
-                      src={`https://www.youtube.com/embed/${order.livestream_url.substring(
-                        order.livestream_url.length - 11
-                      )}`}
-                      title="Live Stream"
-                      className="w w-96"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <>
-                      <p>No live stream available.</p>
-                      {UserType === "admin" && (
-                        <Button
-                          variant="outline"
-                          className="text-muted-foreground"
-                          onClick={() => setIsLivestreamDialogOpen(true)}
-                        >
-                          Add Live Stream
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+          {(order.livestream_url || UserType === 'admin') && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Live Feed</CardTitle>
+                <CardDescription>
+                  Livestream provided by manufacturer
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {order.livestream_url ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${order.livestream_url.substring(
+                      order.livestream_url.length - 11
+                    )}`}
+                    title="Live Stream"
+                    className="w w-96"
+                    allowFullScreen
+                  />
+                ) : (
+                  <>
+                    <p>No live stream available.</p>
+                    {UserType === 'admin' && (
+                      <Button
+                        variant="outline"
+                        className="text-muted-foreground"
+                        onClick={() => setIsLivestreamDialogOpen(true)}
+                      >
+                        Add Live Stream
+                      </Button>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-            {order.shipping_info?.tracking_number && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Shipping Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>
-                    <span className="font-bold">Carrier: </span>
-                    {order.shipping_info?.carrier}
-                  </p>
-                  <p>
-                    <span className="font-bold">Tracking Number: </span>
-                    {order.shipping_info?.tracking_number}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
+          {order.shipping_info?.tracking_number && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Shipping Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>
+                  <span className="font-bold">Carrier: </span>
+                  {order.shipping_info?.carrier}
+                </p>
+                <p>
+                  <span className="font-bold">Tracking Number: </span>
+                  {order.shipping_info?.tracking_number}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

@@ -1,6 +1,6 @@
-import { Offer, Order } from "@/lib/definitions";
-import { EmailTemplate } from "./email-template";
-import { Link, Preview, Text } from "@react-email/components";
+import { Offer, Order } from '@/lib/definitions';
+import { EmailTemplate } from './email-template';
+import { Link, Preview, Text } from '@react-email/components';
 
 interface OrderShippedEmailProps {
   order: Order;
@@ -14,19 +14,19 @@ export const OrderShippedEmail: React.FC<Readonly<OrderShippedEmailProps>> = ({
   <EmailTemplate email={email}>
     <Preview>
       Order #
-      {order.id.toLocaleString("en-US", {
+      {order.id.toLocaleString('en-US', {
         minimumIntegerDigits: 6,
         useGrouping: false,
-      })}{" "}
+      })}{' '}
       has shipped!
     </Preview>
     <Text>
       <h3>
         Order #
-        {order.id.toLocaleString("en-US", {
+        {order.id.toLocaleString('en-US', {
           minimumIntegerDigits: 6,
           useGrouping: false,
-        })}{" "}
+        })}{' '}
         Shipped
       </h3>
     </Text>
@@ -37,16 +37,16 @@ export const OrderShippedEmail: React.FC<Readonly<OrderShippedEmailProps>> = ({
       <br />
       <span className="font-bold">Carrier:</span> {order.shipping_info?.carrier}
       <br />
-      <span className="font-bold">Tracking Number:</span>{" "}
+      <span className="font-bold">Tracking Number:</span>{' '}
       <Link
         href={`https://google.com/search?q=${order.shipping_info?.tracking_number}`}
       >
-        {" "}
+        {' '}
         {order.shipping_info?.tracking_number}
       </Link>
     </Text>
     <Text>
-      View your order details on your{" "}
+      View your order details on your{' '}
       <Link href={`https://manuconnect.org/orders/`}>orders page</Link>.
     </Text>
   </EmailTemplate>

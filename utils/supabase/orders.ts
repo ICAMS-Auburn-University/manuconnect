@@ -1,14 +1,14 @@
-"use server";
+'use server';
 
-import { Order, OrderStatus } from "@/lib/definitions";
-import { getUserById } from "../adminUtils";
-import { createClient } from "./server";
-import { consoleLog } from "./utils";
-import { createEvent } from "./events";
-import { Resend } from "resend";
-import { OrderUpdateEmail } from "@/components/emails/order-update";
-import { NewOrderConfirmation } from "@/components/emails/order-created-confirmation";
-import { OrderShippedEmail } from "@/components/emails/order-shipped";
+import { Order, OrderStatus } from '@/lib/definitions';
+import { getUserById } from '../adminUtils';
+import { createClient } from './server';
+import { consoleLog } from './utils';
+import { createEvent } from './events';
+import { Resend } from 'resend';
+import { OrderUpdateEmail } from '@/components/emails/order-update';
+import { NewOrderConfirmation } from '@/components/emails/order-created-confirmation';
+import { OrderShippedEmail } from '@/components/emails/order-shipped';
 
 export async function createOrder(data: Order) {
   const supabase = await createClient();
@@ -20,19 +20,19 @@ export async function createOrder(data: Order) {
     return { data: null, error: UserError };
   }
   if (!UserData) {
-    return { data: null, error: "User data not found" };
+    return { data: null, error: 'User data not found' };
   }
   if (!data) {
-    return { data: null, error: "Order data not provided" };
+    return { data: null, error: 'Order data not provided' };
   }
 
   const userId = UserData?.user.id;
   try {
     // Get the latest order number
     const { data: latestOrder, error: latestOrderError } = await supabase
-      .from("Orders")
-      .select("id")
-      .order("id", { ascending: false })
+      .from('Orders')
+      .select('id')
+      .order('id', { ascending: false })
       .limit(1)
       .single();
 
@@ -43,7 +43,7 @@ export async function createOrder(data: Order) {
     }
 
     const { data: OrderData, error: OrderError } = await supabase
-      .from("Orders")
+      .from('Orders')
       .insert({
         id: newOrderNumber,
         title: data.title,
@@ -75,19 +75,19 @@ export async function createOrder(data: Order) {
 
     // Send email to creator
     const { data: emailData } = await resend.emails.send({
-      from: "ManuConnect <alerts@noreply.manuconnect.org>",
-      to: [UserData?.user.email || "default@example.com"],
-      subject: "Order Confirmation",
+      from: 'ManuConnect <alerts@noreply.manuconnect.org>',
+      to: [UserData?.user.email || 'default@example.com'],
+      subject: 'Order Confirmation',
       react: await NewOrderConfirmation({
         order: OrderData[0],
-        email: UserData?.user.email || "default@example.com",
+        email: UserData?.user.email || 'default@example.com',
       }),
     });
 
     // Create Event
     await createEvent(
-      "success",
-      `Order #${newOrderNumber.toLocaleString("en-US", {
+      'success',
+      `Order #${newOrderNumber.toLocaleString('en-US', {
         minimumIntegerDigits: 6,
         useGrouping: false,
       })} created`,
@@ -117,9 +117,9 @@ export async function updateOrder(params: Partial<Order>) {
     };
 
     const { data: OrderData, error: OrderError } = await supabase
-      .from("Orders")
+      .from('Orders')
       .update(updateData)
-      .eq("id", params.id)
+      .eq('id', params.id)
       .select();
 
     // Emails for order status updates
@@ -134,15 +134,15 @@ export async function updateOrder(params: Partial<Order>) {
       const UserData = await getUserById(OrderData[0].creator);
       const resend = new Resend(process.env.RESEND_API_KEY);
 
-      console.log("Sending email for order update");
+      console.log('Sending email for order update');
       // Send email to creator
       const { data: emailData } = await resend.emails.send({
-        from: "ManuConnect <alerts@noreply.manuconnect.org>",
-        to: [UserData?.user.email || "default@example.com"],
-        subject: "Order Update",
+        from: 'ManuConnect <alerts@noreply.manuconnect.org>',
+        to: [UserData?.user.email || 'default@example.com'],
+        subject: 'Order Update',
         react: await OrderUpdateEmail({
           order: OrderData[0],
-          email: UserData?.user.email || "default@example.com",
+          email: UserData?.user.email || 'default@example.com',
         }),
       });
     }
@@ -153,18 +153,18 @@ export async function updateOrder(params: Partial<Order>) {
       const resend = new Resend(process.env.RESEND_API_KEY);
 
       const { data: emailData } = await resend.emails.send({
-        from: "ManuConnect <alerts@noreply.manuconnect.org>",
-        to: [UserData?.user.email || "default@example.com"],
-        subject: "Order Shipped!",
+        from: 'ManuConnect <alerts@noreply.manuconnect.org>',
+        to: [UserData?.user.email || 'default@example.com'],
+        subject: 'Order Shipped!',
         react: await OrderShippedEmail({
           order: OrderData[0],
-          email: UserData?.user.email || "default@example.com",
+          email: UserData?.user.email || 'default@example.com',
         }),
       });
 
       createEvent(
-        "shipment",
-        `Order #${params.id?.toLocaleString("en-US", {
+        'shipment',
+        `Order #${params.id?.toLocaleString('en-US', {
           minimumIntegerDigits: 6,
           useGrouping: false,
         })} has been shipped`,
@@ -174,7 +174,7 @@ export async function updateOrder(params: Partial<Order>) {
     }
 
     consoleLog(
-      `Order #${params.id?.toLocaleString("en-US", {
+      `Order #${params.id?.toLocaleString('en-US', {
         minimumIntegerDigits: 6,
         useGrouping: false,
       })} updated`
@@ -199,10 +199,10 @@ export async function getCreatorOrders() {
   }
 
   const { data, error } = await supabase
-    .from("Orders")
-    .select("*")
-    .eq("creator", UserData?.user.id)
-    .order("id", { ascending: true });
+    .from('Orders')
+    .select('*')
+    .eq('creator', UserData?.user.id)
+    .order('id', { ascending: true });
 
   if (!data) {
     return null;
@@ -231,10 +231,10 @@ export async function getManufacturerOrders() {
   }
 
   const { data, error } = await supabase
-    .from("Orders")
-    .select("*")
-    .eq("manufacturer", UserData?.user.id)
-    .order("id", { ascending: true });
+    .from('Orders')
+    .select('*')
+    .eq('manufacturer', UserData?.user.id)
+    .order('id', { ascending: true });
 
   if (!data) {
     return null;
@@ -267,10 +267,10 @@ export async function getUnclaimedOrders() {
   }
 
   const { data, error } = await supabase
-    .from("Orders")
-    .select("*")
-    .is("manufacturer", null)
-    .eq("isArchived", false);
+    .from('Orders')
+    .select('*')
+    .is('manufacturer', null)
+    .eq('isArchived', false);
 
   // Get the user data for the creator and manufacturer
 
@@ -283,8 +283,8 @@ export async function getUnclaimedOrders() {
     data.map((order) =>
       getUserById(order.creator).then((creator) => ({
         ...order,
-        creator_name: creator.user.user_metadata.display_name || "Unknown",
-        creator_email: creator.user.email || "Unknown",
+        creator_name: creator.user.user_metadata.display_name || 'Unknown',
+        creator_email: creator.user.email || 'Unknown',
       }))
     )
   );
@@ -308,9 +308,9 @@ export async function getOrderById(orderId: string) {
   }
 
   const { data, error } = await supabase
-    .from("Orders")
-    .select("*")
-    .eq("id", orderId)
+    .from('Orders')
+    .select('*')
+    .eq('id', orderId)
     .or(`creator.eq.${UserData.user.id},manufacturer.eq.${UserData.user.id}`)
     .single();
 
@@ -331,15 +331,15 @@ export async function getOrderById(orderId: string) {
   }
 
   if (!CreatorData) {
-    console.error("Failed to retrieve creator data");
+    console.error('Failed to retrieve creator data');
   }
 
-  data.creatorName = CreatorData.user.user_metadata.displayName || "Unknown";
+  data.creatorName = CreatorData.user.user_metadata.displayName || 'Unknown';
 
   data.manufacturerName =
     data.manufacturer && ManufacturerData
       ? ManufacturerData.user.user_metadata.displayName
-      : "Unknown";
+      : 'Unknown';
 
   const order: Order = data;
 

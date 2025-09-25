@@ -1,8 +1,8 @@
 // im so sorry to whoever has to maintain this code.
 
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -11,37 +11,42 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "./ui/textarea";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { format, set } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from './ui/textarea';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { format, set } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { cn } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { uploadFile } from "@/utils/uploadFile";
-import Image from "next/image";
-import { useState } from "react";
-import { createOrder } from "@/utils/supabase/orders";
-import { toast } from "sonner";
-import { TagsInput } from "./ui/tagsinput";
-import { Checkbox } from "./ui/checkbox";
-import { ProcessTags, MaterialTags, MiscTags, OrderStatus } from "@/lib/definitions";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+} from '@/components/ui/popover';
+import { uploadFile } from '@/utils/uploadFile';
+import Image from 'next/image';
+import { useState } from 'react';
+import { createOrder } from '@/utils/supabase/orders';
+import { toast } from 'sonner';
+import { TagsInput } from './ui/tagsinput';
+import { Checkbox } from './ui/checkbox';
+import {
+  ProcessTags,
+  MaterialTags,
+  MiscTags,
+  OrderStatus,
+} from '@/lib/definitions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from './ui/select';
 
 const formSchema = z.object({
   title: z.string().min(2).max(50),
@@ -49,21 +54,21 @@ const formSchema = z.object({
   quantity: z.coerce.number().int().positive(),
   due_date: z.date(),
   tags: z.array(z.string()).refine((value) => value.some((item) => item), {
-    message: "You have to select at least one item.",
+    message: 'You have to select at least one item.',
   }),
   file:
-    typeof window === "undefined" ? z.any() : z.instanceof(FileList).optional(),
+    typeof window === 'undefined' ? z.any() : z.instanceof(FileList).optional(),
   shipping_address_1: z.string().min(2),
   shipping_address_2: z.string().min(2),
   shipping_city: z.string().min(2),
   shipping_state: z.string().min(2),
   shipping_zip: z.string().min(2).max(5),
-  shipping_country: z.enum(["us"]),
+  shipping_country: z.enum(['us']),
 });
 
 const OrderForm = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState('');
   const [fileURL, setFileURL] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -71,21 +76,21 @@ const OrderForm = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      description: "",
+      title: '',
+      description: '',
       quantity: 1,
       due_date: new Date(new Date().setDate(new Date().getDate() + 1)),
       tags: [],
-      shipping_country: "us",
-      shipping_address_1: "",
-      shipping_address_2: "",
-      shipping_city: "",
-      shipping_state: "",
-      shipping_zip: "",
+      shipping_country: 'us',
+      shipping_address_1: '',
+      shipping_address_2: '',
+      shipping_city: '',
+      shipping_state: '',
+      shipping_zip: '',
     },
   });
 
-  const fileRef = form.register("file");
+  const fileRef = form.register('file');
 
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -105,9 +110,9 @@ const OrderForm = () => {
         console.log(fileURL);
       }
       if (error) {
-        setErrorMessage(error.message + ". Please try again.");
+        setErrorMessage(error.message + '. Please try again.');
         setIsLoading(false);
-        form.resetField("file");
+        form.resetField('file');
         return;
       }
     }
@@ -119,7 +124,7 @@ const OrderForm = () => {
         id: 0, // Placeholder, will be set in createOrder function
         title: values.title,
         description: values.description,
-        creator: "Placeholder", // Placeholder, will be set in createOrder function
+        creator: 'Placeholder', // Placeholder, will be set in createOrder function
         status: OrderStatus.OrderCreated,
         created_at: new Date(),
         last_update: new Date(),
@@ -129,7 +134,7 @@ const OrderForm = () => {
         fileURLs: fileURL,
         tags: values.tags,
         delivery_address: {
-          street: values.shipping_address_1 + " " + values.shipping_address_2,
+          street: values.shipping_address_1 + ' ' + values.shipping_address_2,
           city: values.shipping_city,
           state: values.shipping_state,
           postal_code: values.shipping_zip,
@@ -138,14 +143,14 @@ const OrderForm = () => {
       });
 
       if (error) {
-        setErrorMessage(error + ". Please try again.");
+        setErrorMessage(error + '. Please try again.');
         setIsLoading(false);
         return;
       }
-      toast.success("Order created successfully!");
+      toast.success('Order created successfully!');
       setIsSuccess(true);
     } catch (error) {
-      console.error("Error creating order:", error);
+      console.error('Error creating order:', error);
     }
     // Clear form
     form.reset();
@@ -355,14 +360,14 @@ const OrderForm = () => {
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
-                          variant={"outline"}
+                          variant={'outline'}
                           className={cn(
-                            "w-[240px] pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
+                            'w-[240px] pl-3 text-left font-normal',
+                            !field.value && 'text-muted-foreground'
                           )}
                         >
                           {field.value ? (
-                            format(field.value, "PPP")
+                            format(field.value, 'PPP')
                           ) : (
                             <span>Pick a date</span>
                           )}

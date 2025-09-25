@@ -1,15 +1,15 @@
-import ManufacturerOrdersTable from "@/components/ManufacturerOrdersTable";
-import OrdersTable from "@/components/OrdersTable";
-import ViewOrderPageWrapper from "@/components/ViewOrderPageWrapper";
+import ManufacturerOrdersTable from '@/components/ManufacturerOrdersTable';
+import OrdersTable from '@/components/OrdersTable';
+import ViewOrderPageWrapper from '@/components/ViewOrderPageWrapper';
 import {
   getCreatorOrders,
   getManufacturerOrders,
-} from "@/utils/supabase/orders";
-import { getAccountType } from "@/utils/supabase/utils";
-import { Metadata } from "next";
+} from '@/utils/supabase/orders';
+import { getAccountType } from '@/utils/supabase/utils';
+import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Orders",
+  title: 'Orders',
 };
 
 const OrdersPage = async () => {

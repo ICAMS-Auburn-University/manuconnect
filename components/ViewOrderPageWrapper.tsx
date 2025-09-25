@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import OrdersTable from "./OrdersTable";
-import ManufacturerOrdersTable from "./ManufacturerOrdersTable";
-import { useEffect, useState } from "react";
+import OrdersTable from './OrdersTable';
+import ManufacturerOrdersTable from './ManufacturerOrdersTable';
+import { useEffect, useState } from 'react';
 import {
   getCreatorOrders,
   getManufacturerOrders,
-} from "@/utils/supabase/orders";
-import { Order } from "@/lib/definitions";
-import { Loader } from "lucide-react";
+} from '@/utils/supabase/orders';
+import { Order } from '@/lib/definitions';
+import { Loader } from 'lucide-react';
 
 interface ViewOrderPageWrapperProps {
   accountType: string;
@@ -26,7 +26,7 @@ const ViewOrderPageWrapper = ({ accountType }: ViewOrderPageWrapperProps) => {
       setCreatorOrders(creatorOrders || []);
       setManufacturerOrders(manufacturerOrders || []);
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      console.error('Error fetching orders:', error);
     } finally {
       setIsLoading(false); // Set loading to false after fetching
     }
@@ -50,10 +50,10 @@ const ViewOrderPageWrapper = ({ accountType }: ViewOrderPageWrapperProps) => {
         <h1 className="h1">Your Orders</h1>
       </div>
       <div className="mt-8">
-        {(accountType === "creator" || accountType === "admin") && (
+        {(accountType === 'creator' || accountType === 'admin') && (
           <OrdersTable Orders={creatorOrders} />
         )}
-        {(accountType === "manufacturer" || accountType === "admin") && (
+        {(accountType === 'manufacturer' || accountType === 'admin') && (
           <ManufacturerOrdersTable Orders={manufacturerOrders} />
         )}
       </div>
