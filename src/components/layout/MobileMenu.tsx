@@ -133,6 +133,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                   Browse Orders
                 </Link>
               )}
+
+              <Link
+                href="/messages"
+                className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
+              >
+                Messages
+              </Link>
             </nav>
           </div>
         </SheetContent>

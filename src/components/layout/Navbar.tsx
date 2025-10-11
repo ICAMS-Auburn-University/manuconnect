@@ -14,6 +14,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import MobileMenu from '@/components/layout/MobileMenu';
+import { Mail } from 'lucide-react';
 
 const Navbar = async () => {
   const userType = await getAccountType();
@@ -66,6 +67,13 @@ const Navbar = async () => {
               </Link>
             </>
           )}
+
+          <Link href="/messages">
+            <Button className="bg-brand px-2 py-1 h-fit hover:bg-brand-100 transition">
+              <Mail className="h-4 w-4 mr-2" />
+              <p className="navbarLink text-white">Messages</p>
+            </Button>
+          </Link>
 
           <Popover>
             <PopoverTrigger>
