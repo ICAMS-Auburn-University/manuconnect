@@ -187,11 +187,9 @@ const OrderPage = ({
           <TabsTrigger value="model" className="flex-1">
             3D Model
           </TabsTrigger>
-          {order.livestream_url && (
-            <TabsTrigger value="livestream" className="flex-1">
-              Livestream View
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="livestream" className="flex-1">
+            Livestream View
+          </TabsTrigger>
           <TabsTrigger value="timeline" className="flex-1">
             Timeline
           </TabsTrigger>
