@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
+import type { TablesInsert } from '@/types/supabase';
 
 type RouteParams = {
   chatId: string;
 };
 
-const TABLE_NAME = 'Messages';
+type RouteContext = {
+  params: RouteParams | Promise<RouteParams>;
+};
+
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 
@@ -18,10 +22,8 @@ const sanitizeLimit = (rawLimit: string | null) => {
   return Math.min(Math.max(parsed, 1), MAX_LIMIT);
 };
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: RouteParams }
-) {
+export async function GET(request: NextRequest, context: RouteContext) {
+  const { chatId } = await context.params;
   const userId = request.headers.get('x-user-id');
 
   if (!userId) {
@@ -35,9 +37,9 @@ export async function GET(
   const before = searchParams.get('before');
 
   let query = supabase
-    .from(TABLE_NAME)
+    .from('Messages')
     .select('*')
-    .eq('chat_id', params.chatId)
+    .eq('chat_id', chatId)
     .order('time_sent', { ascending: false })
     .limit(limit);
 
@@ -54,19 +56,17 @@ export async function GET(
     );
   }
 
-  const messages = (data ?? []).sort(
-    (a, b) =>
-      new Date(a.time_sent as string).getTime() -
-      new Date(b.time_sent as string).getTime()
-  );
+  const messages = [...(data ?? [])].sort((a, b) => {
+    const aTimestamp = new Date(a.time_sent).getTime();
+    const bTimestamp = new Date(b.time_sent).getTime();
+    return aTimestamp - bTimestamp;
+  });
 
   return NextResponse.json({ messages });
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: RouteParams }
-) {
+export async function POST(request: NextRequest, context: RouteContext) {
+  const { chatId } = await context.params;
   const userId = request.headers.get('x-user-id');
 
   if (!userId) {
@@ -85,8 +85,8 @@ export async function POST(
 
   const supabase = await createSupabaseServiceRoleClient();
 
-  const payload = {
-    chat_id: params.chatId,
+  const payload: TablesInsert<'Messages'> = {
+    chat_id: chatId,
     sender_id: userId,
     content: trimmed,
     time_sent: new Date().toISOString(),
@@ -94,7 +94,7 @@ export async function POST(
   };
 
   const { data, error } = await supabase
-    .from(TABLE_NAME)
+    .from('Messages')
     .insert(payload)
     .select()
     .single();

@@ -1,3 +1,5 @@
+'use client';
+
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import {
@@ -7,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,9 +32,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Offer, Order } from '@/lib/types/definitions';
 import { acceptOffer, declineOffer, getOffers } from '@/domain/offers/service';
-import Link from 'next/link';
 import { toast } from 'sonner';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+
+import { startDirectChat } from '@/lib/api/chats';
 
 interface ViewOffersProps {
   order: Order;
@@ -45,6 +49,9 @@ export default function ViewOffers({ order }: ViewOffersProps) {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [contactingUserId, setContactingUserId] = useState<string | null>(null);
+
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchOffers() {
@@ -77,19 +84,19 @@ export default function ViewOffers({ order }: ViewOffersProps) {
 
   // Handle sorting
   const handleSort = (field: SortableField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
+    const isSameField = sortField === field;
+    const nextDirection =
+      isSameField && sortDirection === 'asc' ? 'desc' : 'asc';
+
+    setSortField(field);
+    setSortDirection(nextDirection);
 
     const sortedOffers = [...offers].sort((a, b) => {
       const valueA = a[field];
       const valueB = b[field];
 
       if (typeof valueA === 'string' && typeof valueB === 'string') {
-        return sortDirection === 'asc'
+        return nextDirection === 'asc'
           ? valueA.localeCompare(valueB)
           : valueB.localeCompare(valueA);
       }
@@ -97,7 +104,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
       const numericA = Number(valueA ?? 0);
       const numericB = Number(valueB ?? 0);
 
-      return sortDirection === 'asc'
+      return nextDirection === 'asc'
         ? numericA - numericB
         : numericB - numericA;
     });
@@ -146,6 +153,28 @@ export default function ViewOffers({ order }: ViewOffersProps) {
     } catch (error) {
       toast.error('Error declining offer');
       console.error('Error declining offer:', error);
+    }
+  };
+
+  const handleStartChat = async (offer: Offer) => {
+    if (!offer.offerer) {
+      toast.error('Cannot start chat: missing manufacturer id');
+      return;
+    }
+    setContactingUserId(offer.offerer);
+    try {
+      const chat = await startDirectChat({
+        targetUserId: offer.offerer,
+        orderId: order.id,
+      });
+      toast.success('Chat ready!');
+      router.push(`/messages?chat=${chat.chat_id}`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to start chat';
+      toast.error(message);
+    } finally {
+      setContactingUserId(null);
     }
   };
 
@@ -207,7 +236,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
                   >
                     <div className="flex items-center">
                       Manufacturer
-                      {renderSortIndicator('manufacturerName')}
+                      {renderSortIndicator('manufacturer_name')}
                     </div>
                   </TableHead>
                   <TableHead
@@ -216,7 +245,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
                   >
                     <div className="flex items-center justify-end">
                       Unit Cost
-                      {renderSortIndicator('unitCost')}
+                      {renderSortIndicator('unit_cost')}
                     </div>
                   </TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
@@ -226,7 +255,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
                   >
                     <div className="flex items-center justify-end">
                       Shipping
-                      {renderSortIndicator('shippingCost')}
+                      {renderSortIndicator('shipping_cost')}
                     </div>
                   </TableHead>
                   <TableHead className="text-right">Est. Total</TableHead>
@@ -290,12 +319,20 @@ export default function ViewOffers({ order }: ViewOffersProps) {
                           <Check className="h-4 w-4 text-green-500" />
                           <span className="sr-only">Accept</span>
                         </Button>
-                        <Link href={`mailto:${offer.manufacturer_email}`}>
-                          <Button variant="ghost" size="icon" title="Contact">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Contact"
+                          disabled={contactingUserId === offer.offerer}
+                          onClick={() => void handleStartChat(offer)}
+                        >
+                          {contactingUserId === offer.offerer ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                          ) : (
                             <MessageSquare className="h-4 w-4 text-blue-500" />
-                            <span className="sr-only">Contact</span>
-                          </Button>
-                        </Link>
+                          )}
+                          <span className="sr-only">Contact</span>
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

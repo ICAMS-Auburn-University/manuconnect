@@ -13,6 +13,13 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -39,12 +46,25 @@ const baseSchema = {
 };
 
 const signInSchema = z.object(baseSchema);
-const signUpSchema = signInSchema.extend({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  accountType: z.enum(['creator', 'manufacturer', 'admin']),
-  companyName: z.string().min(1),
-});
+const signUpSchema = signInSchema
+  .extend({
+    firstName: z.string().min(1),
+    lastName: z.string().min(1),
+    accountType: z.enum(['creator', 'manufacturer', 'admin']),
+    confirmPassword: z
+      .string()
+      .min(6, { message: 'Confirm password is required' }),
+    companyName: z.string().min(1, { message: 'Company name is required' }),
+  })
+  .superRefine((data, ctx) => {
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['confirmPassword'],
+        message: 'Passwords must match',
+      });
+    }
+  });
 
 type SignInFormValues = z.infer<typeof signInSchema>;
 type SignUpFormValues = z.infer<typeof signUpSchema>;
@@ -70,13 +90,16 @@ const AuthForm = ({ type }: { type: FormType }) => {
             firstName: '',
             lastName: '',
             accountType: 'creator',
+            confirmPassword: '',
             companyName: '',
           },
   });
 
   const onSubmit = async (values: SignInFormValues | SignUpFormValues) => {
+    console.log('form submitted with values:', values);
     setisLoading(true);
     seterrorMessage('');
+    console.log('form submitted with values:', values);
     try {
       if (type === 'sign-in') {
         const payload: LoginData = {
@@ -143,6 +166,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="lastName"
@@ -164,8 +188,64 @@ const AuthForm = ({ type }: { type: FormType }) => {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="companyName"
+                render={({ field }) => (
+                  <FormItem className="mt-4">
+                    <div className="shad-form-item">
+                      <FormLabel className="shad-form-label">
+                        Company Name
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter your company name"
+                          className="shad-input"
+                          {...field}
+                        />
+                      </FormControl>
+                    </div>
+                    <FormMessage className="shad-form-message" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="accountType"
+                render={({ field }) => (
+                  <FormItem className="mt-4">
+                    <div className="shad-form-item">
+                      <FormLabel className="shad-form-label">
+                        Account Type
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="shad-input text-left">
+                            <SelectValue placeholder="Select account type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="creator">Creator</SelectItem>
+                          <SelectItem value="manufacturer">
+                            Manufacturer
+                          </SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <FormMessage className="shad-form-message" />
+                  </FormItem>
+                )}
+              />
             </div>
           )}
+
           <FormField
             control={form.control}
             name="email"
@@ -185,6 +265,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="password"
@@ -205,10 +286,38 @@ const AuthForm = ({ type }: { type: FormType }) => {
               </FormItem>
             )}
           />
+
+          {type === 'sign-up' && (
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="shad-form-item">
+                    <FormLabel className="shad-form-label">
+                      Confirm Password
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Re-enter your password"
+                        className="shad-input"
+                        type="password"
+                        {...field}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage className="shad-form-message" />
+                </FormItem>
+              )}
+            />
+          )}
+
           <Button
             type="submit"
+            // name="submit"
             className="bg-[#e87722] text-white w-full rounded-full my-4"
             disabled={isLoading}
+            // onClick={() => console.log("sign up button clicked")}
           >
             {type === 'sign-in' ? 'Sign In' : 'Sign Up'}
             {isLoading && (
@@ -221,6 +330,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
               />
             )}
           </Button>
+
           {errorMessage && <p className="error-message"> *{errorMessage}</p>}
           <div className="body-2 flex flex-col justify-center text-center">
             <div className="flex justify-center">

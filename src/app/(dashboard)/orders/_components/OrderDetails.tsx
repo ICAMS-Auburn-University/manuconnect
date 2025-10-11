@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -27,11 +27,42 @@ import {
   PlusCircle,
   TagIcon,
   UserIcon,
+  Loader2,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+
+import { startDirectChat } from '@/lib/api/chats';
 const OrderDetails = ({ order }: { order: Order | null }) => {
+  const router = useRouter();
+  const [isStartingChat, setIsStartingChat] = useState(false);
+
   if (!order) {
     return <div>No order selected.</div>;
   }
+
+  const handleContactCreator = async () => {
+    if (!order.creator) {
+      toast.error('Creator information unavailable.');
+      return;
+    }
+    setIsStartingChat(true);
+    try {
+      const chat = await startDirectChat({
+        targetUserId: order.creator,
+        orderId: order.id,
+      });
+      toast.success('Chat ready!');
+      router.push(`/messages?chat=${chat.chat_id}`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to start chat';
+      toast.error(message);
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
+
   return (
     <Card className="w-full max-w-md mx-auto shadow-sm min-h-[30rem] my-10">
       <CardHeader className="pb-3">
@@ -158,14 +189,19 @@ const OrderDetails = ({ order }: { order: Order | null }) => {
                 <OfferForm order={order} />
               </DialogContent>
             </Dialog>
-            {order.creator && (
-              <Link href={'mailto:' + order.creator_email}>
-                <Button variant="outline" size="sm">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Contact
-                </Button>
-              </Link>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!order.creator || isStartingChat}
+              onClick={() => void handleContactCreator()}
+            >
+              {isStartingChat ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <MessageSquare className="h-4 w-4 mr-2" />
+              )}
+              Contact
+            </Button>
             {/* This will eventually be replaced with a realtime chat feature. */}
           </div>
         </div>

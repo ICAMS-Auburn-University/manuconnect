@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState, type KeyboardEventHandler } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatDistanceToNowStrict } from 'date-fns';
-import { Loader2, MessageCircle, Search, Send } from 'lucide-react';
+import { Loader2, MessageCircle, Search } from 'lucide-react';
 import clsx from 'clsx';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
+import { RealtimeChat } from '@/components/realtime-chat';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Textarea } from '@/components/ui/textarea';
 import { useChats } from '@/hooks/useChats';
-import { useMessages } from '@/hooks/useMessages';
 import { createClient } from '@/services/supabase/client';
 
 const getInitialsFromMembers = (
@@ -31,13 +30,18 @@ const getInitialsFromMembers = (
     .join('');
 };
 
-const buildChatTitle = (members: string[], currentUserId: string | null) => {
+const buildChatTitle = (
+  members: string[],
+  currentUserId: string | null,
+  participants: Record<string, string>
+) => {
   const others = members.filter((member) => member !== currentUserId);
   if (others.length === 0) {
     return 'Conversation';
   }
   if (others.length === 1) {
-    return `Chat with ${others[0].slice(0, 8)}…`;
+    const identifier = participants[others[0]] ?? others[0].slice(0, 8);
+    return `Chat with ${identifier}`;
   }
   return `Group chat (${others.length} people)`;
 };
@@ -53,40 +57,45 @@ const formatRelativeTime = (timestamp: string | undefined | null) => {
   }
 };
 
-const renderMessageTimestamp = (timestamp: string | undefined) => {
-  if (!timestamp) {
-    return null;
-  }
-  return (
-    <span className="block text-[11px] text-muted-foreground mt-1">
-      {formatRelativeTime(timestamp)}
-    </span>
-  );
-};
-
 export function MessagesView() {
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState<string>('You');
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [composerValue, setComposerValue] = useState('');
-  const [sendError, setSendError] = useState<string | null>(null);
-  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+
     supabase.auth.getSession().then(({ data }) => {
       if (!isMounted) {
         return;
       }
-      setCurrentUserId(data.session?.user.id ?? null);
+      const sessionUser = data.session?.user;
+      setCurrentUserId(sessionUser?.id ?? null);
+      setCurrentUserName(
+        sessionUser?.user_metadata?.display_name ??
+          sessionUser?.user_metadata?.full_name ??
+          sessionUser?.email ??
+          'You'
+      );
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUserId(session?.user?.id ?? null);
+      const user = session?.user;
+      setCurrentUserId(user?.id ?? null);
+      setCurrentUserName(
+        user?.user_metadata?.display_name ??
+          user?.user_metadata?.full_name ??
+          user?.email ??
+          'You'
+      );
     });
 
     return () => {
@@ -102,35 +111,63 @@ export function MessagesView() {
     markChatAsRead,
   } = useChats(currentUserId, { activeChatId: selectedChatId });
 
+  const chatFromQuery = searchParams.get('chat');
+
   useEffect(() => {
-    if (chats.length > 0 && !selectedChatId) {
+    if (!selectedChatId && chats.length > 0) {
+      if (
+        chatFromQuery &&
+        chats.some((chat) => chat.chat_id === chatFromQuery)
+      ) {
+        setSelectedChatId(chatFromQuery);
+        return;
+      }
       setSelectedChatId(chats[0].chat_id);
     }
-  }, [chats, selectedChatId]);
-
-  const {
-    messages,
-    isLoading: messagesLoading,
-    error: messagesError,
-    sendMessage,
-  } = useMessages(selectedChatId, { userId: currentUserId ?? undefined });
+  }, [chats, selectedChatId, chatFromQuery]);
 
   useEffect(() => {
-    if (selectedChatId) {
-      markChatAsRead(selectedChatId);
+    if (
+      chatFromQuery &&
+      chatFromQuery !== selectedChatId &&
+      chats.some((chat) => chat.chat_id === chatFromQuery)
+    ) {
+      setSelectedChatId(chatFromQuery);
     }
-  }, [selectedChatId, markChatAsRead, messages.length]);
+  }, [chatFromQuery, chats, selectedChatId]);
 
-  const selectedChat =
-    chats.find((chat) => chat.chat_id === selectedChatId) ?? null;
+  useEffect(() => {
+    if (!selectedChatId || !pathname) {
+      return;
+    }
+    const currentParam = searchParams.get('chat');
+    if (currentParam === selectedChatId) {
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams);
+    params.set('chat', selectedChatId);
+    const queryString = params.toString();
+    const url = queryString ? `${pathname}?${queryString}` : pathname;
+    router.replace(url, { scroll: false });
+  }, [pathname, router, searchParams, selectedChatId]);
 
   const filteredChats = chats.filter((chat) => {
     if (!searchTerm) {
       return true;
     }
-    const title = buildChatTitle(chat.members, currentUserId);
+    const participants: Record<string, string> = {};
+    chat.members.forEach((memberId) => {
+      participants[memberId] =
+        memberId === currentUserId
+          ? currentUserName
+          : `User ${memberId.slice(0, 8).toUpperCase()}`;
+    });
+
+    const title = buildChatTitle(chat.members, currentUserId, participants);
     const preview = chat.last_message?.content ?? '';
     const term = searchTerm.toLowerCase();
+
     return (
       title.toLowerCase().includes(term) ||
       preview.toLowerCase().includes(term) ||
@@ -138,33 +175,30 @@ export function MessagesView() {
     );
   });
 
-  const handleSend = async () => {
-    if (!selectedChatId || !composerValue.trim()) {
+  const selectedChat = selectedChatId
+    ? (chats.find((chat) => chat.chat_id === selectedChatId) ?? null)
+    : null;
+
+  const participantMap = useMemo(() => {
+    if (!selectedChat) {
+      return {};
+    }
+    const map: Record<string, string> = {};
+    selectedChat.members.forEach((memberId) => {
+      map[memberId] =
+        memberId === currentUserId
+          ? currentUserName
+          : `User ${memberId.slice(0, 8).toUpperCase()}`;
+    });
+    return map;
+  }, [selectedChat, currentUserId, currentUserName]);
+
+  useEffect(() => {
+    if (!selectedChatId) {
       return;
     }
-    setSendError(null);
-    setIsSending(true);
-    try {
-      await sendMessage(composerValue);
-      setComposerValue('');
-      markChatAsRead(selectedChatId);
-    } catch (err) {
-      setSendError(
-        err instanceof Error ? err.message : 'Unable to send message right now.'
-      );
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  const handleComposerKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (
-    event
-  ) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      void handleSend();
-    }
-  };
+    markChatAsRead(selectedChatId);
+  }, [markChatAsRead, selectedChatId]);
 
   return (
     <div className="flex h-[calc(100vh-8rem)] min-h-[600px] w-full flex-col rounded-xl border bg-background shadow-sm">
@@ -199,7 +233,7 @@ export function MessagesView() {
               {chatsLoading ? (
                 <div className="flex items-center justify-center py-12 text-muted-foreground">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading chats…
+                  Loading chats...
                 </div>
               ) : filteredChats.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 px-6 py-12 text-center text-muted-foreground">
@@ -212,7 +246,18 @@ export function MessagesView() {
                 </div>
               ) : (
                 filteredChats.map((chat) => {
-                  const title = buildChatTitle(chat.members, currentUserId);
+                  const participants: Record<string, string> = {};
+                  chat.members.forEach((memberId) => {
+                    participants[memberId] =
+                      memberId === currentUserId
+                        ? currentUserName
+                        : `User ${memberId.slice(0, 8).toUpperCase()}`;
+                  });
+                  const title = buildChatTitle(
+                    chat.members,
+                    currentUserId,
+                    participants
+                  );
                   const preview =
                     chat.last_message?.content ?? 'No messages yet.';
                   const isActive = chat.chat_id === selectedChatId;
@@ -271,7 +316,11 @@ export function MessagesView() {
               <div className="flex items-center justify-between border-b px-6 py-4">
                 <div>
                   <h2 className="text-lg font-semibold">
-                    {buildChatTitle(selectedChat.members, currentUserId)}
+                    {buildChatTitle(
+                      selectedChat.members,
+                      currentUserId,
+                      participantMap
+                    )}
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     Started{' '}
@@ -282,85 +331,12 @@ export function MessagesView() {
                   </p>
                 </div>
               </div>
-
-              <ScrollArea className="flex-1 px-6 py-6">
-                <div className="flex flex-col gap-4">
-                  {messagesLoading ? (
-                    <div className="flex justify-center py-12 text-muted-foreground">
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Loading messages…
-                    </div>
-                  ) : messages.length === 0 ? (
-                    <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
-                      <MessageCircle className="h-7 w-7" />
-                      <p>No messages in this conversation yet.</p>
-                      <p className="text-sm">
-                        Say hello to get the discussion started.
-                      </p>
-                    </div>
-                  ) : (
-                    messages.map((message) => {
-                      const isMine = message.sender_id === currentUserId;
-                      return (
-                        <div
-                          key={message.message_id}
-                          className={clsx(
-                            'flex w-full',
-                            isMine ? 'justify-end' : 'justify-start'
-                          )}
-                        >
-                          <div
-                            className={clsx(
-                              'max-w-[70%] rounded-2xl px-4 py-3 text-sm',
-                              isMine
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
-                            )}
-                          >
-                            <p className="whitespace-pre-wrap break-words">
-                              {message.content}
-                            </p>
-                            {renderMessageTimestamp(message.time_sent)}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-
-                  {messagesError ? (
-                    <p className="text-sm text-destructive">{messagesError}</p>
-                  ) : null}
-                </div>
-              </ScrollArea>
-
-              <div className="border-t px-6 py-4">
-                <div className="flex flex-col gap-3">
-                  <Textarea
-                    placeholder="Write your message…"
-                    value={composerValue}
-                    onChange={(event) => setComposerValue(event.target.value)}
-                    onKeyDown={handleComposerKeyDown}
-                    disabled={!selectedChatId || isSending}
-                    rows={3}
-                  />
-                  {sendError ? (
-                    <p className="text-sm text-destructive">{sendError}</p>
-                  ) : null}
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      onClick={() => void handleSend()}
-                      disabled={isSending || !composerValue.trim()}
-                    >
-                      {isSending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="mr-2 h-4 w-4" />
-                      )}
-                      Send
-                    </Button>
-                  </div>
-                </div>
+              <div className="flex-1">
+                <RealtimeChat
+                  roomName={selectedChat.chat_id}
+                  username={currentUserName}
+                  participants={participantMap}
+                />
               </div>
             </>
           ) : (
