@@ -6,7 +6,7 @@ const Footer = async () => {
   const userType = await getAccountType();
 
   return (
-    <footer className="footer border-t w-full mt-auto">
+    <footer className="footer border-t-2 w-full mt-auto">
       <div className=" py-8 grid grid-cols-3 items-center gap-2 mx-5">
         <div className="bg-white rounded-sm max-w-fit p-2 text-center">
           <Link href="https://www.eng.auburn.edu/icams/" target="_blank">

@@ -201,9 +201,9 @@ export function MessagesView() {
   }, [markChatAsRead, selectedChatId]);
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-[600px] w-full flex-col rounded-xl border bg-background shadow-sm">
-      <div className="grid flex-1 grid-cols-1 md:grid-cols-[320px_1fr]">
-        <aside className="flex min-h-0 flex-col border-r">
+    <div className="flex w-full flex-1 h-full flex-col overflow-hidden rounded-xl border bg-background shadow-sm">
+      <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-1 md:grid-cols-[320px_1fr]">
+        <aside className="flex min-h-0 flex-col overflow-hidden border-r">
           <div className="flex items-center gap-2 border-b px-4 py-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
               <MessageCircle className="h-5 w-5" />
@@ -228,7 +228,7 @@ export function MessagesView() {
             </div>
           </div>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0 max-h-full">
             <div className="flex flex-col gap-1 p-2">
               {chatsLoading ? (
                 <div className="flex items-center justify-center py-12 text-muted-foreground">
@@ -310,7 +310,7 @@ export function MessagesView() {
           </ScrollArea>
         </aside>
 
-        <section className="flex min-h-0 flex-col">
+        <section className="flex max-h-full min-h-0 flex-col">
           {selectedChat ? (
             <>
               <div className="flex items-center justify-between border-b px-6 py-4">
@@ -331,7 +331,7 @@ export function MessagesView() {
                   </p>
                 </div>
               </div>
-              <div className="flex-1">
+              <div className="flex max-h-full min-h-0 flex-1">
                 <RealtimeChat
                   roomName={selectedChat.chat_id}
                   username={currentUserName}

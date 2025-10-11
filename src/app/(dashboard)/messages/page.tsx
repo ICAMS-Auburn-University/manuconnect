@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function MessagesPage() {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 lg:px-8">
-      <header>
+    <div className="mx-auto flex w-full max-w-6xl flex-1 min-h-[600px] max-h-[90vh] flex-col gap-6 px-4 py-6 lg:px-8">
+      <header className="flex-shrink-0">
         <p className="text-sm font-medium uppercase text-muted-foreground">
           Communications
         </p>

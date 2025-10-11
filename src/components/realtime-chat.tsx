@@ -78,8 +78,11 @@ export const RealtimeChat = ({
   );
 
   return (
-    <div className="flex h-full w-full flex-col bg-background text-foreground antialiased">
-      <div ref={containerRef} className="flex-1 space-y-4 overflow-y-auto p-4">
+    <div className="flex h-full min-h-0 max-h-full w-full flex-col overflow-hidden bg-background text-foreground antialiased">
+      <div
+        ref={containerRef}
+        className="min-h-0 max-h-full flex-1 space-y-4 overflow-y-auto p-4"
+      >
         {allMessages.length === 0 ? (
           <div className="text-center text-sm text-muted-foreground">
             No messages yet. Start the conversation!
