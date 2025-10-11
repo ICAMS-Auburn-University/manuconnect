@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import '../globals.css';
+import '../global.css';
 import { redirect } from 'next/navigation';
 
 import Navbar from '@/components/layout/Navbar';

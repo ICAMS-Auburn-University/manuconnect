@@ -1,7 +1,7 @@
 'use client';
 import { Card, CardContent } from '@/components/ui/card';
-import OrdersList from './OrdersList';
-import OrderDetails from './OrderDetails';
+import OrdersList from '@/app/(dashboard)/orders/_components/OrdersList';
+import OrderDetails from '@/app/(dashboard)/orders/_components/OrderDetails';
 import { useEffect, useState } from 'react';
 import { getUnclaimedOrders } from '@/domain/orders/service';
 import { Order } from '@/lib/types/definitions';

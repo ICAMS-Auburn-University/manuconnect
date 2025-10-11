@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Order } from '@/lib/types/definitions';
 import { createClient as createSupabaseClient } from '@/services/supabase/client';
 
-const DEFAULT_MODEL_PATH = '/auburns_jordan-hare_stadium.glb';
+const DEFAULT_MODEL_PATH = '/error.glb';
 
 function Model({ url }: { url: string }) {
   const { scene } = useGLTF(url);

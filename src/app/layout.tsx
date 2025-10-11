@@ -1,5 +1,5 @@
 import React from 'react';
-import './globals.css';
+import './global.css';
 import { Inter, Montserrat } from 'next/font/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/react';
