@@ -21,7 +21,7 @@ const createResendClient = () => {
 };
 
 export async function createOrder(data: Order) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   let newOrderNumber = 1;
   const { data: UserData, error: UserError } = await supabase.auth.getUser();
 
@@ -118,7 +118,7 @@ export async function createOrder(data: Order) {
  *
  */
 export async function updateOrder(params: Partial<Order>) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   try {
     const updateData = {
@@ -196,7 +196,7 @@ export async function updateOrder(params: Partial<Order>) {
 }
 
 export async function getCreatorOrders() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data: UserData, error: UserError } = await supabase.auth.getUser();
 
   if (UserError) {
@@ -228,7 +228,7 @@ export async function getCreatorOrders() {
 }
 
 export async function getManufacturerOrders() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data: UserData, error: UserError } = await supabase.auth.getUser();
 
   if (UserError) {
@@ -264,7 +264,7 @@ export async function getManufacturerOrders() {
  * @returns Orders that are unclaimed with the creator name attached
  */
 export async function getUnclaimedOrders() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data: UserData, error: UserError } = await supabase.auth.getUser();
 
   if (UserError) {
@@ -305,7 +305,7 @@ export async function getUnclaimedOrders() {
 }
 
 export async function getOrderById(orderId: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data: UserData, error: UserError } = await supabase.auth.getUser();
 
   if (UserError) {

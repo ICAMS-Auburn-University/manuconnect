@@ -22,7 +22,7 @@ const createResendClient = () => {
 };
 
 export async function createOffer(offer: Offer) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data?.user) {
@@ -136,7 +136,7 @@ export async function createOffer(offer: Offer) {
 }
 
 export async function getOffers(orderId: number) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from('Offers')
@@ -153,7 +153,7 @@ export async function getOffers(orderId: number) {
 }
 
 export async function acceptOffer(offerId: number) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const User = (await supabase.auth.getUser()).data.user?.user_metadata;
 
@@ -217,7 +217,7 @@ export async function acceptOffer(offerId: number) {
 }
 
 export async function declineOffer(offerId: number) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const User = (await supabase.auth.getUser()).data.user?.user_metadata;
 

@@ -10,7 +10,7 @@ import { logger } from '@/lib/logger';
  * @throws Error if there is an error fetching the events
  */
 export async function getRecentEvents(limit: number = 10) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data: UserData, error: UserError } = await supabase.auth.getUser();
 
   if (UserError) {
@@ -63,7 +63,7 @@ export async function createEvent(
   orderId?: number,
   metadata?: object
 ) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from('Events')

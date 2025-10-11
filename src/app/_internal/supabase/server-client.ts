@@ -1,13 +1,14 @@
 import { createServerClient } from '@supabase/ssr';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 
 import { env } from '@/lib/config/env';
 
 type SupabaseClient = ReturnType<typeof createServerClient>;
 
-const withCookieStore = async (supabaseKey: string): Promise<SupabaseClient> => {
+const withCookieStore = async (
+  supabaseKey: string
+): Promise<SupabaseClient> => {
   const cookieStore = await cookies();
-  const headerStore = await headers();
 
   return createServerClient(env.NEXT_PUBLIC_SUPABASE_URL, supabaseKey, {
     cookies: {
@@ -25,7 +26,6 @@ const withCookieStore = async (supabaseKey: string): Promise<SupabaseClient> => 
         }
       },
     },
-    headers: headerStore,
   });
 };
 

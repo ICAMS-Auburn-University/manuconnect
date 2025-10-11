@@ -20,7 +20,7 @@ export interface SignupData extends LoginData {
 }
 
 export async function login({ email, password }: LoginData) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -37,7 +37,7 @@ export async function login({ email, password }: LoginData) {
 
 export async function signup(data: SignupData) {
   logger.info('Attempting user signup');
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   logger.info(`Signing up user: ${data.email}`);
   const { data: UserData, error } = await supabase.auth.signUp({
     email: data.email,

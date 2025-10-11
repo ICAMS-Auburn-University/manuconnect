@@ -2,10 +2,10 @@
 
 import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
 
-const getServerClient = () => createSupabaseServerClient();
+const getServerClient = async () => await createSupabaseServerClient();
 
 async function getUserId() {
-  const supabase = getServerClient();
+  const supabase = await getServerClient();
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data?.user?.id) {
@@ -15,7 +15,7 @@ async function getUserId() {
 }
 
 export async function uploadFile(file: File) {
-  const supabase = getServerClient();
+  const supabase = await getServerClient();
 
   const { data, error } = await supabase.storage
     .from('project-files')
