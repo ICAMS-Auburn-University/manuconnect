@@ -1,12 +1,15 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  NEXT_PUBLIC_SUPABASE_URL: z.string().min(1),
   NEXT_PUBLIC_SUPABASE_KEY: z.string().min(1),
   NEXT_PRIVATE_SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   RESEND_API_KEY: z.string().optional(),
   SUPABASE_JWT_SECRET: z.string().optional(),
-  NODE_ENV: z.enum(['development', 'test', 'production']),
+  NODE_ENV: z
+    .enum(['development', 'test', 'production'])
+    .optional()
+    .default('development'),
 });
 
 const parsed = envSchema.safeParse({
