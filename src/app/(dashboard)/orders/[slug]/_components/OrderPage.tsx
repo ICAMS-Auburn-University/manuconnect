@@ -26,7 +26,8 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { Order, OrderStatus } from '@/lib/types/definitions';
+import { Order } from '@/domain/orders/types';
+import { OrderStatus } from '@/types/enums';
 import OrderProgressBar from '@/components/feedback/CustomerOrderProgressBar';
 import { updateOrder } from '@/domain/orders/service';
 import { getNextOrderStatus } from '@/lib/utils';

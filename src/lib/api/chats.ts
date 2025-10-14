@@ -1,13 +1,5 @@
 import type { Tables } from '@/types/supabase';
-
-type StartChatPayload = {
-  targetUserId: string;
-  orderId?: number;
-};
-
-type StartChatResponse = {
-  chat: Tables<'Chats'>;
-};
+import type { StartChatPayload, StartChatResponse } from '@/domain/chats/types';
 
 export async function startDirectChat({
   targetUserId,

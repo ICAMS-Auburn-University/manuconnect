@@ -1,6 +1,6 @@
 'use client';
 
-import { OrderStatus } from '@/lib/types/definitions';
+import { OrderStatus } from '@/types/enums';
 import { Check } from 'lucide-react';
 
 // Using the enum provided by the parent component

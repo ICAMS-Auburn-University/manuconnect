@@ -38,9 +38,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
       <Avatar className="md:hidden">
         <AvatarImage
           src={
-            process.env.NEXT_PUBLIC_SUPABASE_URL +
-            '/storage/v1/object/public/' +
-            userData?.user_metadata.profile_picture
+            userData?.user_metadata?.profile_picture
+              ? process.env.NEXT_PUBLIC_SUPABASE_URL +
+                '/storage/v1/object/public/' +
+                userData.user_metadata.profile_picture
+              : ''
           }
         ></AvatarImage>
         <AvatarFallback className="bg-brand font-semibold">
@@ -69,7 +71,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                     src={
                       process.env.NEXT_PUBLIC_SUPABASE_URL +
                       '/storage/v1/object/public/' +
-                      userData?.user_metadata.profile_picture
+                      userData?.user_metadata?.profile_picture
                     }
                   ></AvatarImage>
                   <AvatarFallback className="bg-brand font-semibold">
@@ -78,13 +80,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 </Avatar>
                 <div>
                   <p className="font-medium">
-                    {userData?.user_metadata.display_name}
+                    {userData?.user_metadata?.display_name ?? ''}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {userData?.user_metadata.account_type}
+                    {userData?.user_metadata?.account_type ?? ''}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {userData?.user_metadata.company_name}
+                    {userData?.user_metadata?.company_name}
                   </p>
                 </div>
               </div>

@@ -22,7 +22,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getRecentEvents } from '@/domain/events/service';
-import { Event } from '@/lib/types/definitions';
+import { Event } from '@/domain/events/types';
 import Link from 'next/link';
 
 // Type definition based on the provided schema
@@ -124,24 +124,19 @@ export function RecentEvents({
                       {event.description}
                     </p>
                     <div className="flex items-center pt-1 text-xs text-muted-foreground">
-                      Order #
-                      {event.order_id.toLocaleString('en-US', {
-                        minimumIntegerDigits: 6,
-                        useGrouping: false,
-                      })}{' '}
-                      •{' '}
+                      Order #{event.order_id.toString().padStart(6, '0')} •{' '}
                       {formatDistanceToNow(new Date(event.created_at), {
                         addSuffix: true,
                       })}
                     </div>
-                    {event.metadata &&
+                    {/* {event.metadata &&
                       Object.keys(event.metadata).length > 0 && (
                         <div className="mt-1 text-xs text-muted-foreground bg-muted/50 p-1.5 rounded">
                           <code className="text-xs">
                             {JSON.stringify(event.metadata, null, 2)}
                           </code>
                         </div>
-                      )}
+                      )} */}
                   </div>
                 </Link>
               ))}

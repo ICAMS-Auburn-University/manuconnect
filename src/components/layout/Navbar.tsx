@@ -82,7 +82,7 @@ const Navbar = async () => {
                   src={
                     process.env.NEXT_PUBLIC_SUPABASE_URL +
                     '/storage/v1/object/public/' +
-                    userData?.user_metadata.profile_picture
+                    userData?.profilePicture
                   }
                 ></AvatarImage>
                 <AvatarFallback className="bg-brand font-semibold">
@@ -91,12 +91,14 @@ const Navbar = async () => {
               </Avatar>
             </PopoverTrigger>
             <PopoverContent className="bg-white w-40 p-2" align="end">
-              <p className="h4">{userData?.user_metadata.display_name}</p>{' '}
+              <p className="h4">
+                {userData?.user_metadata?.display_name ?? 'N/A'}
+              </p>{' '}
               <p className="text-sm text-muted-foreground">
-                {userData?.user_metadata.account_type}
+                {userData?.user_metadata?.account_type ?? 'N/A'}
               </p>
               <p className="text-sm text-muted-foreground">
-                {userData?.user_metadata.company_name}
+                {userData?.user_metadata?.company_name ?? 'N/A'}
               </p>
               <div className="flex flex-col gap-2">
                 <SignOut className="p-0 text-right w-full bg-black text-white" />
@@ -110,7 +112,7 @@ const Navbar = async () => {
           <MobileMenu
             userType={userType}
             userData={userData}
-            initials={initials}
+            initials={initials ?? ''}
           />{' '}
           {/* Pass initials as a prop */}
         </div>

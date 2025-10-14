@@ -32,11 +32,7 @@ import { useState } from 'react';
 import { createOrder } from '@/domain/orders/service';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  ProcessTags,
-  MaterialTags,
-  OrderStatus,
-} from '@/lib/types/definitions';
+import { OrderStatus } from '@/types/enums';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -45,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { materialTagOptions, processTagOptions } from '@/types/tags';
 
 const formSchema = z.object({
   title: z.string().min(2).max(50),
@@ -115,13 +112,16 @@ const OrderForm = () => {
         title: values.title,
         description: values.description,
         creator: 'Placeholder', // Placeholder, will be set in createOrder function
+        creator_name: 'Placeholder Name', // Placeholder, replace with actual data
+        creator_email: 'placeholder@example.com', // Placeholder, replace with actual data
         status: OrderStatus.OrderCreated,
         created_at: new Date(),
         last_update: new Date(),
-        manufacturer: null,
+        manufacturer: '',
+        manufacturer_name: 'Placeholder Manufacturer', // Placeholder, replace with actual data
         quantity: values.quantity,
         due_date: values.due_date,
-        fileURLs: filePath,
+        fileURLs: filePath ?? '',
         tags: values.tags,
         delivery_address: {
           street: values.shipping_address_1 + ' ' + values.shipping_address_2,
@@ -130,6 +130,17 @@ const OrderForm = () => {
           postal_code: values.shipping_zip,
           country: values.shipping_country,
         },
+        isArchived: false,
+        offers: [], // Default empty array
+        selected_offer: 0, // Default null
+        shipping_info: { tracking_number: '', carrier: '' }, // Default empty object
+        livestream_url: '', // Default empty string
+        price: {
+          unit_cost: 0,
+          projected_cost: 0,
+          projected_units: 0,
+          shipping_cost: 0,
+        }, // Default price object
       });
 
       if (createError) {
@@ -224,42 +235,42 @@ const OrderForm = () => {
                     <div className="grid grid-cols-2">
                       <div className="space-y-1">
                         <FormLabel className="font-bold">Process:</FormLabel>
-                        {ProcessTags.map((item) => (
+                        {processTagOptions.map((option) => (
                           <div
-                            key={item.id}
+                            key={option.id}
                             className="flex flex-row items-start space-x-3 space-y-0"
                           >
                             <FormControl>
                               <Checkbox
-                                checked={selectedTags.includes(item.id)}
+                                checked={selectedTags.includes(option.id)}
                                 onCheckedChange={(checked) =>
-                                  toggleTag(item.id, Boolean(checked))
+                                  toggleTag(option.id, Boolean(checked))
                                 }
                               />
                             </FormControl>
                             <FormLabel className="font-normal">
-                              {item.label}
+                              {option.label}
                             </FormLabel>
                           </div>
                         ))}
                       </div>
                       <div className="space-y-1">
                         <FormLabel className="font-bold">Materials:</FormLabel>
-                        {MaterialTags.map((item) => (
+                        {materialTagOptions.map((option) => (
                           <div
-                            key={item.id}
+                            key={option.id}
                             className="flex flex-row items-start space-x-3 space-y-0"
                           >
                             <FormControl>
                               <Checkbox
-                                checked={selectedTags.includes(item.id)}
+                                checked={selectedTags.includes(option.id)}
                                 onCheckedChange={(checked) =>
-                                  toggleTag(item.id, Boolean(checked))
+                                  toggleTag(option.id, Boolean(checked))
                                 }
                               />
                             </FormControl>
                             <FormLabel className="font-normal">
-                              {item.label}
+                              {option.label}
                             </FormLabel>
                           </div>
                         ))}

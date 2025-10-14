@@ -30,7 +30,8 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Offer, Order } from '@/lib/types/definitions';
+import { Offer } from '@/domain/offers/types';
+import { Order } from '@/domain/orders/types';
 import { acceptOffer, declineOffer, getOffers } from '@/domain/offers/service';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -58,7 +59,20 @@ export default function ViewOffers({ order }: ViewOffersProps) {
       setIsLoading(true);
       try {
         const fetchedOffers = await getOffers(order.id);
-        setOffers(fetchedOffers);
+        setOffers(
+          fetchedOffers.map((offer) => ({
+            ...offer,
+            id: Number(offer.id),
+            order_id: Number(offer.order_id),
+            created_at: new Date(offer.created_at),
+            last_update: new Date(offer.last_update),
+            unit_cost: parseFloat(offer.unit_cost),
+            projected_cost: parseFloat(offer.projected_cost),
+            projected_units: parseInt(offer.projected_units, 10),
+            shipping_cost: parseFloat(offer.shipping_cost),
+            lead_time: parseInt(offer.lead_time, 10), // Convert lead_time to number
+          }))
+        );
       } catch (error) {
         toast.error('Error fetching offers');
         console.error('Error fetching offers:', error);
@@ -354,4 +368,8 @@ export default function ViewOffers({ order }: ViewOffersProps) {
       </Dialog>
     </>
   );
+}
+function redirect(path: string) {
+  const router = useRouter();
+  router.push(path);
 }

@@ -6,7 +6,7 @@ import { Loader2, MessageCircle, Search } from 'lucide-react';
 import clsx from 'clsx';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { RealtimeChat } from '@/components/realtime-chat';
+import { RealtimeChat } from '@/components/chats/realtime-chat';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';

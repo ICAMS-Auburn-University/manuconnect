@@ -13,12 +13,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import OfferForm from '@/components/forms/OfferForm';
-import {
-  Order,
-  ProcessTags,
-  MaterialTags,
-  MiscTags,
-} from '@/lib/types/definitions';
+import { Order } from '@/domain/orders/types';
+import { getTagLabel } from '@/types/tags';
 import {
   CalendarIcon,
   ClipboardList,
@@ -143,17 +139,11 @@ const OrderDetails = ({ order }: { order: Order | null }) => {
               <span className="text-sm">Tags</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {order.tags?.map((tagId) => {
-                // Find tag details from all tag types
-                const allTags = [...ProcessTags, ...MaterialTags, ...MiscTags];
-                const tagDetails = allTags.find((t) => t.id === tagId);
-
-                return (
-                  <Badge key={tagId} className="">
-                    {tagDetails?.label || tagId}
-                  </Badge>
-                );
-              })}
+              {order.tags?.map((tagId) => (
+                <Badge key={tagId} className="">
+                  {getTagLabel(tagId)}
+                </Badge>
+              ))}
             </div>
           </div>
 

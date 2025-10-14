@@ -1,90 +1,84 @@
 'use server';
 
-import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/logger';
+import { EventType } from '@/types/enums';
 
-/**
- * Fetches the most recent events for the logged in user from the Supabase database.
- * @param limit The maximum number of events to fetch (default is 10).
- * @returns The most recent events for the logged in user
- * @throws Error if there is an error fetching the events
- */
-export async function getRecentEvents(limit: number = 10) {
-  const supabase = await createSupabaseServerClient();
-  const { data: UserData, error: UserError } = await supabase.auth.getUser();
+import {
+  fetchEventsByUser,
+  insertEvent,
+  getCurrentUser,
+} from '@/lib/supabase/events';
+import { EventInput, Event } from '@/domain/events/types';
+import { EventsSchema } from '@/types/schemas';
 
-  if (UserError) {
-    logger.error(UserError, 'events:getRecentEvents:getUser');
-    return null;
+export async function getRecentEvents(
+  limit: number = 10
+): Promise<Event[] | null> {
+  try {
+    const { user, error: authError } = await getCurrentUser();
+
+    if (authError) {
+      logger.error(
+        'events: getRecentEvents: getUser failed',
+        authError.message
+      );
+      return null;
+    }
+
+    if (!user) {
+      logger.info('events: getRecentEvents: no user found in session');
+      return null;
+    }
+
+    const rows = await fetchEventsByUser(user.id, limit);
+
+    logger.info('Fetched events for user', {
+      userId: user.id,
+      count: rows.length,
+    });
+    return rows.map((r) => mapSchemaToDomain(r));
+  } catch (error: any) {
+    logger.error('events: getRecentEvents failed', error.message);
+    throw new Error('Error fetching recent events');
   }
-
-  if (!UserData) {
-    throw new Error('User data not found');
-  }
-
-  const { data, error } = await supabase
-    .from('Events')
-    .select('*')
-    .eq('user_id', UserData.user.id)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    logger.error(error, 'events:getRecentEvents:query');
-    throw new Error('Error fetching events');
-  }
-
-  logger.info(`Fetched Events For User: ${UserData.user.id}`);
-
-  return data;
 }
 
-/**
- * Creates a new event in the Supabase database.
- * @param eventType The type of event to create (e.g., "order", "user", "system", "error", "success", "shipment").
- * @param eventData The data associated with the event.
- * @param userId The ID of the user associated with the event.
- * @param orderId Optional order ID associated with the event.
- * @param metadata Optional metadata associated with the event.
- * @returns The created event data
- * @throws Error if there is an error creating the event
- */
-export async function createEvent(
-  eventType:
-    | 'order'
-    | 'user'
-    | 'system'
-    | 'error'
-    | 'success'
-    | 'shipment'
-    | 'offer',
-  description: string,
-  userId: string,
-  orderId?: number,
-  metadata?: object
-) {
-  const supabase = await createSupabaseServerClient();
+export async function createEvent(input: EventInput): Promise<Event> {
+  try {
+    if (!input.userId) {
+      throw new Error('UserId required');
+    }
+    if (!input.eventType) {
+      throw new Error('EventType required');
+    }
 
-  const { data, error } = await supabase
-    .from('Events')
-    .insert([
-      {
-        event_type: eventType,
-        description: description,
-        user_id: userId,
-        order_id: orderId,
-        metadata: metadata,
-      },
-    ])
-    .select()
-    .single();
+    const inserted = await insertEvent(
+      input.eventType,
+      input.description,
+      input.userId,
+      input.orderId
+    );
 
-  if (error) {
-    logger.error(error, 'events:createEvent:insert');
+    logger.info('Created event', {
+      userId: input.userId,
+      eventId: inserted.id,
+    });
+    revalidatePath('/', 'layout');
+    return mapSchemaToDomain(inserted);
+  } catch (error: any) {
+    logger.error('events: createEvent failed', error.message);
     throw new Error('Error creating event');
   }
+}
 
-  logger.info(`Created Event For User: ${userId}`);
-
-  return data;
+function mapSchemaToDomain(e: EventsSchema): Event {
+  return {
+    id: e.id,
+    event_type: e.event_type as EventType,
+    description: e.description,
+    user_id: e.user_id,
+    order_id: e.order_id,
+    created_at: e.created_at,
+  };
 }

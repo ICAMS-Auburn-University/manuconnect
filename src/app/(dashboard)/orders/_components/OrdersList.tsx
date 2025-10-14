@@ -4,18 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Order,
-  ProcessTags,
-  MaterialTags,
-  MiscTags,
-} from '@/lib/types/definitions';
-
-// Combine all tag types
-type TagType =
-  | (typeof ProcessTags)[number]
-  | (typeof MaterialTags)[number]
-  | (typeof MiscTags)[number];
+import { Order } from '@/domain/orders/types';
+import type { TagOption } from '@/types/tags';
+import { getTagLabel } from '@/types/tags';
 
 interface OrdersListProps {
   onOrderSelect: (orderId: Order) => void;
@@ -25,7 +16,7 @@ interface OrdersListProps {
 const OrdersList = ({ onOrderSelect, unclaimedOrders }: OrdersListProps) => {
   const orders = unclaimedOrders;
   const [searchText, setSearchText] = useState('');
-  const [selectedTags, setSelectedTags] = useState<TagType[]>([]);
+  const [selectedTags, setSelectedTags] = useState<TagOption[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -128,21 +119,14 @@ const OrdersList = ({ onOrderSelect, unclaimedOrders }: OrdersListProps) => {
                     <Separator />
                     <div className="pt-2 flex flex-wrap gap-2">
                       {order.tags?.map((tagId) => {
-                        // Find tag details from all tag types
-                        const allTags = [
-                          ...ProcessTags,
-                          ...MaterialTags,
-                          ...MiscTags,
-                        ];
-                        const tagDetails = allTags.find((t) => t.id === tagId);
-
+                        const label = getTagLabel(tagId);
                         return (
                           <Badge
                             key={tagId}
                             variant={'outline'}
                             className=" text-xs"
                           >
-                            {tagDetails?.label || tagId}
+                            {label}
                           </Badge>
                         );
                       })}

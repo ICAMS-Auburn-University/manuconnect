@@ -1,4 +1,4 @@
-import { Order } from '@/lib/types/definitions';
+import { Order } from '@/domain/orders/types';
 import { EmailTemplate } from './email-template';
 import { Link, Preview, Text } from '@react-email/components';
 

@@ -6,7 +6,7 @@ import { Environment, OrbitControls, useGLTF } from '@react-three/drei';
 import { Download, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Order } from '@/lib/types/definitions';
+import { Order } from '@/domain/orders/types';
 import { createClient as createSupabaseClient } from '@/services/supabase/client';
 
 const DEFAULT_MODEL_PATH = '/error.glb';

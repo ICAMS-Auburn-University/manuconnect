@@ -1,5 +1,5 @@
 'use client';
-import { Order } from '@/lib/types/definitions';
+import { Order } from '@/domain/orders/types';
 import React, { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -86,6 +86,9 @@ const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
     // ✅ This will be type-safe and validated.
     try {
       await createOffer({
+        id: 0, // Placeholder, replace with actual ID if available
+        created_at: new Date(), // Add current timestamp
+        is_accepted: false, // Default value for is_accepted
         offerer: Manufacturer.id,
         order_id: order.id,
         unit_cost: values.unit_cost,

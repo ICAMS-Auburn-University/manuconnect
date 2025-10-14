@@ -3,31 +3,11 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { createClient } from '@/services/supabase/client';
 
-export interface ChatMessage {
-  id: string;
-  chatId: string;
-  content: string;
-  createdAt: string;
-  user: {
-    id: string;
-    name: string;
-  };
-}
-
-type MessageRow = {
-  message_id: string;
-  chat_id: string;
-  sender_id: string;
-  content: string;
-  time_sent: string;
-  read_by: string[] | null;
-};
-
-interface UseRealtimeChatOptions {
-  chatId: string;
-  currentUserName: string;
-  participants?: Record<string, string | undefined>;
-}
+import type {
+  ChatMessage,
+  MessageRow,
+  UseRealtimeChatOptions,
+} from '@/domain/chats/types';
 
 const TABLE_NAME = 'Messages';
 

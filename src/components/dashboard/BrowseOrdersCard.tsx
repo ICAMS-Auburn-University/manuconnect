@@ -4,7 +4,7 @@ import OrdersList from '@/app/(dashboard)/orders/_components/OrdersList';
 import OrderDetails from '@/app/(dashboard)/orders/_components/OrderDetails';
 import { useEffect, useState } from 'react';
 import { getUnclaimedOrders } from '@/domain/orders/service';
-import { Order } from '@/lib/types/definitions';
+import { Order } from '@/domain/orders/types';
 
 const BrowseOrdersCard = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);

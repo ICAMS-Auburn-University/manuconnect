@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { OrderStatus } from '@/lib/types/definitions';
+import { OrderStatus } from '@/types/enums';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -13,7 +13,7 @@ export const getNextOrderStatus = (
   const currentIndex = statuses.indexOf(currentStatus);
 
   if (currentIndex === -1 || currentIndex === statuses.length - 1) {
-    return null; // No next status available
+    return null;
   }
 
   return statuses[currentIndex + 1];

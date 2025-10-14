@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { twMerge } from 'tailwind-merge';
-import { ProcessTags, MaterialTags, MiscTags } from '@/lib/types/definitions';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Search, X } from 'lucide-react';
@@ -11,17 +10,17 @@ import {
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-// Combine all tag types
-type TagType =
-  | (typeof ProcessTags)[number]
-  | (typeof MaterialTags)[number]
-  | (typeof MiscTags)[number];
+import {
+  materialTagOptions,
+  miscTagOptions,
+  processTagOptions,
+  TagOption,
+} from '@/types/tags';
 
 interface OrderSearchBarProps {
   className?: string;
   onSearchChange?: (search: string) => void;
-  onTagsChange?: (selectedTags: TagType[]) => void;
+  onTagsChange?: (selectedTags: TagOption[]) => void;
 }
 
 const OrderSearchBar = ({
@@ -30,7 +29,7 @@ const OrderSearchBar = ({
   onTagsChange,
 }: OrderSearchBarProps) => {
   const [searchText, setSearchText] = useState('');
-  const [selectedTags, setSelectedTags] = useState<TagType[]>([]);
+  const [selectedTags, setSelectedTags] = useState<TagOption[]>([]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -38,7 +37,7 @@ const OrderSearchBar = ({
     if (onSearchChange) onSearchChange(value);
   };
 
-  const handleTagSelect = (tag: TagType) => {
+  const handleTagSelect = (tag: TagOption) => {
     if (!selectedTags.some((t) => t.id === tag.id)) {
       const newSelectedTags = [...selectedTags, tag];
       setSelectedTags(newSelectedTags);
@@ -46,7 +45,7 @@ const OrderSearchBar = ({
     }
   };
 
-  const handleTagRemove = (tagToRemove: TagType) => {
+  const handleTagRemove = (tagToRemove: TagOption) => {
     const newSelectedTags = selectedTags.filter(
       (tag) => tag.id !== tagToRemove.id
     );
@@ -113,7 +112,7 @@ const OrderSearchBar = ({
               </TabsList>
               <TabsContent value="process" className="p-1">
                 <div className="grid grid-cols-2 gap-1">
-                  {ProcessTags.map((tag) => (
+                  {processTagOptions.map((tag) => (
                     <Button
                       key={tag.id}
                       variant="ghost"
@@ -129,7 +128,7 @@ const OrderSearchBar = ({
               </TabsContent>
               <TabsContent value="material" className="p-1">
                 <div className="grid grid-cols-2 gap-1">
-                  {MaterialTags.map((tag) => (
+                  {materialTagOptions.map((tag) => (
                     <Button
                       key={tag.id}
                       variant="ghost"
@@ -145,7 +144,7 @@ const OrderSearchBar = ({
               </TabsContent>
               <TabsContent value="misc" className="p-1">
                 <div className="grid grid-cols-2 gap-1">
-                  {MiscTags.map((tag) => (
+                  {miscTagOptions.map((tag) => (
                     <Button
                       key={tag.id}
                       variant="ghost"

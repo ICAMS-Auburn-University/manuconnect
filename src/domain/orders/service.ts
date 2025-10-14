@@ -2,15 +2,25 @@
 
 import { Resend } from 'resend';
 
-import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
 import { env } from '@/lib/config/env';
 import { logger } from '@/lib/logger';
-import { Order, OrderStatus } from '@/lib/types/definitions';
+import { Order } from '@/domain/orders/types';
+import { OrderStatus, EventType } from '@/types/enums';
 import { createEvent } from '@/domain/events/service';
 import { getUserById } from '@/services/integrations/supabaseAdmin';
 import { OrderUpdateEmail } from '@/components/emails/order-update';
 import { NewOrderConfirmation } from '@/components/emails/order-created-confirmation';
 import { OrderShippedEmail } from '@/components/emails/order-shipped';
+import {
+  getCurrentUser,
+  getLatestOrderNumber,
+  insertOrder,
+  updateOrderById,
+  fetchOrdersByCreator,
+  fetchOrdersByManufacturer,
+  fetchUnclaimedOrders,
+  fetchOrderById,
+} from '@/lib/supabase/orders';
 
 const createResendClient = () => {
   if (!env.RESEND_API_KEY) {
@@ -21,57 +31,51 @@ const createResendClient = () => {
 };
 
 export async function createOrder(data: Order) {
-  const supabase = await createSupabaseServerClient();
   let newOrderNumber = 1;
-  const { data: UserData, error: UserError } = await supabase.auth.getUser();
+  const { user, error: UserError } = await getCurrentUser();
 
   if (UserError) {
     logger.error(UserError, 'orders:createOrder:getUser');
     return { data: null, error: UserError };
   }
-  if (!UserData) {
+  if (!user) {
     return { data: null, error: 'User data not found' };
   }
   if (!data) {
     return { data: null, error: 'Order data not provided' };
   }
 
-  const userId = UserData?.user.id;
+  const userId = user.id;
   try {
     // Get the latest order number
-    const { data: latestOrder, error: latestOrderError } = await supabase
-      .from('Orders')
-      .select('id')
-      .order('id', { ascending: false })
-      .limit(1)
-      .single();
+    const { data: latestOrder, error: latestOrderError } =
+      await getLatestOrderNumber();
 
     if (latestOrderError) {
       logger.error(latestOrderError, 'orders:createOrder:latestOrder');
     } else {
-      newOrderNumber = latestOrder.id + 1;
+      newOrderNumber = latestOrder ? latestOrder.id + 1 : 1;
     }
 
-    const { data: OrderData, error: OrderError } = await supabase
-      .from('Orders')
-      .insert({
-        id: newOrderNumber,
-        title: data.title,
-        description: data.description,
-        creator: (await supabase.auth.getUser()).data.user?.id,
-        creator_name: (await supabase.auth.getUser()).data.user?.user_metadata
-          .display_name,
-        status: OrderStatus.OrderCreated,
-        created_at: new Date(),
-        last_update: new Date(),
-        manufacturer: null,
-        due_date: data.due_date,
-        fileURLs: data.fileURLs,
-        quantity: data.quantity,
-        tags: data.tags,
-        delivery_address: data.delivery_address,
-      })
-      .select();
+    const orderToInsert = {
+      id: newOrderNumber,
+      title: data.title,
+      description: data.description,
+      creator: user.id,
+      creator_name: user.user_metadata.display_name,
+      status: OrderStatus.OrderCreated,
+      created_at: new Date(),
+      last_update: new Date(),
+      manufacturer: undefined,
+      due_date: data.due_date,
+      fileURLs: data.fileURLs,
+      quantity: data.quantity,
+      tags: data.tags,
+      delivery_address: data.delivery_address,
+    };
+
+    const { data: OrderData, error: OrderError } =
+      await insertOrder(orderToInsert);
 
     if (!OrderData || OrderError) {
       logger.error(OrderError, 'orders:createOrder:insert');
@@ -86,24 +90,24 @@ export async function createOrder(data: Order) {
     // Send email to creator
     await resend.emails.send({
       from: 'ManuConnect <alerts@noreply.manuconnect.org>',
-      to: [UserData?.user.email || 'default@example.com'],
+      to: [user.email || 'default@example.com'],
       subject: 'Order Confirmation',
       react: await NewOrderConfirmation({
         order: OrderData[0],
-        email: UserData?.user.email || 'default@example.com',
+        email: user.email || 'default@example.com',
       }),
     });
 
     // Create Event
-    await createEvent(
-      'success',
-      `Order #${newOrderNumber.toLocaleString('en-US', {
+    await createEvent({
+      eventType: EventType.SUCCESS,
+      description: `Order #${newOrderNumber.toLocaleString('en-US', {
         minimumIntegerDigits: 6,
         useGrouping: false,
       })} created`,
-      userId,
-      newOrderNumber
-    );
+      userId: userId,
+      orderId: String(newOrderNumber),
+    });
 
     return { data: OrderData, error: OrderError };
   } catch (error) {
@@ -111,32 +115,27 @@ export async function createOrder(data: Order) {
     return { data: null, error };
   }
 }
-// TODO: Update Params
-/**
- *
- * @param params Object containing the order ID and any updatable fields (title, status, description, manufacturer, isArchived, etc.)
- *
- */
-export async function updateOrder(params: Partial<Order>) {
-  const supabase = await createSupabaseServerClient();
 
+export async function updateOrder(params: Partial<Order>) {
   try {
     const updateData = {
       ...params,
       last_update: new Date(),
     };
 
-    const { data: OrderData, error: OrderError } = await supabase
-      .from('Orders')
-      .update(updateData)
-      .eq('id', params.id)
-      .select();
+    const { data: OrderData, error: OrderError } = await updateOrderById(
+      params.id as number,
+      updateData
+    );
+
+    if (!OrderData) {
+      return { data: null, error: OrderError };
+    }
 
     // Emails for order status updates
-
     // Check if status is updated, but exclude OrderCreated -> ManufacturerOffer and ManufacturerOffer -> OrderAccepted and QualityCheck -> OrderShipped
     if (
-      OrderData &&
+      updateData.status !== undefined &&
       updateData.status !== OrderStatus.ManufacturerOffer &&
       updateData.status !== OrderStatus.OrderAccepted &&
       updateData.status !== OrderStatus.Shipped
@@ -158,7 +157,7 @@ export async function updateOrder(params: Partial<Order>) {
     }
 
     // Email if status changes from QualityCheck -> OrderShipped
-    if (OrderData && updateData.status === OrderStatus.Shipped) {
+    if (updateData.status === OrderStatus.Shipped) {
       const UserData = await getUserById(OrderData[0].creator);
       const resend = createResendClient();
 
@@ -172,15 +171,15 @@ export async function updateOrder(params: Partial<Order>) {
         }),
       });
 
-      createEvent(
-        'shipment',
-        `Order #${params.id?.toLocaleString('en-US', {
+      await createEvent({
+        eventType: EventType.SUCCESS,
+        description: `Order #${params.id?.toLocaleString('en-US', {
           minimumIntegerDigits: 6,
           useGrouping: false,
         })} has been shipped`,
-        OrderData[0].creator,
-        params.id
-      );
+        userId: OrderData[0].creator,
+        orderId: String(params.id),
+      });
     }
 
     logger.info(
@@ -189,30 +188,26 @@ export async function updateOrder(params: Partial<Order>) {
         useGrouping: false,
       })} updated`
     );
-    return { data: OrderData, error: OrderError?.message };
+    return { data: OrderData, error: OrderError };
   } catch (error) {
     logger.error(error, 'orders:updateOrder');
+    return { data: null, error };
   }
 }
 
 export async function getCreatorOrders() {
-  const supabase = await createSupabaseServerClient();
-  const { data: UserData, error: UserError } = await supabase.auth.getUser();
+  const { user, error: UserError } = await getCurrentUser();
 
   if (UserError) {
     logger.error(UserError, 'orders:getCreatorOrders:getUser');
     return null;
   }
 
-  if (!UserData) {
+  if (!user) {
     return null;
   }
 
-  const { data, error } = await supabase
-    .from('Orders')
-    .select('*')
-    .eq('creator', UserData?.user.id)
-    .order('id', { ascending: true });
+  const { data, error } = await fetchOrdersByCreator(user.id);
 
   if (!data) {
     return null;
@@ -222,29 +217,24 @@ export async function getCreatorOrders() {
     logger.error(error, 'orders:getCreatorOrders:query');
     return null;
   }
-  const orders: Order[] = data;
 
+  const orders: Order[] = data;
   return orders;
 }
 
 export async function getManufacturerOrders() {
-  const supabase = await createSupabaseServerClient();
-  const { data: UserData, error: UserError } = await supabase.auth.getUser();
+  const { user, error: UserError } = await getCurrentUser();
 
   if (UserError) {
     logger.error(UserError, 'orders:getManufacturerOrders:getUser');
     return null;
   }
 
-  if (!UserData) {
+  if (!user) {
     return null;
   }
 
-  const { data, error } = await supabase
-    .from('Orders')
-    .select('*')
-    .eq('manufacturer', UserData?.user.id)
-    .order('id', { ascending: true });
+  const { data, error } = await fetchOrdersByManufacturer(user.id);
 
   if (!data) {
     return null;
@@ -256,75 +246,64 @@ export async function getManufacturerOrders() {
   }
 
   const orders: Order[] = data;
-
   return orders;
 }
 
-/**
- * @returns Orders that are unclaimed with the creator name attached
- */
 export async function getUnclaimedOrders() {
-  const supabase = await createSupabaseServerClient();
-  const { data: UserData, error: UserError } = await supabase.auth.getUser();
+  const { user, error: UserError } = await getCurrentUser();
 
   if (UserError) {
     logger.error(UserError, 'orders:getUnclaimedOrders:getUser');
     return null;
   }
 
-  if (!UserData) {
+  if (!user) {
     return null;
   }
 
-  const { data, error } = await supabase
-    .from('Orders')
-    .select('*')
-    .is('manufacturer', null)
-    .eq('isArchived', false);
-
-  // Get the user data for the creator and manufacturer
+  const { data, error } = await fetchUnclaimedOrders();
 
   if (error) {
     logger.error(error, 'orders:getUnclaimedOrders:query');
     return null;
   }
 
-  const ordersWithCreators = await Promise.all(
-    data.map((order) =>
-      getUserById(order.creator).then((creator) => ({
-        ...order,
-        creator_name: creator.user.user_metadata.display_name || 'Unknown',
-        creator_email: creator.user.email || 'Unknown',
-      }))
-    )
-  );
+  const ordersWithCreators = data
+    ? await Promise.all(
+        data.map((order) =>
+          getUserById(order.creator).then((creator) => ({
+            ...order,
+            creator_name: creator.user.user_metadata.display_name || 'Unknown',
+            creator_email: creator.user.email || 'Unknown',
+          }))
+        )
+      )
+    : [];
 
   const orders: Order[] = ordersWithCreators;
-
   return orders;
 }
 
 export async function getOrderById(orderId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { data: UserData, error: UserError } = await supabase.auth.getUser();
+  const { user, error: UserError } = await getCurrentUser();
 
   if (UserError) {
     logger.error(UserError, 'orders:getOrderById:getUser');
     return null;
   }
 
-  if (!UserData) {
+  if (!user) {
     return null;
   }
 
-  const { data, error } = await supabase
-    .from('Orders')
-    .select('*')
-    .eq('id', orderId)
-    .or(`creator.eq.${UserData.user.id},manufacturer.eq.${UserData.user.id}`)
-    .single();
+  const { data, error } = await fetchOrderById(orderId, user.id);
 
   if (!data) {
+    return null;
+  }
+
+  if (error) {
+    logger.error(error, 'orders:getOrderById:query');
     return null;
   }
 
@@ -335,11 +314,6 @@ export async function getOrderById(orderId: string) {
     ? await getUserById(data.manufacturer)
     : null;
 
-  if (error) {
-    logger.error(error, 'orders:getOrderById:query');
-    return null;
-  }
-
   if (!CreatorData) {
     logger.error(
       'Failed to retrieve creator data',
@@ -347,7 +321,7 @@ export async function getOrderById(orderId: string) {
     );
   }
 
-  data.creatorName = CreatorData.user.user_metadata.displayName || 'Unknown';
+  data.creatorName = CreatorData?.user.user_metadata.displayName || 'Unknown';
 
   data.manufacturerName =
     data.manufacturer && ManufacturerData
@@ -355,6 +329,5 @@ export async function getOrderById(orderId: string) {
       : 'Unknown';
 
   const order: Order = data;
-
   return order;
 }

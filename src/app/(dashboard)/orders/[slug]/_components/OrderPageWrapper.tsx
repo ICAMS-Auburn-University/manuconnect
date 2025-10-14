@@ -5,7 +5,7 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 
 import { getOrderById } from '@/domain/orders/service';
 import { getUserData } from '@/domain/users/service';
-import { Order } from '@/lib/types/definitions';
+import { Order } from '@/domain/orders/types';
 import { getUserById } from '@/services/integrations/supabaseAdmin';
 import OrderPage from './OrderPage';
 
@@ -27,13 +27,13 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
     const fetchData = async () => {
       if (orderId) {
         const orderData = await getOrderById(orderId as string);
-        const userData = await getUserData();
+        const userData = (await getUserData()) as SupabaseUser | null;
 
         // Check authorization
         if (
           userData?.id === orderData?.creator ||
           userData?.id === orderData?.manufacturer ||
-          userData?.user_metadata.account_type === 'admin'
+          userData?.user_metadata?.account_type === 'admin'
         ) {
           setIsAuthorized(true);
         }

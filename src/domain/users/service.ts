@@ -1,49 +1,83 @@
 'use server';
 
-import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
+import { logger } from '@/lib/logger';
+import { getCurrentUser, getUserMetadata } from '@/lib/supabase/users';
+import type { UserProfile } from './types';
 
-export async function getInitials() {
-  const supabase = await createSupabaseServerClient();
+export async function getInitials(): Promise<string | null> {
+  try {
+    const { metadata, error } = await getUserMetadata();
 
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) {
+    if (error || !metadata) {
+      return null;
+    }
+
+    const firstName = metadata.first_name || '';
+    const lastName = metadata.last_name || '';
+
+    const initials = (firstName.charAt(0) || '') + (lastName.charAt(0) || '');
+
+    return initials || null;
+  } catch (error: any) {
+    logger.error('Failed to get user initials', error.message);
     return null;
   }
-  const initials =
-    data.user?.user_metadata.first_name.charAt(0) +
-    data.user?.user_metadata.last_name.charAt(0);
-
-  return initials;
 }
 
-export async function getUserData() {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.getUser();
+export async function getUserData(): Promise<UserProfile | null> {
+  try {
+    const { user, error } = await getCurrentUser();
 
-  if (error || !data?.user) {
+    if (error || !user) {
+      return null;
+    }
+
+    const metadata = user.user_metadata;
+
+    return {
+      id: user.id,
+      firstName: metadata?.first_name || '',
+      lastName: metadata?.last_name || '',
+      displayName:
+        metadata?.display_name ||
+        `${metadata?.first_name || ''} ${metadata?.last_name || ''}`,
+      email: user.email || '',
+      accountType: metadata?.account_type || '',
+      companyName: metadata?.company_name || '',
+      profilePicture: metadata?.profile_picture || undefined,
+    };
+  } catch (error: any) {
+    logger.error('Failed to get user data', error.message);
     return null;
   }
-  return data.user;
 }
 
-export async function getAccountType() {
-  const supabase = await createSupabaseServerClient();
+export async function getAccountType(): Promise<string | null> {
+  try {
+    const { metadata, error } = await getUserMetadata();
 
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) {
+    if (error || !metadata) {
+      return null;
+    }
+
+    return metadata.account_type || null;
+  } catch (error: any) {
+    logger.error('Failed to get account type', error.message);
     return null;
   }
-  const accountType = data.user?.user_metadata.account_type;
-
-  return accountType;
 }
 
 export async function getUserId() {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.getUser();
+  try {
+    const { user, error } = await getCurrentUser();
 
-  if (error || !data?.user?.id) {
+    if (error || !user?.id) {
+      throw new Error('User ID not found');
+    }
+
+    return user;
+  } catch (error: any) {
+    logger.error('Failed to get user ID', error.message);
     throw new Error('User ID not found');
   }
-  return data.user;
 }

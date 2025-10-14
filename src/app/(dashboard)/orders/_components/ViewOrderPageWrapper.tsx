@@ -7,7 +7,7 @@ import {
   getCreatorOrders,
   getManufacturerOrders,
 } from '@/domain/orders/service';
-import { Order } from '@/lib/types/definitions';
+import { Order } from '@/domain/orders/types';
 import { Loader } from 'lucide-react';
 
 interface ViewOrderPageWrapperProps {

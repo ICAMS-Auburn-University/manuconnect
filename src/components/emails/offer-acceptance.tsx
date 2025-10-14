@@ -1,4 +1,4 @@
-import { Offer } from '@/lib/types/definitions';
+import { Offer } from '@/domain/offers/types';
 import { EmailTemplate } from './email-template';
 import { Link, Preview, Text } from '@react-email/components';
 

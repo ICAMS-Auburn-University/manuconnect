@@ -3,7 +3,7 @@
 import { ArchiveIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { updateOrder } from '@/domain/orders/service';
-import { Order } from '@/lib/types/definitions';
+import { Order } from '@/domain/orders/types';
 import { toast } from 'sonner';
 
 interface ArchiveButtonProps {

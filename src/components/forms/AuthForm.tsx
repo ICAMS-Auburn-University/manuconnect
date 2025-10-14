@@ -23,12 +23,10 @@ import {
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  login,
-  signup,
-  type LoginData,
-  type SignupData,
-} from '@/domain/auth/service';
+import { login, signup } from '@/domain/auth/service';
+
+import type { LoginData, SignupData } from '@/domain/auth/types';
+import { AccountType } from '@/types/enums';
 
 type FormType = 'sign-in' | 'sign-up';
 
@@ -115,7 +113,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
           password: signUpValues.password,
           firstName: signUpValues.firstName,
           lastName: signUpValues.lastName,
-          accountType: signUpValues.accountType,
+          accountType: signUpValues.accountType as AccountType,
           companyName: signUpValues.companyName,
         };
 

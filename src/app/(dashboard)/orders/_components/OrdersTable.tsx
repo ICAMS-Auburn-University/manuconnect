@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Order } from '@/lib/types/definitions';
+import { Order } from '@/domain/orders/types';
 import {
   Tooltip,
   TooltipContent,

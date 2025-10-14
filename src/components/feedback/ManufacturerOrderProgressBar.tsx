@@ -1,4 +1,4 @@
-import { OrderStatus } from '@/lib/types/definitions';
+import { OrderStatus } from '@/types/enums';
 
 const ManufacturerOrderProgressBar = ({
   currentStatus,
