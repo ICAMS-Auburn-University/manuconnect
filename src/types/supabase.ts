@@ -57,6 +57,21 @@ export type Database = {
         };
         Relationships: [];
       };
+      Users: {
+        Row: {
+          id: string;
+          DisplayName: string;
+        };
+        Insert: {
+          id?: string;
+          DisplayName: string;
+        };
+        Update: {
+          id?: string;
+          DisplayName?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

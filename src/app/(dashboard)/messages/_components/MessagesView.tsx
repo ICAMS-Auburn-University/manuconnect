@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Loader2, MessageCircle, Search } from 'lucide-react';
 import clsx from 'clsx';
@@ -15,18 +15,23 @@ import { createClient } from '@/services/supabase/client';
 
 const getInitialsFromMembers = (
   members: string[],
-  currentUserId: string | null
+  currentUserId: string | null,
+  participantNames?: Record<string, string>
 ) => {
   const others = members.filter((member) => member !== currentUserId);
   if (others.length === 0) {
     return 'MC';
   }
   if (others.length === 1) {
-    return others[0]?.slice(0, 2)?.toUpperCase() ?? 'US';
+    const source = participantNames?.[others[0]] ?? others[0];
+    return source?.slice(0, 2)?.toUpperCase() ?? 'US';
   }
   return others
     .slice(0, 2)
-    .map((value) => value.slice(0, 1).toUpperCase())
+    .map((value) => {
+      const name = participantNames?.[value] ?? value;
+      return name.slice(0, 1).toUpperCase();
+    })
     .join('');
 };
 
@@ -40,7 +45,7 @@ const buildChatTitle = (
     return 'Conversation';
   }
   if (others.length === 1) {
-    const identifier = participants[others[0]] ?? others[0].slice(0, 8);
+    const identifier = participants[others[0]] ?? others[0];
     return `Chat with ${identifier}`;
   }
   return `Group chat (${others.length} people)`;
@@ -67,6 +72,7 @@ export function MessagesView() {
   const [currentUserName, setCurrentUserName] = useState<string>('You');
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -114,6 +120,82 @@ export function MessagesView() {
   const chatFromQuery = searchParams.get('chat');
 
   useEffect(() => {
+    if (!currentUserId) {
+      setDisplayNames({});
+      return;
+    }
+    setDisplayNames((prev) => {
+      if (prev[currentUserId] === currentUserName) {
+        return prev;
+      }
+      return { ...prev, [currentUserId]: currentUserName };
+    });
+  }, [currentUserId, currentUserName]);
+
+  useEffect(() => {
+    if (chats.length === 0) {
+      return;
+    }
+
+    const missing = new Set<string>();
+    chats.forEach((chat) => {
+      chat.members.forEach((memberId) => {
+        if (memberId && memberId !== currentUserId && !displayNames[memberId]) {
+          missing.add(memberId);
+        }
+      });
+    });
+
+    if (missing.size === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchDisplayNames = async () => {
+      const { data, error } = await supabase
+        .from('Users')
+        .select('id, DisplayName')
+        .in('id', Array.from(missing));
+
+      if (error) {
+        console.error('Failed to load participant display names', error);
+        return;
+      }
+
+      if (!data || cancelled) {
+        return;
+      }
+
+      setDisplayNames((prev) => {
+        const next = { ...prev };
+        data.forEach((user) => {
+          next[user.id] = user.DisplayName;
+        });
+        return next;
+      });
+    };
+
+    void fetchDisplayNames();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chats, currentUserId, displayNames, supabase]);
+
+  const getMemberDisplayName = useCallback(
+    (memberId: string) => {
+      if (memberId === currentUserId) {
+        return currentUserName;
+      }
+      return (
+        displayNames[memberId] ?? `User ${memberId.slice(0, 8).toUpperCase()}`
+      );
+    },
+    [currentUserId, currentUserName, displayNames]
+  );
+
+  useEffect(() => {
     if (!selectedChatId && chats.length > 0) {
       if (
         chatFromQuery &&
@@ -158,10 +240,7 @@ export function MessagesView() {
     }
     const participants: Record<string, string> = {};
     chat.members.forEach((memberId) => {
-      participants[memberId] =
-        memberId === currentUserId
-          ? currentUserName
-          : `User ${memberId.slice(0, 8).toUpperCase()}`;
+      participants[memberId] = getMemberDisplayName(memberId);
     });
 
     const title = buildChatTitle(chat.members, currentUserId, participants);
@@ -171,6 +250,9 @@ export function MessagesView() {
     return (
       title.toLowerCase().includes(term) ||
       preview.toLowerCase().includes(term) ||
+      Object.values(participants).some((name) =>
+        name.toLowerCase().includes(term)
+      ) ||
       chat.members.some((member) => member.toLowerCase().includes(term))
     );
   });
@@ -185,13 +267,10 @@ export function MessagesView() {
     }
     const map: Record<string, string> = {};
     selectedChat.members.forEach((memberId) => {
-      map[memberId] =
-        memberId === currentUserId
-          ? currentUserName
-          : `User ${memberId.slice(0, 8).toUpperCase()}`;
+      map[memberId] = getMemberDisplayName(memberId);
     });
     return map;
-  }, [selectedChat, currentUserId, currentUserName]);
+  }, [selectedChat, getMemberDisplayName]);
 
   useEffect(() => {
     if (!selectedChatId) {
@@ -248,10 +327,7 @@ export function MessagesView() {
                 filteredChats.map((chat) => {
                   const participants: Record<string, string> = {};
                   chat.members.forEach((memberId) => {
-                    participants[memberId] =
-                      memberId === currentUserId
-                        ? currentUserName
-                        : `User ${memberId.slice(0, 8).toUpperCase()}`;
+                    participants[memberId] = getMemberDisplayName(memberId);
                   });
                   const title = buildChatTitle(
                     chat.members,
@@ -275,7 +351,11 @@ export function MessagesView() {
                     >
                       <Avatar className="h-11 w-11">
                         <AvatarFallback>
-                          {getInitialsFromMembers(chat.members, currentUserId)}
+                          {getInitialsFromMembers(
+                            chat.members,
+                            currentUserId,
+                            participants
+                          )}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
