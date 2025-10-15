@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { supabaseLogin, supabaseSignup } from '@/lib/supabase/auth';
 import { logger } from '@/lib/logger';
 import { createUserPfp } from '@/services/integrations/supabaseAdmin';
-import { LoginData, SignupData } from './types';
+import { LoginData, SignUpData } from './types';
 
 export async function login({ email, password }: LoginData) {
   logger.info('Auth service: login', { email });
@@ -18,22 +18,13 @@ export async function login({ email, password }: LoginData) {
   redirect('/');
 }
 
-export async function signup(data: SignupData) {
+export async function signup(data: SignUpData) {
   logger.info('Auth service: signup', { email: data.email });
-  const { data: signupResult, error } = await supabaseSignup(
-    data.email,
-    data.password,
-    {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      accountType: data.accountType,
-      companyName: data.companyName,
-    }
-  );
+  const { data: signupResult, error } = await supabaseSignup(data);
 
   if (error) {
     logger.error('Auth service: signup failed', error.message);
-    redirect('/error');
+    throw new Error(error.message);
   }
 
   if (signupResult && signupResult.user) {

@@ -78,7 +78,7 @@ export const MiscTagLabels: Record<MiscTag, string> = {
 };
 
 export enum AccountType {
-  Client = 'client',
+  Creator = 'creator',
   Manufacturer = 'manufacturer',
   Admin = 'admin',
 }
