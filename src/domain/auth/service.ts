@@ -5,8 +5,8 @@ import { revalidatePath } from 'next/cache';
 import {
   supabaseLogin,
   supabaseSignup,
-  updateUserMetadata,
-  supabaseGetUser,
+  updateUserMetadataServer,
+  supabaseGetUserServer,
 } from '@/lib/supabase/auth';
 import { logger } from '@/lib/logger';
 import { createUserPfp } from '@/services/integrations/supabaseAdmin';
@@ -16,6 +16,7 @@ import {
   CreatorOnboardingData,
   ManufacturerOnboardingData,
 } from './types';
+import { formatDateForPostgres } from '@/lib/utils/transforms';
 import { Address } from '@/types/shared';
 
 export async function login({ email, password }: LoginData) {
@@ -44,12 +45,16 @@ export async function signup(data: SignUpData) {
 }
 
 export async function completeCreatorOnboarding(data: CreatorOnboardingData) {
-  logger.info('Auth service: completing creator onboarding');
+  if (!data.agreementAccepted) {
+    throw new Error('You must accept the agreement to continue');
+  }
 
+  logger.info('Auth service: completing creator onboarding');
   try {
-    const { error } = await updateUserMetadata({
-      agreementAccepted: data.agreementAccepted,
-      onboardingCompleted: true,
+    const { error } = await updateUserMetadataServer({
+      agreement_accepted: data.agreementAccepted,
+      onboarding_completed: true,
+      time_accepted: formatDateForPostgres(new Date()),
     });
 
     if (error) {
@@ -69,8 +74,11 @@ export async function completeCreatorOnboarding(data: CreatorOnboardingData) {
 export async function completeManufacturerOnboarding(
   data: ManufacturerOnboardingData
 ) {
-  logger.info('Auth service: completing manufacturer onboarding');
+  if (!data.agreementAccepted) {
+    throw new Error('You must accept the agreement to continue');
+  }
 
+  logger.info('Auth service: completing manufacturer onboarding');
   try {
     const companyAddress: Address = {
       street1: data.companyAddress.street1,
@@ -81,14 +89,15 @@ export async function completeManufacturerOnboarding(
       country: data.companyAddress.country,
     };
 
-    const { error } = await updateUserMetadata({
-      companyName: data.companyName,
-      companyType: data.companyType,
-      stateOfFormation: data.stateOfFormation,
-      companyAddress: companyAddress,
-      representativeRole: data.representativeRole,
-      agreementAccepted: data.agreementAccepted,
-      onboardingCompleted: true,
+    const { error } = await updateUserMetadataServer({
+      company_name: data.companyName,
+      company_type: data.companyType,
+      state_of_formation: data.stateOfFormation,
+      company_address: companyAddress,
+      representative_role: data.representativeRole,
+      agreement_accepted: data.agreementAccepted,
+      onboarding_completed: true,
+      time_accepted: formatDateForPostgres(new Date()),
     });
 
     if (error) {
@@ -113,7 +122,7 @@ export async function completeManufacturerOnboarding(
 
 export async function getCurrentUser() {
   try {
-    const { user, error } = await supabaseGetUser();
+    const { user, error } = await supabaseGetUserServer();
 
     if (error) {
       logger.error('Auth service: failed to get user', error.message);

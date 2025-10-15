@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from '@/app/_internal/supabase/server-clie
 import { createClient } from '@/services/supabase/client';
 import { SignUpData } from '@/domain/auth/types';
 
+// --------- Server-side functions (START) ---------
 export async function supabaseLogin(email: string, password: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -19,11 +20,11 @@ export async function supabaseSignup(signUpData: SignUpData) {
     password: signUpData.password,
     options: {
       data: {
-        firstName: signUpData.firstName,
-        lastName: signUpData.lastName,
-        displayName: `${signUpData.firstName} ${signUpData.lastName}`,
-        accountType: signUpData.accountType,
-        profilePicture: '',
+        first_name: signUpData.firstName,
+        last_name: signUpData.lastName,
+        display_name: `${signUpData.firstName} ${signUpData.lastName}`,
+        account_type: signUpData.accountType,
+        profile_picture: '',
       },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/confirmAuth?next=/onboarding`,
     },
@@ -31,7 +32,24 @@ export async function supabaseSignup(signUpData: SignUpData) {
   return { data, error };
 }
 
+export async function updateUserMetadataServer(metadata: Record<string, any>) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.updateUser({
+    data: metadata,
+  });
+  return { data, error };
+}
+
+export async function supabaseGetUserServer() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.getUser();
+  return { user: data?.user || null, error };
+}
+// --------- Server-side functions (END) ---------
+
+// --------- Client-side functions (START) ---------
 export async function updateUserMetadata(metadata: Record<string, any>) {
+  'use client';
   const supabase = createClient();
   const { data, error } = await supabase.auth.updateUser({
     data: metadata,
@@ -40,7 +58,9 @@ export async function updateUserMetadata(metadata: Record<string, any>) {
 }
 
 export async function supabaseGetUser() {
+  'use client';
   const supabase = createClient();
   const { data, error } = await supabase.auth.getUser();
   return { user: data?.user || null, error };
 }
+// --------- Client-side functions (END) ---------

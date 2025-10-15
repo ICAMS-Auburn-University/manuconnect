@@ -18,7 +18,8 @@ export default async function Home() {
     redirect('/sign-in');
   }
 
-  const userData = data.user?.user_metadata;
+  const userData = data.user.user_metadata;
+  console.log('User metadata:', userData);
 
   return (
     <main className="flex flex-col items-center justify-items-center p-8 pb-20 gap-16 sm:p-20 w-full">

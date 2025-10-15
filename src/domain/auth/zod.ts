@@ -44,6 +44,7 @@ export const creatorOnboardingSchema = z.object({
   agreementAccepted: z.boolean().refine((val) => val === true, {
     message: 'You must accept the agreement to continue',
   }),
+  timeAccepted: z.date().optional(),
 });
 
 export const manufacturerOnboardingSchema = z.object({
@@ -59,4 +60,5 @@ export const manufacturerOnboardingSchema = z.object({
   agreementAccepted: z.boolean().refine((val) => val === true, {
     message: 'You must accept the agreement to continue',
   }),
+  timeAccepted: z.date().optional(),
 });

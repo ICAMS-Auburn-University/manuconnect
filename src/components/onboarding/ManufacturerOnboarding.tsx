@@ -29,7 +29,6 @@ import { completeManufacturerOnboarding } from '@/domain/auth/service';
 import { isNextRedirectError } from '@/lib/utils/errors';
 import { manufacturerOnboardingSchema } from '@/domain/auth/zod';
 import type { ManufacturerOnboardingFormValues } from '@/domain/auth/types';
-import { Address } from '@/types/shared';
 
 export default function ManufacturerOnboarding() {
   const [isLoading, setIsLoading] = useState(false);
