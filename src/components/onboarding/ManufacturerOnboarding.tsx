@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { createClient } from '@/services/supabase/client';
 import {
   Form,
   FormControl,
@@ -27,40 +25,19 @@ import { useRouter } from 'next/navigation';
 import { CompanyType } from '@/types/enums';
 import { US_STATES } from '@/lib/constants';
 import { ManufacturerAgreement } from '@/components/onboarding/agreements/ManufacturerAgreement';
+import { completeManufacturerOnboarding } from '@/domain/auth/service';
+import { isNextRedirectError } from '@/lib/utils/errors';
+import { manufacturerOnboardingSchema } from '@/domain/auth/zod';
+import type { ManufacturerOnboardingFormValues } from '@/domain/auth/types';
+import { Address } from '@/types/shared';
 
-const manufacturerOnboardingSchema = z.object({
-  companyName: z.string().min(1, { message: 'Company name is required' }),
-  companyType: z.nativeEnum(CompanyType),
-  stateOfFormation: z
-    .string()
-    .min(1, { message: 'State of formation is required' }),
-  companyAddress: z.object({
-    street1: z.string().min(1, { message: 'Street address is required' }),
-    street2: z.string().optional(),
-    city: z.string().min(1, { message: 'City is required' }),
-    state: z.string().min(1, { message: 'State is required' }),
-    postal_code: z.string().min(1, { message: 'Postal code is required' }),
-    country: z.string().min(1, { message: 'Country is required' }),
-  }),
-  representativeRole: z
-    .string()
-    .min(1, { message: 'Representative role is required' }),
-  agreementAccepted: z.boolean().refine((val) => val === true, {
-    message: 'You must accept the agreement to continue',
-  }),
-});
-
-type ManufacturerOnboardingValues = z.infer<
-  typeof manufacturerOnboardingSchema
->;
-
-export default function ManufacturerOnboardingForm() {
+export default function ManufacturerOnboarding() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAgreement, setShowAgreement] = useState(false);
   const router = useRouter();
 
-  const form = useForm<ManufacturerOnboardingValues>({
+  const form = useForm<ManufacturerOnboardingFormValues>({
     resolver: zodResolver(manufacturerOnboardingSchema),
     defaultValues: {
       companyName: '',
@@ -79,31 +56,27 @@ export default function ManufacturerOnboardingForm() {
     },
   });
 
-  const onSubmit = async (values: ManufacturerOnboardingValues) => {
+  const onSubmit = async (values: ManufacturerOnboardingFormValues) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const supabase = createClient();
-
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          companyName: values.companyName,
-          companyType: values.companyType,
-          stateOfFormation: values.stateOfFormation,
-          companyAddress: values.companyAddress,
-          representativeRole: values.representativeRole,
-          agreementAccepted: values.agreementAccepted,
-          onboardingCompleted: true,
-        },
+      await completeManufacturerOnboarding({
+        companyName: values.companyName,
+        companyType: values.companyType,
+        stateOfFormation: values.stateOfFormation,
+        companyAddress: values.companyAddress,
+        representativeRole: values.representativeRole,
+        agreementAccepted: values.agreementAccepted,
       });
 
-      if (updateError) {
-        throw updateError;
-      }
-
+      // The service handles the redirect, but we'll never get here
+      // This is just a fallback
       router.push('/');
     } catch (err: any) {
+      if (isNextRedirectError(err)) {
+        throw err;
+      }
       console.error('Error completing onboarding:', err);
       setError(err.message || 'Failed to complete onboarding');
     } finally {

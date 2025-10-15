@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
+import { createClient } from '@/services/supabase/client';
 import { SignUpData } from '@/domain/auth/types';
 
 export async function supabaseLogin(email: string, password: string) {
@@ -18,15 +19,28 @@ export async function supabaseSignup(signUpData: SignUpData) {
     password: signUpData.password,
     options: {
       data: {
-        first_name: signUpData.firstName,
-        last_name: signUpData.lastName,
-        display_name: `${signUpData.firstName} ${signUpData.lastName}`,
-        account_type: signUpData.accountType,
-        profile_picture: '',
+        firstName: signUpData.firstName,
+        lastName: signUpData.lastName,
+        displayName: `${signUpData.firstName} ${signUpData.lastName}`,
+        accountType: signUpData.accountType,
+        profilePicture: '',
       },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/confirmAuth?next=/onboarding`,
     },
   });
-
   return { data, error };
+}
+
+export async function updateUserMetadata(metadata: Record<string, any>) {
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.updateUser({
+    data: metadata,
+  });
+  return { data, error };
+}
+
+export async function supabaseGetUser() {
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.getUser();
+  return { user: data?.user || null, error };
 }

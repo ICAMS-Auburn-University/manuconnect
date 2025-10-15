@@ -1,7 +1,12 @@
 import { AccountType, CompanyType } from '@/types/enums';
 import { Address, USState } from '@/types/shared';
 import { z } from 'zod';
-import { signInSchema, signUpSchema } from '@/domain/auth/zod';
+import {
+  signInSchema,
+  signUpSchema,
+  creatorOnboardingSchema,
+  manufacturerOnboardingSchema,
+} from '@/domain/auth/zod';
 
 export interface LoginData {
   email: string;
@@ -14,24 +19,24 @@ export interface SignUpData extends LoginData {
   accountType: AccountType;
 }
 
-export interface ClientSignUpData extends LoginData {
-  firstName: string;
-  lastName: string;
-  accountType: AccountType.Creator;
+export interface CreatorOnboardingData {
+  agreementAccepted: boolean;
 }
 
-export interface ManufacturerSignUpData extends LoginData {
-  firstName: string;
-  lastName: string;
-  accountType: AccountType.Manufacturer;
+export interface ManufacturerOnboardingData {
   companyName: string;
   companyType: CompanyType;
   stateOfFormation: USState;
   companyAddress: Address;
-  representativeFirstName: string;
-  representativeLastName: string;
   representativeRole: string;
+  agreementAccepted: boolean;
 }
 
 export type SignInFormValues = z.infer<typeof signInSchema>;
 export type SignUpFormValues = z.infer<typeof signUpSchema>;
+export type CreatorOnboardingFormValues = z.infer<
+  typeof creatorOnboardingSchema
+>;
+export type ManufacturerOnboardingFormValues = z.infer<
+  typeof manufacturerOnboardingSchema
+>;

@@ -2,30 +2,30 @@
 
 import { useEffect, useState } from 'react';
 import { Loader } from 'lucide-react';
-import { createClient } from '@/services/supabase/client';
 import { AccountType } from '@/types/enums';
 import CreatorOnboarding from '@/components/onboarding/CreatorOnboarding';
 import ManufacturerOnboarding from '@/components/onboarding/ManufacturerOnboarding';
+import { getCurrentUser } from '@/domain/auth/service';
 
-export default function OnboardingPage() {
-  const [accountType, setAccountType] = useState<AccountType | null>(null);
+export default function OnboardingForm() {
+  const [accountType, setAccountType] = useState<AccountType>(
+    AccountType.Creator
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function getUserData() {
       try {
-        const supabase = createClient();
-        const { data } = await supabase.auth.getUser();
+        const { user } = await getCurrentUser();
 
-        if (!data?.user) {
+        if (!user) {
           throw new Error('Not authenticated');
         }
 
-        console.log('User metadata:', data.user.user_metadata);
+        console.log('User metadata:', user.user_metadata);
+        const userAccountType = user.user_metadata.account_type as AccountType;
 
-        const userAccountType = data.user.user_metadata
-          ?.account_type as AccountType;
         if (!userAccountType) {
           throw new Error('Account type not found');
         }

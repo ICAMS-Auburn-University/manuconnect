@@ -4,6 +4,15 @@ import { AccountType, CompanyType } from '@/types/enums';
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 30;
 
+export const addressSchema = z.object({
+  street1: z.string().min(1, { message: 'Street address is required' }),
+  street2: z.string(),
+  city: z.string().min(1, { message: 'City is required' }),
+  state: z.string().min(1, { message: 'State is required' }),
+  postal_code: z.string().min(1, { message: 'Postal code is required' }),
+  country: z.string().min(1, { message: 'Country is required' }),
+});
+
 export const signInSchema = z.object({
   email: z.string().email(),
   password: z.string().min(MIN_PASSWORD_LENGTH).max(MAX_PASSWORD_LENGTH),
@@ -43,14 +52,7 @@ export const manufacturerOnboardingSchema = z.object({
   stateOfFormation: z
     .string()
     .min(1, { message: 'State of formation is required' }),
-  companyAddress: z.object({
-    street1: z.string().min(1, { message: 'Street address is required' }),
-    street2: z.string().optional(),
-    city: z.string().min(1, { message: 'City is required' }),
-    state: z.string().min(1, { message: 'State is required' }),
-    postal_code: z.string().min(1, { message: 'Postal code is required' }),
-    country: z.string().min(1, { message: 'Country is required' }),
-  }),
+  companyAddress: addressSchema,
   representativeRole: z
     .string()
     .min(1, { message: 'Representative role is required' }),

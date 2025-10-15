@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -13,50 +12,41 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
-import { createClient } from '@/services/supabase/client';
 import { useRouter } from 'next/navigation';
 import { CreatorAgreement } from '@/components/onboarding/agreements/CreatorAgreement';
-
-const creatorOnboardingSchema = z.object({
-  agreementAccepted: z.boolean().refine((val) => val === true, {
-    message: 'You must accept the agreement to continue',
-  }),
-});
-
-type CreatorOnboardingValues = z.infer<typeof creatorOnboardingSchema>;
+import { completeCreatorOnboarding } from '@/domain/auth/service';
+import { isNextRedirectError } from '@/lib/utils/errors';
+import { creatorOnboardingSchema } from '@/domain/auth/zod';
+import type { CreatorOnboardingFormValues } from '@/domain/auth/types';
 
 export default function CreatorOnboarding() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const form = useForm<CreatorOnboardingValues>({
+  const form = useForm<CreatorOnboardingFormValues>({
     resolver: zodResolver(creatorOnboardingSchema),
     defaultValues: {
       agreementAccepted: false,
     },
   });
 
-  const onSubmit = async (values: CreatorOnboardingValues) => {
+  const onSubmit = async (values: CreatorOnboardingFormValues) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const supabase = createClient();
-
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          agreementAccepted: values.agreementAccepted,
-          onboardingCompleted: true,
-        },
+      await completeCreatorOnboarding({
+        agreementAccepted: values.agreementAccepted,
       });
 
-      if (updateError) {
-        throw updateError;
-      }
-
+      // The service handles the redirect, but we'll never get here
+      // This is just a fallback
       router.push('/');
     } catch (err: any) {
+      if (isNextRedirectError(err)) {
+        throw err;
+      }
       console.error('Error completing onboarding:', err);
       setError(err.message || 'Failed to complete onboarding');
     } finally {
