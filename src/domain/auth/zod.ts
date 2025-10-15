@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AccountType } from '@/types/enums';
+import { AccountType, CompanyType } from '@/types/enums';
 
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 30;
@@ -30,3 +30,31 @@ export const signUpSchema = z
       });
     }
   });
+
+export const creatorOnboardingSchema = z.object({
+  agreementAccepted: z.boolean().refine((val) => val === true, {
+    message: 'You must accept the agreement to continue',
+  }),
+});
+
+export const manufacturerOnboardingSchema = z.object({
+  companyName: z.string().min(1, { message: 'Company name is required' }),
+  companyType: z.nativeEnum(CompanyType),
+  stateOfFormation: z
+    .string()
+    .min(1, { message: 'State of formation is required' }),
+  companyAddress: z.object({
+    street1: z.string().min(1, { message: 'Street address is required' }),
+    street2: z.string().optional(),
+    city: z.string().min(1, { message: 'City is required' }),
+    state: z.string().min(1, { message: 'State is required' }),
+    postal_code: z.string().min(1, { message: 'Postal code is required' }),
+    country: z.string().min(1, { message: 'Country is required' }),
+  }),
+  representativeRole: z
+    .string()
+    .min(1, { message: 'Representative role is required' }),
+  agreementAccepted: z.boolean().refine((val) => val === true, {
+    message: 'You must accept the agreement to continue',
+  }),
+});
