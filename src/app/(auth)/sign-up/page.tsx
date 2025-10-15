@@ -1,4 +1,4 @@
-import AuthForm from '@/components/forms/AuthForm';
+import SignUpForm from '@/components/forms/SignUpForm';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 const page = () => {
   return (
     <div className="min-w-96">
-      <AuthForm type="sign-up" />
+      <SignUpForm />
     </div>
   );
 };

@@ -1,3 +1,5 @@
+import { Address } from '@/types/shared';
+
 export interface UsersSchema {
   id: string; // uuid
   display_name: string;
@@ -76,4 +78,10 @@ export interface OrdersSchema {
     tracking_number: string | null;
   };
   livestream_url: string;
+}
+
+export interface AddressesSchema extends Address {
+  id: string; // uuid
+  created_at: string; // timestamp with time zone (ISO string)
+  updated_at: string; // timestamp with time zone (ISO string)
 }

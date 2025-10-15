@@ -92,3 +92,17 @@ export enum EventType {
   SHIPMENT = 'shipment',
   OFFER = 'offer',
 }
+
+export enum CompanyType {
+  SP = 'SP', // Sole Proprietorship
+  GP = 'GP', // General Partnership
+  LP = 'LP', // Limited Partnership
+  LLP = 'LLP', // Limited Liability Partnership
+  LLC = 'LLC', // Limited Liability Company
+  CORP = 'CORP', // Corporation (general)
+  INC = 'INC', // Incorporated (same as CORP, but common suffix)
+  SCORP = 'S-CORP', // S Corporation
+  NONPROFIT = 'NONPROFIT', // Nonprofit Corporation
+  COOP = 'COOP', // Cooperative
+  OTHER = 'OTHER', // For entity types not listed
+}
