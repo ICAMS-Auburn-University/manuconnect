@@ -29,7 +29,7 @@ export async function insertOrder(orderData: OrdersSchema) {
   return { data, error };
 }
 
-export async function updateOrderById(id: number, updateData: OrdersSchema) {
+export async function updateOrderById(id: string, updateData: Partial<OrdersSchema>) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('Orders')

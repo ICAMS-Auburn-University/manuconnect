@@ -30,8 +30,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Offer } from '@/domain/offers/types';
-import { Order } from '@/domain/orders/types';
+import { OffersSchema, OrdersSchema } from '@/types/schemas';
 import { acceptOffer, declineOffer, getOffers } from '@/domain/offers/service';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -39,11 +38,11 @@ import { useRouter } from 'next/navigation';
 import { startDirectChat } from '@/lib/api/chats';
 
 interface ViewOffersProps {
-  order: Order;
+  order: OrdersSchema;
 }
 
 export default function ViewOffers({ order }: ViewOffersProps) {
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const [offers, setOffers] = useState<OffersSchema[]>([]);
   type SortableField = 'manufacturer_name' | 'unit_cost' | 'shipping_cost';
 
   const [sortField, setSortField] = useState<SortableField | null>(null);
@@ -147,7 +146,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
     // In a real app, this would send the acceptance to an API
     try {
       acceptOffer(offerId);
-      toast.success('Offer accepted!');
+      toast.success('OffersSchema accepted!');
       setOffers(offers.filter((offer) => offer.id !== offerId));
       router.push('/orders'); // Redirect to orders page after accepting
     } catch (error) {
@@ -163,14 +162,14 @@ export default function ViewOffers({ order }: ViewOffersProps) {
       declineOffer(offerId);
       const updatedOffers = offers.filter((offer) => offer.id !== offerId);
       setOffers(updatedOffers);
-      toast.success('Offer declined!');
+      toast.success('OffersSchema declined!');
     } catch (error) {
       toast.error('Error declining offer');
       console.error('Error declining offer:', error);
     }
   };
 
-  const handleStartChat = async (offer: Offer) => {
+  const handleStartChat = async (offer: OffersSchema) => {
     if (!offer.offerer) {
       toast.error('Cannot start chat: missing manufacturer id');
       return;

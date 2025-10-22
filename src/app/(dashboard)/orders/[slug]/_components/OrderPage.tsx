@@ -10,6 +10,7 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 import {
   Card,
   CardContent,
@@ -26,7 +27,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import { OrderStatus } from '@/types/enums';
 import OrderProgressBar from '@/components/feedback/CustomerOrderProgressBar';
 import { updateOrder } from '@/domain/orders/service';
@@ -36,12 +37,13 @@ import ViewOffers from './ViewOffers';
 import ShippingDialog from './ShippingDialog';
 import AddLivestreamForm from '@/components/forms/AddLivestreamForm';
 import View3DModel from '@/components/media/ModelViewer';
+import type { UserProfile } from '@/domain/users/types';
 
 type OrderPageProps = {
-  order: Order;
-  userData: SupabaseUser | null;
-  manufacturerData: SupabaseUser | null;
-  creatorData: SupabaseUser | null;
+  order: OrdersSchema;
+  userData: UserProfile | null;
+  manufacturerData: UserProfile | null;
+  creatorData: UserProfile | null;
 };
 
 const OrderPage = ({
@@ -50,11 +52,10 @@ const OrderPage = ({
   manufacturerData,
   creatorData,
 }: OrderPageProps) => {
-  const [currentStatus, setCurrentStatus] = useState(order.status); // Local state for status
+  const [currentStatus, setCurrentStatus] = useState(order.status as OrderStatus); // Local state for status
   const [isShippingDialogOpen, setIsShippingDialogOpen] = useState(false);
   const [isLivestreamDialogOpen, setIsLivestreamDialogOpen] = useState(false);
-
-  const UserType = userData?.user_metadata.account_type;
+  const UserType = userData?.accountType;
 
   const handleUpdateStatus = async () => {
     const nextStatus = getNextOrderStatus(currentStatus);
@@ -71,7 +72,7 @@ const OrderPage = ({
     try {
       await updateOrder({ id: order.id, status: nextStatus });
       setCurrentStatus(nextStatus);
-      toast.success('Order status updated successfully');
+      toast.success('OrdersSchema status updated successfully');
     } catch (error) {
       console.error('Failed to update order status:', error);
       toast.error('Failed to update order status');
@@ -98,7 +99,7 @@ const OrderPage = ({
       });
       setCurrentStatus(OrderStatus.Shipped);
       setIsShippingDialogOpen(false);
-      toast.success('Order status updated to Shipped');
+      toast.success('OrdersSchema status updated to Shipped');
     } catch (error) {
       console.error('Failed to update order status:', error);
       toast.error('Failed to update order status');
@@ -140,10 +141,7 @@ const OrderPage = ({
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
               Order #
-              {order.id.toLocaleString('en-US', {
-                minimumIntegerDigits: 6,
-                useGrouping: false,
-              })}
+              {abbreviateUUID(order.id)}
             </h1>
             <p className="text-sm text-muted-foreground">
               Placed on {new Date(order.created_at).toLocaleDateString()}{' '}
@@ -172,7 +170,7 @@ const OrderPage = ({
       <Tabs defaultValue="details" className="w-full">
         <TabsList className="flex w-full">
           <TabsTrigger value="details" className="flex-1">
-            Order Details
+            OrdersSchema Details
           </TabsTrigger>
           <TabsTrigger value="model" className="flex-1">
             3D Model
@@ -269,11 +267,11 @@ const OrderPage = ({
                           {manufacturerData?.email || 'Not Found'}
                         </Link>
                       </p>
-                      <p className="text-sm flex">
+                      {/* <p className="text-sm flex">
                         <Phone className="mr-2 h-4 w-4" />
                         {manufacturerData?.user_metadata.phone_number ||
                           'Not Found'}
-                      </p>
+                      </p> */}
                     </div>
                   </CardContent>
                 </Card>
@@ -296,10 +294,10 @@ const OrderPage = ({
                           {creatorData?.email || 'Not Found'}
                         </Link>
                       </p>
-                      <p className="text-sm flex">
+                      {/* <p className="text-sm flex">
                         <Phone className="mr-2 h-4 w-4" />
                         {creatorData?.user_metadata.phone_number || 'Not Found'}
-                      </p>
+                      </p> */}
                     </div>
                   </CardContent>
                 </Card>
@@ -427,7 +425,7 @@ const OrderPage = ({
           <Card>
             <CardHeader>
               <CardTitle className="flex justify-between">
-                <p>Order Status</p>
+                <p>OrdersSchema Status</p>
                 <p className="text-base">
                   Due Date: {new Date(order.due_date).toLocaleDateString()}
                 </p>

@@ -72,7 +72,12 @@ export interface OrdersSchema {
     country: string;
     postal_code: string;
   };
-  price: Record<string, unknown>;
+  price: {
+    unit_cost: number;
+    projected_cost: number;
+    shipping_cost: number;
+    projected_units: number;
+  };
   shipping_info: {
     carrier: string | null;
     tracking_number: string | null;

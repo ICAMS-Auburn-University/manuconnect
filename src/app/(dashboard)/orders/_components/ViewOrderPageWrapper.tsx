@@ -7,7 +7,7 @@ import {
   getCreatorOrders,
   getManufacturerOrders,
 } from '@/domain/orders/service';
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import { Loader } from 'lucide-react';
 
 interface ViewOrderPageWrapperProps {
@@ -15,8 +15,8 @@ interface ViewOrderPageWrapperProps {
 }
 
 const ViewOrderPageWrapper = ({ accountType }: ViewOrderPageWrapperProps) => {
-  const [creatorOrders, setCreatorOrders] = useState<Order[]>([]);
-  const [manufacturerOrders, setManufacturerOrders] = useState<Order[]>([]);
+  const [creatorOrders, setCreatorOrders] = useState<OrdersSchema[]>([]);
+  const [manufacturerOrders, setManufacturerOrders] = useState<OrdersSchema[]>([]);
   const [loading, setIsLoading] = useState(true); // Add loading state
 
   const fetchOrders = async () => {

@@ -1,6 +1,6 @@
 export type StartChatPayload = {
   targetUserId: string;
-  orderId: number;
+  orderId: string;
 };
 
 export interface ChatMessage {

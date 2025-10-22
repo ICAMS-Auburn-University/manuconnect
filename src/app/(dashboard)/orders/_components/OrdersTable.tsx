@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import {
   Tooltip,
   TooltipContent,
@@ -19,15 +19,16 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import ArchiveButton from '@/components/feedback/ArchiveButton';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 
 interface OrdersTableProps {
-  Orders: Order[];
+  Orders: OrdersSchema[];
 }
 
 const OrdersTable: React.FC<OrdersTableProps> = ({ Orders }) => {
   const [orders, setOrders] = useState(Orders);
 
-  const handleArchive = (orderId: number) => {
+  const handleArchive = (orderId: string) => {
     // Handles the archive button click
     setOrders((prevOrders) =>
       prevOrders.map((order) =>
@@ -41,7 +42,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ Orders }) => {
     <Table className="body-1 mb-16">
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[100px]">Order Number</TableHead>
+          <TableHead className="w-[100px]">OrdersSchema Number</TableHead>
           <TableHead className="w-[100px]">Status</TableHead>
           <TableHead className="w-[100px]">Title</TableHead>
           <TableHead>Last Updated</TableHead>
@@ -57,10 +58,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ Orders }) => {
             <TableRow key={order.id}>
               <TableCell>
                 #
-                {order.id.toLocaleString('en-US', {
-                  minimumIntegerDigits: 6,
-                  useGrouping: false,
-                })}
+                {abbreviateUUID(order.id)}
               </TableCell>
               <TableCell className="font-medium text-wrap">
                 {order.status}
@@ -81,7 +79,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ Orders }) => {
                     className="bg-brand hover:bg-brand-100 transition text-white "
                     size={'sm'}
                   >
-                    View Order
+                    View OrdersSchema
                   </Button>
                 </Link>
                 <TooltipProvider>

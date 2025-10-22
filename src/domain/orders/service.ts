@@ -13,6 +13,7 @@ import { OrderUpdateEmail } from '@/components/emails/order-update';
 import { NewOrderConfirmation } from '@/components/emails/order-created-confirmation';
 import { OrderShippedEmail } from '@/components/emails/order-shipped';
 import { CreateOrderInput } from './types';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 import {
   getCurrentUser,
   insertOrder,
@@ -23,7 +24,6 @@ import {
   fetchOrderById,
   getLatestOrderNumber,
 } from '@/lib/supabase/orders';
-import { formatOrderId } from './utils';
 
 const createResendClient = () => {
   if (!env.RESEND_API_KEY) {
@@ -106,7 +106,7 @@ export async function createOrder(data: CreateOrderInput): Promise<{
       };
     }
 
-    const displayOrderId = orderId.substring(0, 8).toUpperCase();
+    const displayOrderId = abbreviateUUID(orderId);
     logger.info(`Order #${displayOrderId} created`);
 
     const resend = createResendClient();
@@ -137,11 +137,11 @@ export async function createOrder(data: CreateOrderInput): Promise<{
   }
 }
 
-export async function updateOrder(params: OrdersSchema) {
+export async function updateOrder(params: Partial<OrdersSchema>) {
   try {
     const updateData = {
       ...params,
-      last_update: new Date(),
+      last_update: new Date().toISOString(),
     };
 
     if (!params.id) {
@@ -198,20 +198,14 @@ export async function updateOrder(params: OrdersSchema) {
 
       await createEvent({
         eventType: EventType.SUCCESS,
-        description: `OrdersSchema #${params.id?.toLocaleString('en-US', {
-          minimumIntegerDigits: 6,
-          useGrouping: false,
-        })} has been shipped`,
+        description: `Order #${abbreviateUUID(params.id)} has been shipped`,
         userId: OrderData[0].creator,
         orderId: String(params.id),
       });
     }
 
     logger.info(
-      `OrdersSchema #${params.id?.toLocaleString('en-US', {
-        minimumIntegerDigits: 6,
-        useGrouping: false,
-      })} updated`
+      `Order #${abbreviateUUID(params.id)} updated`
     );
     return { data: OrderData, error: OrderError };
   } catch (error) {

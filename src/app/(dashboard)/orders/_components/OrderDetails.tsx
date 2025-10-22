@@ -13,8 +13,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import OfferForm from '@/components/forms/OfferForm';
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import { getTagLabel } from '@/types/tags';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 import {
   CalendarIcon,
   ClipboardList,
@@ -29,7 +30,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { startDirectChat } from '@/lib/api/chats';
-const OrderDetails = ({ order }: { order: Order | null }) => {
+const OrderDetails = ({ order }: { order: OrdersSchema | null }) => {
   const router = useRouter();
   const [isStartingChat, setIsStartingChat] = useState(false);
 
@@ -63,7 +64,7 @@ const OrderDetails = ({ order }: { order: Order | null }) => {
     <Card className="w-full max-w-md mx-auto shadow-sm min-h-[30rem] my-10">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-2xl font-bold">Order Details</CardTitle>
+          <CardTitle className="text-2xl font-bold">OrdersSchema Details</CardTitle>
           <Badge variant="outline" className="text-sm font-medium">
             {order.status}
           </Badge>
@@ -78,10 +79,7 @@ const OrderDetails = ({ order }: { order: Order | null }) => {
               <span className="text-sm">
                 {' '}
                 #
-                {order.id.toLocaleString('en-US', {
-                  minimumIntegerDigits: 6,
-                  useGrouping: false,
-                })}
+                {abbreviateUUID(order.id)}
               </span>
             </div>
           </div>
@@ -166,11 +164,8 @@ const OrderDetails = ({ order }: { order: Order | null }) => {
                     <span className="h1">Create Offer</span>
                   </DialogTitle>
                   <span className="text-muted-foreground font-medium text-sm">
-                    Order: #
-                    {order.id.toLocaleString('en-US', {
-                      minimumIntegerDigits: 6,
-                      useGrouping: false,
-                    })}
+                    OrdersSchema: #
+                    {abbreviateUUID(order.id)}
                   </span>
                 </DialogHeader>
                 <DialogDescription className="text-muted-foreground">

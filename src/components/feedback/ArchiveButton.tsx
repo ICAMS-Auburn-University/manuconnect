@@ -3,12 +3,12 @@
 import { ArchiveIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { updateOrder } from '@/domain/orders/service';
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import { toast } from 'sonner';
 
 interface ArchiveButtonProps {
-  order: Order;
-  onArchive: (orderId: number) => void;
+  order: OrdersSchema;
+  onArchive: (orderId: string) => void;
 }
 
 const ArchiveButton: React.FC<ArchiveButtonProps> = ({ order, onArchive }) => {

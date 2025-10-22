@@ -1,18 +1,36 @@
 import OrderPageWrapper from '@/app/(dashboard)/orders/[slug]/_components/OrderPageWrapper';
 import { getOrderById } from '@/domain/orders/service';
+import { notFound } from 'next/navigation';
 
 export default async function OrderDetailsPage({
   params,
 }: {
   params: { slug: string };
 }) {
-  const { slug } = params;
-
-  const order = await getOrderById(slug);
-
-  if (!order) {
-    return <div>Order not found</div>;
+  // Validate that slug exists and is a string
+  if (!params?.slug || typeof params.slug !== 'string') {
+    notFound();
   }
+  
+  const slug = params.slug;
+  
+  try {
+    const order = await getOrderById(slug);
 
-  return <OrderPageWrapper orderId={slug} />;
+    if (!order) {
+      notFound();
+    }
+
+    return <OrderPageWrapper orderId={slug} />;
+  } catch (error) {
+    console.error('Error loading order:', error);
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-semibold mb-4">Error Loading Order</h2>
+          <p>Unable to load order details. Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
 }

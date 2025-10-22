@@ -9,3 +9,7 @@ export function formatDateForPostgres(date: Date): string {
 
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}000+00`;
 }
+
+export function abbreviateUUID(uuid: string): string {
+  return uuid.slice(0, 8);
+}

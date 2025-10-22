@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { createClient } from '@/services/supabase/client';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 
 import type {
   ChatMessage,
-  MessageRow,
   UseRealtimeChatOptions,
 } from '@/domain/chats/types';
+
+import { MessagesSchema } from '@/types/schemas';
 
 const TABLE_NAME = 'Messages';
 
@@ -43,14 +45,14 @@ export function useRealtimeChat({
         return currentUserName || 'You';
       }
       return (
-        participants[senderId] ?? `User ${senderId.slice(0, 8).toUpperCase()}`
+        participants[senderId] ?? `User ${abbreviateUUID(senderId)}`
       );
     },
     [currentUserId, currentUserName, participants]
   );
 
   const mapRowToMessage = useCallback(
-    (row: MessageRow): ChatMessage => ({
+    (row: MessagesSchema): ChatMessage => ({
       id: row.message_id,
       chatId: row.chat_id,
       content: row.content,
@@ -95,7 +97,7 @@ export function useRealtimeChat({
       }
 
       if (isMounted) {
-        setMessages(data.map((row) => mapRowToMessage(row as MessageRow)));
+        setMessages(data.map((row) => mapRowToMessage(row as MessagesSchema)));
       }
     };
 
@@ -128,7 +130,7 @@ export function useRealtimeChat({
         },
       })
       .on('broadcast', { event: 'message' }, (payload) => {
-        const row = payload.message as MessageRow;
+        const row = payload.message as MessagesSchema;
         const message = mapRowToMessage(row);
         setMessages((previous) => {
           if (previous.some((item) => item.id === message.id)) {
@@ -191,7 +193,7 @@ export function useRealtimeChat({
       }
 
       if (data) {
-        const message = mapRowToMessage(data as MessageRow);
+        const message = mapRowToMessage(data as MessagesSchema);
         setMessages((previous) => {
           if (previous.some((item) => item.id === message.id)) {
             return previous;

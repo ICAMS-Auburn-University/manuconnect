@@ -1,59 +1,93 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Loader } from 'lucide-react';
-import { User as SupabaseUser } from '@supabase/supabase-js';
 
 import { getOrderById } from '@/domain/orders/service';
 import { getUserData } from '@/domain/users/service';
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import { getUserById } from '@/services/integrations/supabaseAdmin';
 import OrderPage from './OrderPage';
+import type { UserProfile } from '@/domain/users/types';
 
 type OrderPageProps = {
   orderId: string;
 };
 
 const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
-  const [order, setOrder] = useState<Order | null>(null);
-  const [userData, setUserData] = useState<SupabaseUser | null>(null);
+  const [order, setOrder] = useState<OrdersSchema | null>(null);
+  const [userData, setUserData] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [manufacturerData, setManufacturerData] = useState<SupabaseUser | null>(
-    null
-  );
-  const [creatorData, setCreatorData] = useState<SupabaseUser | null>(null);
+  const [manufacturerData, setManufacturerData] = useState<UserProfile | null>(null);
+  const [creatorData, setCreatorData] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       if (orderId) {
-        const orderData = await getOrderById(orderId as string);
-        const userData = (await getUserData()) as SupabaseUser | null;
+        try {
+          const orderData = await getOrderById(orderId);
+          const userData = await getUserData();
+          
+          console.log('Fetched user data for order:', userData);
+          
+          // Check authorization
+          if (
+            userData?.id === orderData?.creator ||
+            userData?.id === orderData?.manufacturer ||
+            userData?.accountType === 'admin'
+          ) {
+            setIsAuthorized(true);
+          }
 
-        // Check authorization
-        if (
-          userData?.id === orderData?.creator ||
-          userData?.id === orderData?.manufacturer ||
-          userData?.user_metadata?.account_type === 'admin'
-        ) {
-          setIsAuthorized(true);
+          // Fetch manufacturer and creator data
+          let manufacturerProfile: UserProfile | null = null;
+          let creatorProfile: UserProfile | null = null;
+          
+          if (orderData?.manufacturer) {
+            const manufacturerResult = await getUserById(orderData.manufacturer);
+            if (manufacturerResult?.user) {
+              // Convert to UserProfile format
+              manufacturerProfile = {
+                id: manufacturerResult.user.id,
+                email: manufacturerResult.user.email || '',
+                firstName: manufacturerResult.user.user_metadata?.first_name || '',
+                lastName: manufacturerResult.user.user_metadata?.last_name || '',
+                displayName: manufacturerResult.user.user_metadata?.display_name || '',
+                accountType: manufacturerResult.user.user_metadata?.account_type || 'manufacturer',
+                companyName: manufacturerResult.user.user_metadata?.company_name || '',
+                profilePicture: manufacturerResult.user.user_metadata?.profile_picture || ''
+              };
+            }
+          }
+          
+          if (orderData?.creator) {
+            const creatorResult = await getUserById(orderData.creator);
+            if (creatorResult?.user) {
+              // Convert to UserProfile format
+              creatorProfile = {
+                id: creatorResult.user.id,
+                email: creatorResult.user.email || '',
+                firstName: creatorResult.user.user_metadata?.first_name || '',
+                lastName: creatorResult.user.user_metadata?.last_name || '',
+                displayName: creatorResult.user.user_metadata?.display_name || '',
+                accountType: creatorResult.user.user_metadata?.account_type || 'creator',
+                companyName: creatorResult.user.user_metadata?.company_name || '',
+                profilePicture: creatorResult.user.user_metadata?.profile_picture || ''
+              };
+            }
+          }
+
+          // Set all state at once
+          setOrder(orderData);
+          setUserData(userData);
+          setManufacturerData(manufacturerProfile);
+          setCreatorData(creatorProfile);
+        } catch (error) {
+          console.error('Error fetching order data:', error);
+        } finally {
+          // Set loading to false after all state is set
+          setLoading(false);
         }
-
-        // Fetch manufacturer and creator data
-        const manufacturer = orderData?.manufacturer
-          ? (await getUserById(orderData?.manufacturer)).user
-          : null;
-        const creator = orderData?.creator
-          ? (await getUserById(orderData?.creator)).user
-          : null;
-
-        // Set all state at once
-        setOrder(orderData);
-        setUserData(userData);
-        setManufacturerData(manufacturer || null);
-        setCreatorData(creator || null);
-
-        // Set loading to false after all state is set
-        setLoading(false);
       }
     };
 
@@ -69,7 +103,7 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
   }
 
   if (!order || !isAuthorized) {
-    return <div>Order not found</div>;
+    return <div>Order not found or you're not authorized to view it</div>;
   }
 
   return (
