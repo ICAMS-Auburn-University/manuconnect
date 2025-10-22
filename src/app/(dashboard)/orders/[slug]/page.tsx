@@ -11,9 +11,9 @@ export default async function OrderDetailsPage({
   if (!params?.slug || typeof params.slug !== 'string') {
     notFound();
   }
-  
+
   const slug = params.slug;
-  
+
   try {
     const order = await getOrderById(slug);
 

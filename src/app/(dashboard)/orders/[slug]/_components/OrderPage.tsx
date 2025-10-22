@@ -52,7 +52,9 @@ const OrderPage = ({
   manufacturerData,
   creatorData,
 }: OrderPageProps) => {
-  const [currentStatus, setCurrentStatus] = useState(order.status as OrderStatus); // Local state for status
+  const [currentStatus, setCurrentStatus] = useState(
+    order.status as OrderStatus
+  ); // Local state for status
   const [isShippingDialogOpen, setIsShippingDialogOpen] = useState(false);
   const [isLivestreamDialogOpen, setIsLivestreamDialogOpen] = useState(false);
   const UserType = userData?.accountType;
@@ -140,8 +142,7 @@ const OrderPage = ({
           </Button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Order #
-              {abbreviateUUID(order.id)}
+              Order #{abbreviateUUID(order.id)}
             </h1>
             <p className="text-sm text-muted-foreground">
               Placed on {new Date(order.created_at).toLocaleDateString()}{' '}

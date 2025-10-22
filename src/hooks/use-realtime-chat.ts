@@ -4,10 +4,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { createClient } from '@/services/supabase/client';
 import { abbreviateUUID } from '@/lib/utils/transforms';
 
-import type {
-  ChatMessage,
-  UseRealtimeChatOptions,
-} from '@/domain/chats/types';
+import type { ChatMessage, UseRealtimeChatOptions } from '@/domain/chats/types';
 
 import { MessagesSchema } from '@/types/schemas';
 
@@ -44,9 +41,7 @@ export function useRealtimeChat({
       if (senderId === currentUserId) {
         return currentUserName || 'You';
       }
-      return (
-        participants[senderId] ?? `User ${abbreviateUUID(senderId)}`
-      );
+      return participants[senderId] ?? `User ${abbreviateUUID(senderId)}`;
     },
     [currentUserId, currentUserName, participants]
   );

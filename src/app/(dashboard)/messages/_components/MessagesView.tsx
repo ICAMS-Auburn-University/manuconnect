@@ -155,7 +155,7 @@ export function MessagesView() {
     const fetchDisplayNames = async () => {
       const { data, error } = await supabase
         .from('Users')
-        .select('id, DisplayName')
+        .select('id, display_name')
         .in('id', Array.from(missing));
 
       if (error) {
@@ -170,7 +170,7 @@ export function MessagesView() {
       setDisplayNames((prev) => {
         const next = { ...prev };
         data.forEach((user) => {
-          next[user.id] = user.DisplayName;
+          next[user.id] = user.display_name;
         });
         return next;
       });

@@ -16,7 +16,9 @@ interface ViewOrderPageWrapperProps {
 
 const ViewOrderPageWrapper = ({ accountType }: ViewOrderPageWrapperProps) => {
   const [creatorOrders, setCreatorOrders] = useState<OrdersSchema[]>([]);
-  const [manufacturerOrders, setManufacturerOrders] = useState<OrdersSchema[]>([]);
+  const [manufacturerOrders, setManufacturerOrders] = useState<OrdersSchema[]>(
+    []
+  );
   const [loading, setIsLoading] = useState(true); // Add loading state
 
   const fetchOrders = async () => {

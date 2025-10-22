@@ -204,9 +204,7 @@ export async function updateOrder(params: Partial<OrdersSchema>) {
       });
     }
 
-    logger.info(
-      `Order #${abbreviateUUID(params.id)} updated`
-    );
+    logger.info(`Order #${abbreviateUUID(params.id)} updated`);
     return { data: OrderData, error: OrderError };
   } catch (error) {
     logger.error(error, 'orders:updateOrder');
@@ -315,7 +313,7 @@ export async function getOrderById(orderId: string) {
     return null;
   }
 
-  const { data, error } = await fetchOrderById(orderId, user.id);
+  const { data, error } = await fetchOrderById(orderId);
 
   if (!data) {
     return null;

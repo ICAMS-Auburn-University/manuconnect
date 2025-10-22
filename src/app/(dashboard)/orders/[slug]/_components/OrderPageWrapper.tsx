@@ -18,7 +18,9 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
   const [userData, setUserData] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [manufacturerData, setManufacturerData] = useState<UserProfile | null>(null);
+  const [manufacturerData, setManufacturerData] = useState<UserProfile | null>(
+    null
+  );
   const [creatorData, setCreatorData] = useState<UserProfile | null>(null);
 
   useEffect(() => {
@@ -27,9 +29,9 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
         try {
           const orderData = await getOrderById(orderId);
           const userData = await getUserData();
-          
+
           console.log('Fetched user data for order:', userData);
-          
+
           // Check authorization
           if (
             userData?.id === orderData?.creator ||
@@ -42,24 +44,33 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
           // Fetch manufacturer and creator data
           let manufacturerProfile: UserProfile | null = null;
           let creatorProfile: UserProfile | null = null;
-          
+
           if (orderData?.manufacturer) {
-            const manufacturerResult = await getUserById(orderData.manufacturer);
+            const manufacturerResult = await getUserById(
+              orderData.manufacturer
+            );
             if (manufacturerResult?.user) {
               // Convert to UserProfile format
               manufacturerProfile = {
                 id: manufacturerResult.user.id,
                 email: manufacturerResult.user.email || '',
-                firstName: manufacturerResult.user.user_metadata?.first_name || '',
-                lastName: manufacturerResult.user.user_metadata?.last_name || '',
-                displayName: manufacturerResult.user.user_metadata?.display_name || '',
-                accountType: manufacturerResult.user.user_metadata?.account_type || 'manufacturer',
-                companyName: manufacturerResult.user.user_metadata?.company_name || '',
-                profilePicture: manufacturerResult.user.user_metadata?.profile_picture || ''
+                firstName:
+                  manufacturerResult.user.user_metadata?.first_name || '',
+                lastName:
+                  manufacturerResult.user.user_metadata?.last_name || '',
+                displayName:
+                  manufacturerResult.user.user_metadata?.display_name || '',
+                accountType:
+                  manufacturerResult.user.user_metadata?.account_type ||
+                  'manufacturer',
+                companyName:
+                  manufacturerResult.user.user_metadata?.company_name || '',
+                profilePicture:
+                  manufacturerResult.user.user_metadata?.profile_picture || '',
               };
             }
           }
-          
+
           if (orderData?.creator) {
             const creatorResult = await getUserById(orderData.creator);
             if (creatorResult?.user) {
@@ -69,10 +80,14 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
                 email: creatorResult.user.email || '',
                 firstName: creatorResult.user.user_metadata?.first_name || '',
                 lastName: creatorResult.user.user_metadata?.last_name || '',
-                displayName: creatorResult.user.user_metadata?.display_name || '',
-                accountType: creatorResult.user.user_metadata?.account_type || 'creator',
-                companyName: creatorResult.user.user_metadata?.company_name || '',
-                profilePicture: creatorResult.user.user_metadata?.profile_picture || ''
+                displayName:
+                  creatorResult.user.user_metadata?.display_name || '',
+                accountType:
+                  creatorResult.user.user_metadata?.account_type || 'creator',
+                companyName:
+                  creatorResult.user.user_metadata?.company_name || '',
+                profilePicture:
+                  creatorResult.user.user_metadata?.profile_picture || '',
               };
             }
           }

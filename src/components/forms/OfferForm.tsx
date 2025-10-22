@@ -1,9 +1,10 @@
 'use client';
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import React, { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { CreateOfferInput } from '@/domain/offers/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -23,8 +24,9 @@ import { Separator } from '@/components/ui/separator';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import Image from 'next/image';
 
+// Updated schema to match actual data types
 const OfferSchema = z.object({
-  id: z.coerce.number().int().positive({ message: 'Please enter a valid ID' }),
+  id: z.string(), // Changed to string for UUID
   unit_cost: z.coerce
     .number()
     .min(0.001, { message: 'Please enter a valid cost' }),
@@ -43,16 +45,18 @@ const OfferSchema = z.object({
 });
 
 interface OfferFormProps {
-  order: Order;
+  order: OrdersSchema;
 }
 
 const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
   const [loading, setLoading] = useState(false);
-  // 1. Define your form.
+  const [error, setError] = useState<string | null>(null);
+
+  // Define your form with updated types
   const form = useForm<z.infer<typeof OfferSchema>>({
     resolver: zodResolver(OfferSchema),
     defaultValues: {
-      id: order.id,
+      id: order.id, // Now correctly accepts a string
       unit_cost: 0,
       projected_cost: 0,
       projected_units: order.quantity,
@@ -71,53 +75,56 @@ const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
         const unitCost = value.unit_cost || 0;
         const projectedUnits = value.projected_units || 0;
         const shippingCost = value.shipping_cost || 0;
-        const projected_cost = unitCost * projectedUnits + shippingCost * 1; // TS shits itself if you don't multiply the additive number by 1 ???
+        const projected_cost = unitCost * projectedUnits + shippingCost;
         form.setValue('projected_cost', projected_cost);
       }
     });
     return () => subscription.unsubscribe();
   }, [form]);
 
-  // 2. Define a submit handler.
-  async function onSubmit(values: z.infer<typeof OfferSchema>) {
-    setLoading(true);
-    const Manufacturer = await getUserId();
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    try {
-      await createOffer({
-        id: 0, // Placeholder, replace with actual ID if available
-        created_at: new Date(), // Add current timestamp
-        is_accepted: false, // Default value for is_accepted
-        offerer: Manufacturer.id,
-        order_id: order.id,
-        unit_cost: values.unit_cost,
-        projected_cost: values.projected_cost,
-        projected_units: values.projected_units,
-        shipping_cost: values.shipping_cost,
-        lead_time: values.lead_time,
-        manufacturer_email: Manufacturer.email || '',
-        manufacturer_name: Manufacturer.user_metadata.company_name,
-      });
+  // Manual form submission handler
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      form.reset();
+    console.log('Form submission triggered');
 
-      toast.success(
-        'Offer created successfully. The creator will be notified.'
-      );
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        'Failed to create offer. Please try again or contact support.'
-      );
-    }
-    setLoading(false);
-  }
+    form.handleSubmit(async (values) => {
+      setLoading(true);
+      setError(null);
+
+      console.log('Form values validated:', values);
+
+      try {
+        // Simplified form data submission
+        await createOffer({
+          order_id: order.id,
+          unit_cost: values.unit_cost,
+          projected_cost: values.projected_cost,
+          projected_units: values.projected_units,
+          shipping_cost: values.shipping_cost,
+          lead_time: values.lead_time,
+        });
+
+        toast.success(
+          'Offer created successfully. The creator will be notified.'
+        );
+        form.reset();
+      } catch (error) {
+        console.error('Error creating offer:', error);
+        setError(typeof error === 'string' ? error : 'Failed to create offer');
+        toast.error(
+          'Failed to create offer. Please try again or contact support.'
+        );
+      } finally {
+        setLoading(false);
+      }
+    })(e);
+  };
 
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}

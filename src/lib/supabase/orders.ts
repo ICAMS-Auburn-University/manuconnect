@@ -29,7 +29,10 @@ export async function insertOrder(orderData: OrdersSchema) {
   return { data, error };
 }
 
-export async function updateOrderById(id: string, updateData: Partial<OrdersSchema>) {
+export async function updateOrderById(
+  id: string,
+  updateData: Partial<OrdersSchema>
+) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('Orders')
@@ -70,17 +73,18 @@ export async function fetchUnclaimedOrders() {
     .is('manufacturer', null)
     .eq('isArchived', false);
 
+  console.log(error);
   return { data, error };
 }
 
-export async function fetchOrderById(orderId: string, userId: string) {
+export async function fetchOrderById(orderId: string) {
   const supabase = await createSupabaseServerClient();
+  console.log('Fetching order by ID:', orderId);
   const { data, error } = await supabase
     .from('Orders')
     .select('*')
     .eq('id', orderId)
-    .or(`creator.eq.${userId},manufacturer.eq.${userId}`)
     .single();
-
+  console.log(error);
   return { data, error };
 }

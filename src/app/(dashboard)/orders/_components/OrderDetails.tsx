@@ -64,7 +64,9 @@ const OrderDetails = ({ order }: { order: OrdersSchema | null }) => {
     <Card className="w-full max-w-md mx-auto shadow-sm min-h-[30rem] my-10">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-2xl font-bold">OrdersSchema Details</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            OrdersSchema Details
+          </CardTitle>
           <Badge variant="outline" className="text-sm font-medium">
             {order.status}
           </Badge>
@@ -76,11 +78,7 @@ const OrderDetails = ({ order }: { order: OrdersSchema | null }) => {
           <div className="flex justify-between">
             <div className="flex items-center gap-2 text-muted-foreground">
               <ClipboardList className="h-4 w-4" />
-              <span className="text-sm">
-                {' '}
-                #
-                {abbreviateUUID(order.id)}
-              </span>
+              <span className="text-sm"> #{abbreviateUUID(order.id)}</span>
             </div>
           </div>
 
@@ -164,8 +162,7 @@ const OrderDetails = ({ order }: { order: OrdersSchema | null }) => {
                     <span className="h1">Create Offer</span>
                   </DialogTitle>
                   <span className="text-muted-foreground font-medium text-sm">
-                    OrdersSchema: #
-                    {abbreviateUUID(order.id)}
+                    Order #{abbreviateUUID(order.id)}
                   </span>
                 </DialogHeader>
                 <DialogDescription className="text-muted-foreground">

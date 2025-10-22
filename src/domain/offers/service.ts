@@ -5,14 +5,17 @@ import { Resend } from 'resend';
 
 import { env } from '@/lib/config/env';
 import { logger } from '@/lib/logger';
-import { Offer } from '@/domain/offers/types';
+import { OffersSchema } from '@/types/schemas';
 import { OrderStatus } from '@/types/enums';
 import { createEvent } from '@/domain/events/service';
 import { updateOrder } from '@/domain/orders/service';
 import { getUserById } from '@/services/integrations/supabaseAdmin';
 import { NewOffer } from '@/components/emails/new-offer';
 import { EventType } from '@/types/enums';
+import { randomUUID } from 'crypto';
 import { OfferAcceptanceEmail } from '@/components/emails/offer-acceptance';
+import { abbreviateUUID } from '@/lib/utils/transforms';
+import { CreateOfferInput } from '@/domain/offers/types';
 import {
   fetchOffersByOrder,
   insertOffer,
@@ -21,6 +24,7 @@ import {
   declineOfferById,
   getCurrentUser,
 } from '@/lib/supabase/offers';
+import { fetchOrderById } from '@/lib/supabase/orders';
 
 const createResendClient = () => {
   if (!env.RESEND_API_KEY) {
@@ -30,42 +34,64 @@ const createResendClient = () => {
   return new Resend(env.RESEND_API_KEY);
 };
 
-export async function createOffer(offer: Offer) {
+export async function createOffer(input: CreateOfferInput) {
   try {
     const { user, error } = await getCurrentUser();
     if (error || !user) {
       return null;
     }
-    const offerData = await insertOffer(offer);
 
-    const orderData = (await fetchOrderOffers(offer.order_id)) as {
-      offers: number[];
-      creator: string;
+    const id = randomUUID();
+    const fullOffer: OffersSchema = {
+      id: id,
+      created_at: new Date().toISOString(),
+      is_accepted: false,
+      is_declined: false,
+      offerer: user.id,
+      order_id: input.order_id,
+      unit_cost: String(input.unit_cost),
+      projected_cost: String(input.projected_cost),
+      projected_units: String(input.projected_units),
+      shipping_cost: String(input.shipping_cost),
+      lead_time: String(input.lead_time),
+      manufacturer_email: user.email || '',
+      manufacturer_name: user.user_metadata?.company_name || '',
+      last_update: new Date().toISOString(),
     };
+
+    const offerData = await insertOffer(fullOffer);
+    if (!offerData || offerData.length === 0) {
+      throw new Error('Failed to create offer: No data returned');
+    }
+
+    // Get the order's current offers array
+    const orderData = await fetchOrderOffers(input.order_id);
     if (!orderData) {
       throw new Error('Error fetching order: Order data is null or undefined');
     }
 
-    type OfferReference = number | { id: number };
-    const offers = (orderData.offers || []) as OfferReference[];
+    // Get creator data to send notifications
+    const { data: orderDetails } = await fetchOrderById(
+      input.order_id,
+    );
+    if (!orderDetails) {
+      throw new Error('Error fetching order details');
+    }
 
-    // Update Order in Orders table
-    const offerId = offerData[0].id;
+    // Add the new offer ID to the order's offers array
+    const offers = (orderData.offers || []) as string[];
+
+    // Update the order with the new offer
     await updateOrder({
-      id: offer.order_id,
-      offers: [
-        ...offers.map((offerRef) =>
-          typeof offerRef === 'number' ? { id: offerRef } : offerRef
-        ),
-        { ...offer, id: Number(offerId) },
-      ],
-      last_update: new Date(),
+      id: input.order_id,
+      offers: [...offers, id],
+      last_update: new Date().toISOString(),
       status: OrderStatus.ManufacturerOffer,
     });
 
     // Send email to creator
     const resend = createResendClient();
-    const creatorData = await getUserById(orderData.creator);
+    const creatorData = await getUserById(orderDetails.creator);
     if (!creatorData) {
       throw new Error('Failed to get creator data');
     }
@@ -77,14 +103,12 @@ export async function createOffer(offer: Offer) {
       react: await NewOffer({
         offer: {
           ...offerData[0],
-          id: Number(offerData[0].id),
-          order_id: Number(offerData[0].order_id),
           created_at: new Date(offerData[0].created_at),
           unit_cost: parseFloat(offerData[0].unit_cost),
           projected_cost: parseFloat(offerData[0].projected_cost),
-          lead_time: parseInt(offerData[0].lead_time, 10),
           projected_units: parseInt(offerData[0].projected_units, 10),
           shipping_cost: parseFloat(offerData[0].shipping_cost),
+          lead_time: parseInt(offerData[0].lead_time, 10),
         },
         email: creatorData.user.email || 'default@example.com',
       }),
@@ -92,32 +116,22 @@ export async function createOffer(offer: Offer) {
 
     // Add events
     await createEvent({
-      eventType: 'offer' as EventType,
-      description: `New offer received for order #${offer.order_id.toLocaleString(
-        'en-US',
-        {
-          minimumIntegerDigits: 6,
-          useGrouping: false,
-        }
-      )}`,
-      userId: orderData.creator,
-      orderId: String(offer.order_id),
+      eventType: EventType.SUCCESS,
+      description: `New offer received for order #${abbreviateUUID(input.order_id)}`,
+      userId: orderDetails.creator,
+      orderId: input.order_id,
     });
 
     await createEvent({
-      eventType: 'success' as EventType,
-      description: `New offer created for order #${offer.order_id.toLocaleString(
-        'en-US',
-        {
-          minimumIntegerDigits: 6,
-          useGrouping: false,
-        }
-      )}`,
+      eventType: EventType.SUCCESS,
+      description: `New offer created for order #${abbreviateUUID(input.order_id)}`,
       userId: user.id,
-      orderId: String(offer.order_id),
+      orderId: input.order_id,
     });
 
-    logger.info(`Offer #${offerId} created by manufacturer ${user.id}`);
+    logger.info(
+      `Offer #${abbreviateUUID(id)} created by manufacturer ${user.id}`
+    );
     return offerData;
   } catch (error: unknown) {
     const message =
@@ -127,7 +141,7 @@ export async function createOffer(offer: Offer) {
   }
 }
 
-export async function getOffers(orderId: number) {
+export async function getOffers(orderId: string) {
   try {
     return await fetchOffersByOrder(orderId);
   } catch (error: unknown) {
@@ -138,14 +152,14 @@ export async function getOffers(orderId: number) {
   }
 }
 
-export async function acceptOffer(offerId: number) {
+export async function acceptOffer(offerId: string) {
   try {
     const { user } = await getCurrentUser();
     const offerData = await acceptOfferById(offerId);
 
     const manufacturerData = await getUserById(offerData[0].offerer);
     const result = await updateOrder({
-      id: Number(offerData[0].order_id),
+      id: offerData[0].order_id,
       status: OrderStatus.OrderAccepted,
       selected_offer: offerId,
       manufacturer: offerData[0].offerer,
@@ -171,24 +185,20 @@ export async function acceptOffer(offerId: number) {
       react: await OfferAcceptanceEmail({
         offer: {
           ...offerData[0],
-          id: Number(offerData[0].id),
-          order_id: Number(offerData[0].order_id),
+          // Keep IDs as strings
           created_at: new Date(offerData[0].created_at),
           unit_cost: parseFloat(offerData[0].unit_cost),
           projected_cost: parseFloat(offerData[0].projected_cost),
           projected_units: parseInt(offerData[0].projected_units, 10),
           shipping_cost: parseFloat(offerData[0].shipping_cost),
-          lead_time: parseInt(offerData[0].lead_time, 10), // Convert lead_time to number
+          lead_time: parseInt(offerData[0].lead_time, 10),
         },
         email: manufacturerData.user.email || 'default@example.com',
       }),
     });
 
     logger.info(
-      `Offer #${offerId.toLocaleString('en-US', {
-        minimumIntegerDigits: 6,
-        useGrouping: false,
-      })} accepted by creator ${user?.user_metadata?.display_name || null}`
+      `Offer #${abbreviateUUID(offerId)} accepted by creator ${user?.user_metadata?.display_name || null}`
     );
 
     redirect('/orders');
@@ -200,7 +210,7 @@ export async function acceptOffer(offerId: number) {
   }
 }
 
-export async function declineOffer(offerId: number) {
+export async function declineOffer(offerId: string) {
   try {
     const { user } = await getCurrentUser();
     const offerData = await declineOfferById(offerId);
@@ -209,22 +219,19 @@ export async function declineOffer(offerId: number) {
     const orderData = await fetchOrderOffers(offerData[0].order_id);
     let offers = orderData.offers || [];
 
-    // Remove offer from offers array
-    offers = offers.filter((offer: number) => offer !== offerId);
+    // Remove offer from offers array (all are strings now)
+    offers = offers.filter((offer: string) => offer !== offerId);
 
     // Update Order in Orders table
     await updateOrder({
-      id: Number(offerData[0].order_id),
-      offers: offers.map((offerId: number) => ({ id: offerId }) as Offer),
-      last_update: new Date(),
+      id: offerData[0].order_id,
+      offers: offers, // Just pass the string array directly
+      last_update: new Date().toISOString(),
       status: OrderStatus.ManufacturerOffer,
     });
 
     logger.info(
-      `Offer #${offerId.toLocaleString('en-US', {
-        minimumIntegerDigits: 6,
-        useGrouping: false,
-      })} declined by creator ${user?.user_metadata?.display_name || null}`
+      `Offer #${abbreviateUUID(offerId)} declined by creator ${user?.user_metadata?.display_name || null}`
     );
 
     redirect('/orders');

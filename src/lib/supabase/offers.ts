@@ -1,6 +1,5 @@
 import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
 import type { OffersSchema } from '@/types/schemas';
-import { Offer } from '@/domain/offers/types';
 
 export async function fetchOffersByOrder(
   orderId: string | number
@@ -21,7 +20,7 @@ export async function fetchOffersByOrder(
 }
 
 export async function insertOffer(
-  offer: Omit<Offer, 'id'>
+  offer: Omit<OffersSchema, 'id'>
 ): Promise<OffersSchema[]> {
   const supabase = await createSupabaseServerClient();
   const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -64,7 +63,7 @@ export async function insertOffer(
 
 export async function fetchOrderOffers(
   orderId: string | number
-): Promise<{ offers: number[] }> {
+): Promise<{ offers: string[] }> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('Orders')
@@ -102,7 +101,7 @@ export async function updateOrderOffers(
 }
 
 export async function acceptOfferById(
-  offerId: number
+  offerId: string
 ): Promise<OffersSchema[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -123,7 +122,7 @@ export async function acceptOfferById(
 }
 
 export async function declineOfferById(
-  offerId: number
+  offerId: string
 ): Promise<OffersSchema[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase

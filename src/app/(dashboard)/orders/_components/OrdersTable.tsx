@@ -56,10 +56,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ Orders }) => {
           .filter((order) => !order.isArchived)
           .map((order) => (
             <TableRow key={order.id}>
-              <TableCell>
-                #
-                {abbreviateUUID(order.id)}
-              </TableCell>
+              <TableCell>#{abbreviateUUID(order.id)}</TableCell>
               <TableCell className="font-medium text-wrap">
                 {order.status}
               </TableCell>
