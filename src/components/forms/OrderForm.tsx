@@ -84,11 +84,11 @@ const OrderForm = () => {
   });
 
   // 2. Define a submit handler.
+  // Error handling fix for the createOrder section
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    // Handle file upload
+    setErrorMessage('');
+    console.log('Form Values:', values);
 
     let filePath: string | null = null;
     const file = values.file?.[0];
@@ -105,56 +105,39 @@ const OrderForm = () => {
     }
 
     try {
-      // Save the form data to the database.
-
-      const { error: createError } = await createOrder({
-        id: 0, // Placeholder, will be set in createOrder function
+      const { data: _, error: error } = await createOrder({
         title: values.title,
         description: values.description,
-        creator: 'Placeholder', // Placeholder, will be set in createOrder function
-        creator_name: 'Placeholder Name', // Placeholder, replace with actual data
-        creator_email: 'placeholder@example.com', // Placeholder, replace with actual data
-        status: OrderStatus.OrderCreated,
-        created_at: new Date(),
-        last_update: new Date(),
-        manufacturer: '',
-        manufacturer_name: 'Placeholder Manufacturer', // Placeholder, replace with actual data
         quantity: values.quantity,
         due_date: values.due_date,
-        fileURLs: filePath ?? '',
+        file: filePath ?? '',
         tags: values.tags,
-        delivery_address: {
-          street: values.shipping_address_1 + ' ' + values.shipping_address_2,
-          city: values.shipping_city,
-          state: values.shipping_state,
-          postal_code: values.shipping_zip,
-          country: values.shipping_country,
-        },
-        isArchived: false,
-        offers: [], // Default empty array
-        selected_offer: 0, // Default null
-        shipping_info: { tracking_number: '', carrier: '' }, // Default empty object
-        livestream_url: '', // Default empty string
-        price: {
-          unit_cost: 0,
-          projected_cost: 0,
-          projected_units: 0,
-          shipping_cost: 0,
-        }, // Default price object
+        shipping_country: values.shipping_country,
+        shipping_address_1: values.shipping_address_1,
+        shipping_address_2: values.shipping_address_2,
+        shipping_city: values.shipping_city,
+        shipping_state: values.shipping_state,
+        shipping_zip: values.shipping_zip,
       });
 
-      if (createError) {
-        setErrorMessage(createError + '. Please try again.');
+      if (error) {
+        setErrorMessage(error + '. Please try again.');
         setIsLoading(false);
         return;
       }
+
       toast.success('Order created successfully!');
-    } catch (error) {
+      form.reset();
+    } catch (error: any) {
       console.error('Error creating order:', error);
+      // Properly handle caught exceptions
+      setErrorMessage(
+        (error?.message || 'An unexpected error occurred') +
+          '. Please try again.'
+      );
+    } finally {
+      setIsLoading(false);
     }
-    // Clear form
-    form.reset();
-    setIsLoading(false);
   }
 
   return (

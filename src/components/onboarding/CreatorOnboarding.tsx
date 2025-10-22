@@ -43,12 +43,14 @@ export default function CreatorOnboarding() {
       // The service handles the redirect, but we'll never get here
       // This is just a fallback
       router.push('/');
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (isNextRedirectError(err)) {
         throw err;
       }
+      const message =
+        err instanceof Error ? err.message : 'Failed to complete onboarding';
       console.error('Error completing onboarding:', err);
-      setError(err.message || 'Failed to complete onboarding');
+      setError(message);
     } finally {
       setIsLoading(false);
     }

@@ -65,8 +65,10 @@ export async function completeCreatorOnboarding(data: CreatorOnboardingData) {
     logger.info('Auth service: creator onboarding completed successfully');
     revalidatePath('/', 'layout');
     redirect('/');
-  } catch (error: any) {
-    logger.error('Auth service: creator onboarding exception', error.message);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Auth service: creator onboarding exception', message);
     throw error;
   }
 }
@@ -111,11 +113,10 @@ export async function completeManufacturerOnboarding(
     logger.info('Auth service: manufacturer onboarding completed successfully');
     revalidatePath('/', 'layout');
     redirect('/');
-  } catch (error: any) {
-    logger.error(
-      'Auth service: manufacturer onboarding exception',
-      error.message
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Auth service: manufacturer onboarding exception', message);
     throw error;
   }
 }
@@ -130,8 +131,10 @@ export async function getCurrentUser() {
     }
 
     return { user };
-  } catch (error: any) {
-    logger.error('Auth service: get user exception', error.message);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Auth service: get user exception', message);
     throw error;
   }
 }

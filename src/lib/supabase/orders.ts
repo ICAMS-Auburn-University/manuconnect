@@ -1,7 +1,5 @@
 import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
-import { Order } from '@/domain/orders/types';
-import { OrderStatus } from '@/types/enums';
-import { getUserById } from '@/services/integrations/supabaseAdmin';
+import { OrdersSchema } from '@/types/schemas';
 
 export async function getCurrentUser() {
   const supabase = await createSupabaseServerClient();
@@ -21,7 +19,7 @@ export async function getLatestOrderNumber() {
   return { data, error };
 }
 
-export async function insertOrder(orderData: Partial<Order>) {
+export async function insertOrder(orderData: OrdersSchema) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('Orders')
@@ -31,7 +29,7 @@ export async function insertOrder(orderData: Partial<Order>) {
   return { data, error };
 }
 
-export async function updateOrderById(id: number, updateData: Partial<Order>) {
+export async function updateOrderById(id: number, updateData: OrdersSchema) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('Orders')

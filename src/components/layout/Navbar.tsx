@@ -21,6 +21,7 @@ const Navbar = async () => {
   const userData = await getUserData();
   const initials = await getInitials();
 
+  console.log('userData in Navbar:', userData);
   return (
     <div className="w-full mt-2 rounded-md border-zinc-200 border text-black shadow-sm">
       <div className="flex content-between items-center p-2 px-4">
@@ -91,14 +92,12 @@ const Navbar = async () => {
               </Avatar>
             </PopoverTrigger>
             <PopoverContent className="bg-white w-40 p-2" align="end">
-              <p className="h4">
-                {userData?.user_metadata?.display_name ?? 'N/A'}
-              </p>{' '}
+              <p className="h4">{userData?.displayName ?? 'N/A'}</p>
               <p className="text-sm text-muted-foreground">
-                {userData?.user_metadata?.account_type ?? 'N/A'}
+                {userData?.accountType ?? 'N/A'}
               </p>
               <p className="text-sm text-muted-foreground">
-                {userData?.user_metadata?.company_name ?? 'N/A'}
+                {userData?.companyName ?? 'N/A'}
               </p>
               <div className="flex flex-col gap-2">
                 <SignOut className="p-0 text-right w-full bg-black text-white" />

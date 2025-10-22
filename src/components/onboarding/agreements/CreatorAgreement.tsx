@@ -3,8 +3,8 @@ export function CreatorAgreement() {
     <div className="agreement-container prose prose-sm max-w-none">
       <h2>Creator Agreement</h2>
       <p>
-        This Creator Agreement (the "Agreement") is entered into between
-        ManuConnect (the "Company") and you, the Creator.
+        This Creator Agreement (the &quot;Agreement&quot;) is entered into
+        between ManuConnect (the &quot;Company&quot;) and you, the Creator.
       </p>
 
       <h3>1. Services</h3>

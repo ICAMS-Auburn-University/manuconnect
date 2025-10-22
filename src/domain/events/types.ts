@@ -6,12 +6,3 @@ export interface EventInput {
   userId: string;
   orderId: string;
 }
-
-export interface Event {
-  id: string;
-  event_type: EventType;
-  description: string;
-  user_id: string;
-  order_id: string;
-  created_at: string;
-}

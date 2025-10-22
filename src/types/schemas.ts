@@ -54,7 +54,7 @@ export interface OrdersSchema {
   last_update: string;
   created_at: string;
   status: string;
-  manufacturer: string;
+  manufacturer: string | null;
   fileURLs: string;
   description: string;
   quantity: number;
@@ -62,7 +62,7 @@ export interface OrdersSchema {
   tags: string[];
   creator_name: string;
   isArchived: boolean;
-  selected_offer: string;
+  selected_offer: string | null;
   offers: string[];
   manufacturer_name: string;
   delivery_address: {

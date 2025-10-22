@@ -18,8 +18,10 @@ export async function getInitials(): Promise<string | null> {
     const initials = (firstName.charAt(0) || '') + (lastName.charAt(0) || '');
 
     return initials || null;
-  } catch (error: any) {
-    logger.error('Failed to get user initials', error.message);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Failed to get user initials', message);
     return null;
   }
 }
@@ -46,8 +48,10 @@ export async function getUserData(): Promise<UserProfile | null> {
       companyName: metadata?.company_name || '',
       profilePicture: metadata?.profile_picture || undefined,
     };
-  } catch (error: any) {
-    logger.error('Failed to get user data', error.message);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Failed to get user data', message);
     return null;
   }
 }
@@ -61,8 +65,10 @@ export async function getAccountType(): Promise<string | null> {
     }
 
     return metadata.account_type || null;
-  } catch (error: any) {
-    logger.error('Failed to get account type', error.message);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Failed to get account type', message);
     return null;
   }
 }
@@ -76,8 +82,10 @@ export async function getUserId() {
     }
 
     return user;
-  } catch (error: any) {
-    logger.error('Failed to get user ID', error.message);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Failed to get user ID', message);
     throw new Error('User ID not found');
   }
 }

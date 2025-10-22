@@ -246,7 +246,7 @@ const SignUpForm = () => {
           <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md text-green-800 font-medium text-sm text-center">
             Success! Please check your email for a confirmation link.
             <br />
-            After verification, you'll complete your account setup.
+            After verification, you&apos;ll complete your account setup.
           </div>
         )}
 

@@ -21,27 +21,23 @@ export async function fetchEventsByUser(
   return data;
 }
 
-export async function insertEvent(
-  event_type: string,
-  description: string,
-  user_id: string,
-  order_id: string
-): Promise<EventsSchema> {
+export async function insertEvent(event: EventsSchema): Promise<EventsSchema> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('Events')
-    .insert([{ event_type, description, user_id, order_id }])
+    .insert([event])
     .select()
     .single();
 
   if (error) {
+    console.log('Error inserting event:', error);
     throw error;
   }
 
   if (!data) {
     throw new Error('Failed to insert event: No data returned');
   }
-
+  console.log('Inserted event:', data);
   return data;
 }
 

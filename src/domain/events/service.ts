@@ -9,12 +9,13 @@ import {
   insertEvent,
   getCurrentUser,
 } from '@/lib/supabase/events';
-import { EventInput, Event } from '@/domain/events/types';
+import { EventInput } from '@/domain/events/types';
 import { EventsSchema } from '@/types/schemas';
+import { randomUUID } from 'crypto';
 
 export async function getRecentEvents(
   limit: number = 10
-): Promise<Event[] | null> {
+): Promise<EventsSchema[] | null> {
   try {
     const { user, error: authError } = await getCurrentUser();
 
@@ -38,13 +39,15 @@ export async function getRecentEvents(
       count: rows.length,
     });
     return rows.map((r) => mapSchemaToDomain(r));
-  } catch (error: any) {
-    logger.error('events: getRecentEvents failed', error.message);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('events: getRecentEvents failed', message);
     throw new Error('Error fetching recent events');
   }
 }
 
-export async function createEvent(input: EventInput): Promise<Event> {
+export async function createEvent(input: EventInput): Promise<EventsSchema> {
   try {
     if (!input.userId) {
       throw new Error('UserId required');
@@ -53,26 +56,33 @@ export async function createEvent(input: EventInput): Promise<Event> {
       throw new Error('EventType required');
     }
 
-    const inserted = await insertEvent(
-      input.eventType,
-      input.description,
-      input.userId,
-      input.orderId
-    );
+    const eventData: EventsSchema = {
+      id: randomUUID(), // event ID
+      event_type: input.eventType,
+      description: input.description,
+      user_id: input.userId,
+      order_id: input.orderId,
+      created_at: new Date().toISOString(),
+    };
 
+    console.log('Event data before insert:', JSON.stringify(eventData));
+    const inserted = await insertEvent(eventData);
     logger.info('Created event', {
       userId: input.userId,
       eventId: inserted.id,
     });
+
     revalidatePath('/', 'layout');
     return mapSchemaToDomain(inserted);
-  } catch (error: any) {
-    logger.error('events: createEvent failed', error.message);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('events: createEvent failed', message);
     throw new Error('Error creating event');
   }
 }
 
-function mapSchemaToDomain(e: EventsSchema): Event {
+function mapSchemaToDomain(e: EventsSchema): EventsSchema {
   return {
     id: e.id,
     event_type: e.event_type as EventType,

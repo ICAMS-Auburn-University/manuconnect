@@ -32,7 +32,9 @@ export async function supabaseSignup(signUpData: SignUpData) {
   return { data, error };
 }
 
-export async function updateUserMetadataServer(metadata: Record<string, any>) {
+export async function updateUserMetadataServer(
+  metadata: Record<string, unknown>
+) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.updateUser({
     data: metadata,
@@ -48,7 +50,7 @@ export async function supabaseGetUserServer() {
 // --------- Server-side functions (END) ---------
 
 // --------- Client-side functions (START) ---------
-export async function updateUserMetadata(metadata: Record<string, any>) {
+export async function updateUserMetadata(metadata: Record<string, unknown>) {
   'use client';
   const supabase = createClient();
   const { data, error } = await supabase.auth.updateUser({

@@ -120,7 +120,7 @@ const SignInForm = () => {
         )}
         <div className="body-2 flex flex-col justify-center text-center">
           <div className="flex justify-center">
-            <p>Don't have an account?</p>
+            <p>Don&apos;t have an account?</p>
             <Link href="/sign-up" className="ml-1 font-medium text-[#e87722]">
               {' '}
               Sign Up

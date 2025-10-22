@@ -3,8 +3,8 @@ export function ManufacturerAgreement() {
     <div className="agreement-container prose prose-sm max-w-none">
       <h2>Manufacturer Agreement</h2>
       <p>
-        This Manufacturer Agreement (the "Agreement") is entered into between
-        ManuConnect (the "Company") and you, the Manufacturer.
+        This Manufacturer Agreement (the &quot;Agreement&quot;) is entered into
+        between ManuConnect (the &quot;Company&quot;) and you, the Manufacturer.
       </p>
 
       <h3>1. Services</h3>

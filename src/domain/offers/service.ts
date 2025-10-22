@@ -46,14 +46,17 @@ export async function createOffer(offer: Offer) {
       throw new Error('Error fetching order: Order data is null or undefined');
     }
 
-    const offers = orderData.offers || [];
+    type OfferReference = number | { id: number };
+    const offers = (orderData.offers || []) as OfferReference[];
 
     // Update Order in Orders table
     const offerId = offerData[0].id;
     await updateOrder({
       id: offer.order_id,
       offers: [
-        ...offers.map((o: any) => (typeof o === 'number' ? { id: o } : o)),
+        ...offers.map((offerRef) =>
+          typeof offerRef === 'number' ? { id: offerRef } : offerRef
+        ),
         { ...offer, id: Number(offerId) },
       ],
       last_update: new Date(),
@@ -116,8 +119,10 @@ export async function createOffer(offer: Offer) {
 
     logger.info(`Offer #${offerId} created by manufacturer ${user.id}`);
     return offerData;
-  } catch (error: any) {
-    logger.error('Error creating offer', error.message);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Error creating offer', message);
     throw error;
   }
 }
@@ -125,9 +130,11 @@ export async function createOffer(offer: Offer) {
 export async function getOffers(orderId: number) {
   try {
     return await fetchOffersByOrder(orderId);
-  } catch (error: any) {
-    logger.error('Error getting offers', error.message);
-    throw new Error('Error getting offers: ' + error.message);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Error getting offers', message);
+    throw new Error('Error getting offers: ' + message);
   }
 }
 
@@ -185,8 +192,10 @@ export async function acceptOffer(offerId: number) {
     );
 
     redirect('/orders');
-  } catch (error: any) {
-    logger.error('Error accepting offer', error.message);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Error accepting offer', message);
     throw error;
   }
 }
@@ -219,8 +228,10 @@ export async function declineOffer(offerId: number) {
     );
 
     redirect('/orders');
-  } catch (error: any) {
-    logger.error('Error declining offer', error.message);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    logger.error('Error declining offer', message);
     throw error;
   }
 }

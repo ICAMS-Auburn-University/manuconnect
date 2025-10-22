@@ -24,7 +24,7 @@ export async function getUserMetadata() {
   };
 }
 
-export async function updateUserMetadata(metadata: Record<string, any>) {
+export async function updateUserMetadata(metadata: Record<string, unknown>) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.updateUser({
     data: metadata,

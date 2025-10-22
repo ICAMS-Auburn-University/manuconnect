@@ -1,42 +1,46 @@
 'use server';
 
+import { randomUUID } from 'crypto';
 import { Resend } from 'resend';
 
 import { env } from '@/lib/config/env';
 import { logger } from '@/lib/logger';
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import { OrderStatus, EventType } from '@/types/enums';
 import { createEvent } from '@/domain/events/service';
 import { getUserById } from '@/services/integrations/supabaseAdmin';
 import { OrderUpdateEmail } from '@/components/emails/order-update';
 import { NewOrderConfirmation } from '@/components/emails/order-created-confirmation';
 import { OrderShippedEmail } from '@/components/emails/order-shipped';
+import { CreateOrderInput } from './types';
 import {
   getCurrentUser,
-  getLatestOrderNumber,
   insertOrder,
   updateOrderById,
   fetchOrdersByCreator,
   fetchOrdersByManufacturer,
   fetchUnclaimedOrders,
   fetchOrderById,
+  getLatestOrderNumber,
 } from '@/lib/supabase/orders';
+import { formatOrderId } from './utils';
 
 const createResendClient = () => {
   if (!env.RESEND_API_KEY) {
     throw new Error('RESEND_API_KEY is not configured');
   }
-
   return new Resend(env.RESEND_API_KEY);
 };
 
-export async function createOrder(data: Order) {
-  let newOrderNumber = 1;
+export async function createOrder(data: CreateOrderInput): Promise<{
+  data: OrdersSchema[] | null;
+  error: string | null;
+}> {
   const { user, error: UserError } = await getCurrentUser();
 
   if (UserError) {
     logger.error(UserError, 'orders:createOrder:getUser');
-    return { data: null, error: UserError };
+    return { data: null, error: String(UserError) };
   }
   if (!user) {
     return { data: null, error: 'User data not found' };
@@ -46,32 +50,49 @@ export async function createOrder(data: Order) {
   }
 
   const userId = user.id;
+  console.log('Creating order for user:', userId);
   try {
-    // Get the latest order number
-    const { data: latestOrder, error: latestOrderError } =
-      await getLatestOrderNumber();
+    const orderId = randomUUID();
 
-    if (latestOrderError) {
-      logger.error(latestOrderError, 'orders:createOrder:latestOrder');
-    } else {
-      newOrderNumber = latestOrder ? latestOrder.id + 1 : 1;
-    }
-
-    const orderToInsert = {
-      id: newOrderNumber,
+    const orderToInsert: OrdersSchema = {
+      id: orderId,
       title: data.title,
       description: data.description,
-      creator: user.id,
-      creator_name: user.user_metadata.display_name,
+      creator: userId,
+      creator_name:
+        user.user_metadata.display_name ||
+        `${user.user_metadata.first_name} ${user.user_metadata.last_name}`,
       status: OrderStatus.OrderCreated,
-      created_at: new Date(),
-      last_update: new Date(),
-      manufacturer: undefined,
-      due_date: data.due_date,
-      fileURLs: data.fileURLs,
+      created_at: new Date().toISOString(),
+      last_update: new Date().toISOString(),
+      manufacturer: null,
+      due_date: data.due_date.toISOString(),
+      fileURLs: data.file || '',
       quantity: data.quantity,
       tags: data.tags,
-      delivery_address: data.delivery_address,
+      delivery_address: {
+        street:
+          `${data.shipping_address_1} ${data.shipping_address_2 || ''}`.trim(),
+        city: data.shipping_city,
+        state: data.shipping_state,
+        postal_code: data.shipping_zip,
+        country: data.shipping_country,
+      },
+      isArchived: false,
+      selected_offer: null,
+      offers: [],
+      manufacturer_name: '',
+      price: {
+        unit_cost: 0,
+        projected_cost: 0,
+        shipping_cost: 0,
+        projected_units: 0,
+      },
+      shipping_info: {
+        carrier: null,
+        tracking_number: null,
+      },
+      livestream_url: '',
     };
 
     const { data: OrderData, error: OrderError } =
@@ -79,15 +100,16 @@ export async function createOrder(data: Order) {
 
     if (!OrderData || OrderError) {
       logger.error(OrderError, 'orders:createOrder:insert');
-      return { data: null, error: OrderError };
+      return {
+        data: null,
+        error: OrderError ? String(OrderError) : 'Failed to insert order',
+      };
     }
 
-    logger.info(`Order #${newOrderNumber} created`);
+    const displayOrderId = orderId.substring(0, 8).toUpperCase();
+    logger.info(`Order #${displayOrderId} created`);
 
-    // Send Email
     const resend = createResendClient();
-
-    // Send email to creator
     await resend.emails.send({
       from: 'ManuConnect <alerts@noreply.manuconnect.org>',
       to: [user.email || 'default@example.com'],
@@ -98,33 +120,36 @@ export async function createOrder(data: Order) {
       }),
     });
 
-    // Create Event
     await createEvent({
       eventType: EventType.SUCCESS,
-      description: `Order #${newOrderNumber.toLocaleString('en-US', {
-        minimumIntegerDigits: 6,
-        useGrouping: false,
-      })} created`,
+      description: `Order #${displayOrderId} created`,
       userId: userId,
-      orderId: String(newOrderNumber),
+      orderId: orderId,
     });
 
-    return { data: OrderData, error: OrderError };
+    return { data: OrderData, error: null };
   } catch (error) {
     logger.error(error, 'orders:createOrder');
-    return { data: null, error };
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
-export async function updateOrder(params: Partial<Order>) {
+export async function updateOrder(params: OrdersSchema) {
   try {
     const updateData = {
       ...params,
       last_update: new Date(),
     };
 
+    if (!params.id) {
+      throw new Error('OrdersSchema id is required to update an order');
+    }
+
     const { data: OrderData, error: OrderError } = await updateOrderById(
-      params.id as number,
+      params.id,
       updateData
     );
 
@@ -148,7 +173,7 @@ export async function updateOrder(params: Partial<Order>) {
       await resend.emails.send({
         from: 'ManuConnect <alerts@noreply.manuconnect.org>',
         to: [UserData?.user.email || 'default@example.com'],
-        subject: 'Order Update',
+        subject: 'OrdersSchema Update',
         react: await OrderUpdateEmail({
           order: OrderData[0],
           email: UserData?.user.email || 'default@example.com',
@@ -164,7 +189,7 @@ export async function updateOrder(params: Partial<Order>) {
       await resend.emails.send({
         from: 'ManuConnect <alerts@noreply.manuconnect.org>',
         to: [UserData?.user.email || 'default@example.com'],
-        subject: 'Order Shipped!',
+        subject: 'OrdersSchema Shipped!',
         react: await OrderShippedEmail({
           order: OrderData[0],
           email: UserData?.user.email || 'default@example.com',
@@ -173,7 +198,7 @@ export async function updateOrder(params: Partial<Order>) {
 
       await createEvent({
         eventType: EventType.SUCCESS,
-        description: `Order #${params.id?.toLocaleString('en-US', {
+        description: `OrdersSchema #${params.id?.toLocaleString('en-US', {
           minimumIntegerDigits: 6,
           useGrouping: false,
         })} has been shipped`,
@@ -183,7 +208,7 @@ export async function updateOrder(params: Partial<Order>) {
     }
 
     logger.info(
-      `Order #${params.id?.toLocaleString('en-US', {
+      `OrdersSchema #${params.id?.toLocaleString('en-US', {
         minimumIntegerDigits: 6,
         useGrouping: false,
       })} updated`
@@ -218,7 +243,7 @@ export async function getCreatorOrders() {
     return null;
   }
 
-  const orders: Order[] = data;
+  const orders: OrdersSchema[] = data;
   return orders;
 }
 
@@ -245,7 +270,7 @@ export async function getManufacturerOrders() {
     return null;
   }
 
-  const orders: Order[] = data;
+  const orders: OrdersSchema[] = data;
   return orders;
 }
 
@@ -280,7 +305,7 @@ export async function getUnclaimedOrders() {
       )
     : [];
 
-  const orders: Order[] = ordersWithCreators;
+  const orders: OrdersSchema[] = ordersWithCreators;
   return orders;
 }
 
@@ -328,6 +353,6 @@ export async function getOrderById(orderId: string) {
       ? ManufacturerData.user.user_metadata.displayName
       : 'Unknown';
 
-  const order: Order = data;
+  const order: OrdersSchema = data;
   return order;
 }

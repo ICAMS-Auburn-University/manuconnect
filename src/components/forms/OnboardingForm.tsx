@@ -31,9 +31,11 @@ export default function OnboardingForm() {
         }
 
         setAccountType(userAccountType);
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : 'Failed to load user data';
         console.error('Error fetching user data:', err);
-        setError(err.message || 'Failed to load user data');
+        setError(message);
       } finally {
         setLoading(false);
       }

@@ -149,7 +149,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
       acceptOffer(offerId);
       toast.success('Offer accepted!');
       setOffers(offers.filter((offer) => offer.id !== offerId));
-      redirect('/orders'); // Redirect to orders page after accepting
+      router.push('/orders'); // Redirect to orders page after accepting
     } catch (error) {
       toast.error('Error accepting offer');
       console.error('Error accepting offer:', error);
@@ -368,8 +368,4 @@ export default function ViewOffers({ order }: ViewOffersProps) {
       </Dialog>
     </>
   );
-}
-function redirect(path: string) {
-  const router = useRouter();
-  router.push(path);
 }
