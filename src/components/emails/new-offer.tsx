@@ -1,9 +1,9 @@
-import { Offer } from '@/domain/offers/types';
+import { OffersSchema } from '@/types/schemas';
 import { EmailTemplate } from './email-template';
 import { Link, Preview, Text } from '@react-email/components';
 
 interface NewOfferEmailProps {
-  offer: Offer;
+  offer: OffersSchema;
   email: string;
 }
 

@@ -1,9 +1,10 @@
-import { Offer } from '@/domain/offers/types';
+import { OffersSchema } from '@/types/schemas';
 import { EmailTemplate } from './email-template';
 import { Link, Preview, Text } from '@react-email/components';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 
 interface OfferAcceptanceEmailProps {
-  offer?: Offer;
+  offer?: OffersSchema;
   email: string;
 }
 
@@ -17,10 +18,7 @@ export const OfferAcceptanceEmail: React.FC<
     </Text>
     <Text>
       Your offer has been accepted on order #
-      {offer?.order_id.toLocaleString('en-US', {
-        minimumIntegerDigits: 6,
-        useGrouping: false,
-      })}
+      {abbreviateUUID(offer?.order_id || '')}
     </Text>
     <Text>
       <span className="font-bold">What&apos;s next?</span> Reach out to the

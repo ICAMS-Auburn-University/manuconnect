@@ -1,9 +1,10 @@
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import { EmailTemplate } from './email-template';
 import { Link, Preview, Text } from '@react-email/components';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 
 interface OrderShippedEmailProps {
-  order: Order;
+  order: OrdersSchema;
   email: string;
 }
 
@@ -12,23 +13,9 @@ export const OrderShippedEmail: React.FC<Readonly<OrderShippedEmailProps>> = ({
   email,
 }) => (
   <EmailTemplate email={email}>
-    <Preview>
-      Order #
-      {order.id.toLocaleString('en-US', {
-        minimumIntegerDigits: 6,
-        useGrouping: false,
-      })}{' '}
-      has shipped!
-    </Preview>
+    <Preview>Order #{abbreviateUUID(order.id)} has shipped!</Preview>
     <Text>
-      <h3>
-        Order #
-        {order.id.toLocaleString('en-US', {
-          minimumIntegerDigits: 6,
-          useGrouping: false,
-        })}{' '}
-        Shipped
-      </h3>
+      <h3>Order #{abbreviateUUID(order.id)} Shipped</h3>
     </Text>
     <Text>Your order has shipped!</Text>
     <Text>

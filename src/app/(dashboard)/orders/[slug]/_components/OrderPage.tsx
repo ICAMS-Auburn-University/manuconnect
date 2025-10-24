@@ -5,7 +5,7 @@ import {
   Truck,
   User as LucideUser,
   Mail,
-  Phone,
+  // Phone,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +26,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { User as SupabaseUser } from '@supabase/supabase-js';
 import { OrdersSchema } from '@/types/schemas';
 import { OrderStatus } from '@/types/enums';
 import OrderProgressBar from '@/components/feedback/CustomerOrderProgressBar';

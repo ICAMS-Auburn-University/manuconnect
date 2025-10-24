@@ -1,10 +1,10 @@
-import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
+import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
 import type { OffersSchema } from '@/types/schemas';
 
 export async function fetchOffersByOrder(
   orderId: string | number
 ): Promise<OffersSchema[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Offers')
     .select()
@@ -22,7 +22,7 @@ export async function fetchOffersByOrder(
 export async function insertOffer(
   offer: Omit<OffersSchema, 'id'>
 ): Promise<OffersSchema[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data: userData, error: userError } = await supabase.auth.getUser();
 
   if (userError || !userData?.user) {
@@ -64,7 +64,7 @@ export async function insertOffer(
 export async function fetchOrderOffers(
   orderId: string | number
 ): Promise<{ offers: string[] }> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Orders')
     .select('offers')
@@ -86,7 +86,7 @@ export async function updateOrderOffers(
   orderId: string | number,
   offers: number[]
 ): Promise<void> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { error } = await supabase
     .from('Orders')
     .update({
@@ -103,7 +103,7 @@ export async function updateOrderOffers(
 export async function acceptOfferById(
   offerId: string
 ): Promise<OffersSchema[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Offers')
     .update({ is_accepted: true })
@@ -124,7 +124,7 @@ export async function acceptOfferById(
 export async function declineOfferById(
   offerId: string
 ): Promise<OffersSchema[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Offers')
     .update({ is_declined: true })
@@ -143,7 +143,7 @@ export async function declineOfferById(
 }
 
 export async function getCurrentUser() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase.auth.getUser();
   return { user: data.user, error };
 }

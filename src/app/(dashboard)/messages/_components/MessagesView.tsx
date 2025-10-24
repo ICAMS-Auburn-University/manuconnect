@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChats } from '@/hooks/useChats';
-import { createClient } from '@/services/supabase/client';
+// import { createClient } from '@/services/supabase/client';
 
 const getInitialsFromMembers = (
   members: string[],
@@ -154,7 +154,7 @@ export function MessagesView() {
 
     const fetchDisplayNames = async () => {
       const { data, error } = await supabase
-        .from('Users')
+        .from('UsersMap')
         .select('id, display_name')
         .in('id', Array.from(missing));
 

@@ -10,12 +10,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import ArchiveButton from '@/components/feedback/ArchiveButton';
 import { useMemo, useState } from 'react';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 
 interface ManufacturerOrdersTableProps {
-  Orders: Order[];
+  Orders: OrdersSchema[];
 }
 
 const ManufacturerOrdersTable: React.FC<ManufacturerOrdersTableProps> = ({
@@ -28,7 +29,7 @@ const ManufacturerOrdersTable: React.FC<ManufacturerOrdersTableProps> = ({
     [orders]
   );
 
-  const handleArchive = (orderId: number) => {
+  const handleArchive = (orderId: string) => {
     setOrders((prevOrders) =>
       prevOrders.map((order) =>
         order.id === orderId ? { ...order, isArchived: true } : order
@@ -52,13 +53,7 @@ const ManufacturerOrdersTable: React.FC<ManufacturerOrdersTableProps> = ({
       <TableBody>
         {visibleOrders.map((order) => (
           <TableRow key={order.id}>
-            <TableCell>
-              #
-              {order.id.toLocaleString('en-US', {
-                minimumIntegerDigits: 6,
-                useGrouping: false,
-              })}
-            </TableCell>
+            <TableCell>#{abbreviateUUID(order.id)}</TableCell>
             <TableCell className="font-medium text-wrap">
               {order.status}
             </TableCell>

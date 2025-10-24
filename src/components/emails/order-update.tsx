@@ -1,9 +1,10 @@
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import { EmailTemplate } from './email-template';
 import { Link, Preview, Text } from '@react-email/components';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 
 interface OrderUpdateEmailProps {
-  order?: Order;
+  order?: OrdersSchema;
   email: string;
 }
 
@@ -17,12 +18,7 @@ export const OrderUpdateEmail: React.FC<Readonly<OrderUpdateEmailProps>> = ({
       <h3>Order Update</h3>
     </Text>
     <Text>
-      Your order #
-      {order?.id.toLocaleString('en-US', {
-        minimumIntegerDigits: 6,
-        useGrouping: false,
-      })}{' '}
-      has been updated on{' '}
+      Your order #{abbreviateUUID(order?.id || '')} has been updated on{' '}
       {order?.last_update
         ? new Date(order.last_update).toLocaleString()
         : 'N/A'}

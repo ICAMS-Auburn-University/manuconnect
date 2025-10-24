@@ -4,14 +4,14 @@ import { Metadata } from 'next';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import ActiveOrders from '@/components/dashboard/ActiveOrders';
 import { RecentEvents } from '@/components/dashboard/RecentEvents';
-import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
+import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
 
 export const metadata: Metadata = {
   title: 'Home | ManuConnect',
 };
 
 export default async function Home() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
 
   const { data, error } = await supabase.auth.getUser();
   if (error || !data?.user) {

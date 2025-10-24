@@ -6,8 +6,8 @@ import { Environment, OrbitControls, useGLTF } from '@react-three/drei';
 import { Download, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Order } from '@/domain/orders/types';
-import { createClient as createSupabaseClient } from '@/services/supabase/client';
+import { OrdersSchema } from '@/types/schemas';
+import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
 
 const DEFAULT_MODEL_PATH = '/error.glb';
 
@@ -16,7 +16,7 @@ function Model({ url }: { url: string }) {
   return <primitive object={scene} />;
 }
 
-function resolveFilePath(fileURLs: Order['fileURLs']): string | null {
+function resolveFilePath(fileURLs: OrdersSchema['fileURLs']): string | null {
   if (!fileURLs) {
     return null;
   }
@@ -52,7 +52,7 @@ function resolveFilePath(fileURLs: Order['fileURLs']): string | null {
   return rawValue;
 }
 
-export default function View3DModel({ order }: { order: Order }) {
+export default function View3DModel({ order }: { order: OrdersSchema }) {
   const [modelUrl, setModelUrl] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -89,7 +89,7 @@ export default function View3DModel({ order }: { order: Order }) {
       }
 
       try {
-        const supabase = createSupabaseClient();
+        const supabase = await createSupabaseServiceRoleClient();
 
         const { data, error } = await supabase.storage
           .from('project-files')

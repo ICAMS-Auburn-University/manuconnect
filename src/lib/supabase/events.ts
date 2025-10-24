@@ -1,11 +1,14 @@
-import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
+import {
+  createSupabasePublicClient,
+  createSupabaseServiceRoleClient,
+} from '@/app/_internal/supabase/server-client';
 import type { EventsSchema } from '@/types/schemas';
 
 export async function fetchEventsByUser(
   userId: string,
   limit: number
 ): Promise<EventsSchema[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Events')
     .select('*')
@@ -22,7 +25,7 @@ export async function fetchEventsByUser(
 }
 
 export async function insertEvent(event: EventsSchema): Promise<EventsSchema> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Events')
     .insert([event])
@@ -42,7 +45,7 @@ export async function insertEvent(event: EventsSchema): Promise<EventsSchema> {
 }
 
 export async function getCurrentUser() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase.auth.getUser();
   return { user: data.user, error };
 }

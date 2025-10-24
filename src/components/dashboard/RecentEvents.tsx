@@ -22,7 +22,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getRecentEvents } from '@/domain/events/service';
-import { Event } from '@/domain/events/types';
+import { EventsSchema } from '@/types/schemas';
 import Link from 'next/link';
 
 // Type definition based on the provided schema
@@ -39,7 +39,7 @@ export function RecentEvents({
   title = 'Recent Events',
   description = 'Latest activity in your system',
 }: RecentEventsProps) {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<EventsSchema[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

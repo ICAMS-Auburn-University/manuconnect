@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import {
-  createSupabaseServerClient,
+  createSupabasePublicClient,
   createSupabaseServiceRoleClient,
 } from '@/app/_internal/supabase/server-client';
 import type { Tables } from '@/types/supabase';

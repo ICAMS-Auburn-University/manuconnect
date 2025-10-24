@@ -1,3 +1,5 @@
+import { MessagesSchema } from '@/types/schemas';
+
 export type StartChatPayload = {
   targetUserId: string;
   orderId: string;

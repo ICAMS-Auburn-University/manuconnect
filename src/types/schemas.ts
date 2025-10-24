@@ -1,6 +1,6 @@
 import { Address } from '@/types/shared';
 
-export interface UsersSchema {
+export interface UsersMapSchema {
   id: string; // uuid
   display_name: string;
 }
@@ -29,7 +29,14 @@ export interface MessagesSchema {
   time_sent: string;
   read_by: string[]; // uuid[]
 }
-
+export interface MessagesSchema {
+  message_id: string; // uuid
+  chat_id: string;
+  sender_id: string;
+  content: string;
+  time_sent: string;
+  read_by: string[]; // uuid[]
+}
 export interface OffersSchema {
   id: string; // uuid
   created_at: string; // timestamp with time zone (ISO string)

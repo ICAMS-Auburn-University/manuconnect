@@ -1,9 +1,10 @@
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import { EmailTemplate } from './email-template';
 import { Link, Preview, Text } from '@react-email/components';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 
 interface NewOrderConfirmationEmailProps {
-  order: Order;
+  order: OrdersSchema;
   email: string;
 }
 
@@ -11,23 +12,9 @@ export const NewOrderConfirmation: React.FC<
   Readonly<NewOrderConfirmationEmailProps>
 > = ({ order, email }) => (
   <EmailTemplate email={email}>
-    <Preview>
-      Order #
-      {order.id.toLocaleString('en-US', {
-        minimumIntegerDigits: 6,
-        useGrouping: false,
-      })}{' '}
-      Confirmation
-    </Preview>
+    <Preview>Order #{abbreviateUUID(order.id)} Confirmation</Preview>
     <Text>
-      <h3>
-        Order #
-        {order.id.toLocaleString('en-US', {
-          minimumIntegerDigits: 6,
-          useGrouping: false,
-        })}{' '}
-        Confirmation
-      </h3>
+      <h3>Order #{abbreviateUUID(order.id)} Confirmation</h3>
     </Text>
     <Text>Your order has been created successfully!</Text>
     <Text>

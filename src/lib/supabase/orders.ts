@@ -1,14 +1,14 @@
-import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
+import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
 import { OrdersSchema } from '@/types/schemas';
 
 export async function getCurrentUser() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase.auth.getUser();
   return { user: data?.user || null, error };
 }
 
 export async function getLatestOrderNumber() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Orders')
     .select('id')
@@ -20,7 +20,7 @@ export async function getLatestOrderNumber() {
 }
 
 export async function insertOrder(orderData: OrdersSchema) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Orders')
     .insert(orderData)
@@ -33,7 +33,7 @@ export async function updateOrderById(
   id: string,
   updateData: Partial<OrdersSchema>
 ) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Orders')
     .update(updateData)
@@ -44,7 +44,7 @@ export async function updateOrderById(
 }
 
 export async function fetchOrdersByCreator(creatorId: string) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Orders')
     .select('*')
@@ -55,7 +55,7 @@ export async function fetchOrdersByCreator(creatorId: string) {
 }
 
 export async function fetchOrdersByManufacturer(manufacturerId: string) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Orders')
     .select('*')
@@ -66,7 +66,7 @@ export async function fetchOrdersByManufacturer(manufacturerId: string) {
 }
 
 export async function fetchUnclaimedOrders() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Orders')
     .select('*')
@@ -78,7 +78,7 @@ export async function fetchUnclaimedOrders() {
 }
 
 export async function fetchOrderById(orderId: string) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServiceRoleClient();
   console.log('Fetching order by ID:', orderId);
   const { data, error } = await supabase
     .from('Orders')

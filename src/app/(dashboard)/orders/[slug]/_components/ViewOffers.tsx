@@ -34,6 +34,7 @@ import { OffersSchema, OrdersSchema } from '@/types/schemas';
 import { acceptOffer, declineOffer, getOffers } from '@/domain/offers/service';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 
 import { startDirectChat } from '@/lib/api/chats';
 
@@ -58,20 +59,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
       setIsLoading(true);
       try {
         const fetchedOffers = await getOffers(order.id);
-        setOffers(
-          fetchedOffers.map((offer) => ({
-            ...offer,
-            id: Number(offer.id),
-            order_id: Number(offer.order_id),
-            created_at: new Date(offer.created_at),
-            last_update: new Date(offer.last_update),
-            unit_cost: parseFloat(offer.unit_cost),
-            projected_cost: parseFloat(offer.projected_cost),
-            projected_units: parseInt(offer.projected_units, 10),
-            shipping_cost: parseFloat(offer.shipping_cost),
-            lead_time: parseInt(offer.lead_time, 10), // Convert lead_time to number
-          }))
-        );
+        setOffers(fetchedOffers);
       } catch (error) {
         toast.error('Error fetching offers');
         console.error('Error fetching offers:', error);
@@ -142,11 +130,11 @@ export default function ViewOffers({ order }: ViewOffersProps) {
   };
 
   // Handle accept
-  const handleAccept = (offerId: number) => {
+  const handleAccept = (offerId: string) => {
     // In a real app, this would send the acceptance to an API
     try {
       acceptOffer(offerId);
-      toast.success('OffersSchema accepted!');
+      toast.success('Offers accepted!');
       setOffers(offers.filter((offer) => offer.id !== offerId));
       router.push('/orders'); // Redirect to orders page after accepting
     } catch (error) {
@@ -156,7 +144,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
   };
 
   // Handle decline
-  const handleDecline = (offerId: number) => {
+  const handleDecline = (offerId: string) => {
     // In a real app, this would send the decline to an API
     try {
       declineOffer(offerId);
@@ -216,11 +204,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
           <DialogHeader>
             <DialogTitle>Manufacturing Offers</DialogTitle>
             <DialogDescription>
-              Review and respond to offers for order #
-              {order.id.toLocaleString('en-US', {
-                minimumIntegerDigits: 6,
-                useGrouping: false,
-              })}
+              Review and respond to offers for order #{abbreviateUUID(order.id)}
             </DialogDescription>
           </DialogHeader>
 
@@ -289,20 +273,20 @@ export default function ViewOffers({ order }: ViewOffersProps) {
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      ${offer.unit_cost.toFixed(2)}
+                      ${parseFloat(offer.unit_cost).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right">
                       {offer.projected_units.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      ${offer.shipping_cost.toFixed(2)}
+                      ${parseFloat(offer.shipping_cost).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       $
                       {calculateTotalCost(
-                        offer.unit_cost,
-                        offer.projected_units,
-                        offer.shipping_cost
+                        parseFloat(offer.unit_cost),
+                        parseInt(offer.projected_units),
+                        parseFloat(offer.shipping_cost)
                       ).toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,

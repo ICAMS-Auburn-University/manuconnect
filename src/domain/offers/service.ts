@@ -71,9 +71,7 @@ export async function createOffer(input: CreateOfferInput) {
     }
 
     // Get creator data to send notifications
-    const { data: orderDetails } = await fetchOrderById(
-      input.order_id,
-    );
+    const { data: orderDetails } = await fetchOrderById(input.order_id);
     if (!orderDetails) {
       throw new Error('Error fetching order details');
     }
@@ -141,7 +139,7 @@ export async function createOffer(input: CreateOfferInput) {
   }
 }
 
-export async function getOffers(orderId: string) {
+export async function getOffers(orderId: string): Promise<OffersSchema[]> {
   try {
     return await fetchOffersByOrder(orderId);
   } catch (error: unknown) {

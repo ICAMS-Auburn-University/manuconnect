@@ -4,13 +4,13 @@ import OrdersList from '@/app/(dashboard)/orders/_components/OrdersList';
 import OrderDetails from '@/app/(dashboard)/orders/_components/OrderDetails';
 import { useEffect, useState } from 'react';
 import { getUnclaimedOrders } from '@/domain/orders/service';
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 
 const BrowseOrdersCard = () => {
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<OrdersSchema | null>(null);
+  const [orders, setOrders] = useState<OrdersSchema[]>([]);
 
-  const handleOrderSelect = (order: Order) => {
+  const handleOrderSelect = (order: OrdersSchema) => {
     setSelectedOrder(order);
   };
 

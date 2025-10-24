@@ -4,13 +4,14 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Order } from '@/domain/orders/types';
+import { OrdersSchema } from '@/types/schemas';
 import type { TagOption } from '@/types/tags';
 import { getTagLabel } from '@/types/tags';
+import { abbreviateUUID } from '@/lib/utils/transforms';
 
 interface OrdersListProps {
-  onOrderSelect: (orderId: Order) => void;
-  unclaimedOrders?: Order[];
+  onOrderSelect: (orderId: OrdersSchema) => void;
+  unclaimedOrders?: OrdersSchema[];
 }
 
 const OrdersList = ({ onOrderSelect, unclaimedOrders }: OrdersListProps) => {
@@ -104,11 +105,7 @@ const OrdersList = ({ onOrderSelect, unclaimedOrders }: OrdersListProps) => {
                     <div className="flex flex-row items-center gap-2">
                       <p className="h4">{order.title}</p>
                       <p className="text-neutral-500 text-sm">
-                        #
-                        {order.id.toLocaleString('en-US', {
-                          minimumIntegerDigits: 6,
-                          useGrouping: false,
-                        })}
+                        #{abbreviateUUID(order.id)}
                       </p>
                     </div>
 
