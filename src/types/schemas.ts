@@ -7,7 +7,7 @@ export interface UsersMapSchema {
 
 export interface ChatsSchema {
   chat_id: string; // uuid
-  member_ids: string[]; // uuid[]
+  members: string[]; // uuid[]
   is_direct_message: boolean;
   created_at: string; // timestamp with time zone (ISO string)
 }

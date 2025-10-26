@@ -1,149 +1,105 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-
-import { createClient } from '@/services/supabase/client';
-import type { Tables } from '@/types/supabase';
-
-export interface ChatSummary {
-  chat_id: string;
-  members: string[];
-  is_direct_message: boolean;
-  created_at: string;
-  last_message: MessageSummary | null;
-  unread_count: number;
-}
+import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
+import type {
+  ChatSummary,
+  ChatsResponse,
+  CurrentUserSummary,
+  MessageSummary,
+} from '@/domain/chats/types';
+import { ChatsSchema } from '@/types/schemas';
 
 type UseChatsOptions = {
   activeChatId?: string | null;
 };
 
-type ChatRow = Tables<'Chats'>;
-type MessageSummary = {
-  message_id: string;
-  chat_id: string;
-  sender_id: string;
-  content: string;
-  time_sent: string;
-  read_by: string[] | null;
+const defaultResponse: ChatsResponse = {
+  chats: [],
+  currentUser: null,
+  participantDisplayNames: {},
 };
 
-export function useChats(
-  userId: string | null,
-  { activeChatId }: UseChatsOptions = {}
-) {
-  const supabase = useMemo(() => createClient(), []);
+export function useChats({ activeChatId }: UseChatsOptions = {}) {
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const [chats, setChats] = useState<ChatSummary[]>([]);
+  const [participantDisplayNames, setParticipantDisplayNames] = useState<
+    Record<string, string>
+  >({});
+  const [currentUser, setCurrentUser] = useState<CurrentUserSummary | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!userId) {
-      setChats([]);
-      return;
-    }
-
-    let cancelled = false;
+  const loadChats = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
-    const loadChats = async () => {
-      try {
-        const { data, error: chatsError } = await supabase
-          .from('Chats')
-          .select('*')
-          .contains('members', [userId])
-          .order('created_at', { ascending: false });
+    try {
+      const response = await fetch('/api/chats', {
+        method: 'GET',
+        credentials: 'include',
+      });
 
-        if (chatsError) {
-          throw chatsError;
-        }
-
-        const rows: ChatRow[] = data ?? [];
-
-        const resolvedChats: ChatSummary[] = await Promise.all(
-          rows.map(async (chat) => {
-            const { data: lastMessageData, error: lastMessageError } =
-              await supabase
-                .from('Messages')
-                .select(
-                  'message_id, chat_id, sender_id, content, time_sent, read_by'
-                )
-                .eq('chat_id', chat.chat_id)
-                .order('time_sent', { ascending: false })
-                .limit(1);
-
-            if (lastMessageError) {
-              throw lastMessageError;
-            }
-
-            const lastMessage =
-              lastMessageData && lastMessageData.length > 0
-                ? (lastMessageData[0] as MessageSummary)
-                : null;
-
-            return {
-              chat_id: chat.chat_id,
-              members: chat.members,
-              is_direct_message: chat.is_direct_message,
-              created_at: chat.created_at,
-              last_message: lastMessage,
-              unread_count: 0,
-            };
-          })
-        );
-
-        if (cancelled) {
-          return;
-        }
-
-        setChats(
-          resolvedChats.sort((a, b) => {
-            const aDate = a.last_message?.time_sent ?? a.created_at;
-            const bDate = b.last_message?.time_sent ?? b.created_at;
-            return new Date(bDate).getTime() - new Date(aDate).getTime();
-          })
-        );
-      } catch (err) {
-        if (cancelled) {
-          return;
-        }
-        setError(err instanceof Error ? err.message : 'Failed to load chats');
+      if (response.status === 401) {
         setChats([]);
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    loadChats();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase, userId]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const subscribe = async () => {
-      if (!userId) {
-        if (channelRef.current) {
-          await supabase.removeChannel(channelRef.current);
-          channelRef.current = null;
-        }
+        setParticipantDisplayNames({});
+        setCurrentUser(null);
+        setError('Unauthorized');
         return;
       }
 
+      if (!response.ok) {
+        throw new Error('Failed to load chats');
+      }
+
+      const data = (await response.json()) as ChatsResponse;
+
+      setChats(data.chats ?? defaultResponse.chats);
+      setParticipantDisplayNames(
+        data.participantDisplayNames ?? defaultResponse.participantDisplayNames
+      );
+      setCurrentUser(data.currentUser ?? defaultResponse.currentUser);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load chats');
+      setChats([]);
+      setParticipantDisplayNames({});
+      setCurrentUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadChats();
+  }, [loadChats]);
+
+  useEffect(() => {
+    let isMounted = true;
+    let supabaseClient: Awaited<
+      ReturnType<typeof createSupabaseServiceRoleClient>
+    > | null = null;
+
+    const subscribe = async () => {
+      const client = await createSupabaseServiceRoleClient();
+      if (!isMounted) {
+        return;
+      }
+
+      supabaseClient = client;
+
       if (channelRef.current) {
-        await supabase.removeChannel(channelRef.current);
+        await client.removeChannel(channelRef.current);
         channelRef.current = null;
       }
 
-      const channel = supabase
-        .channel(`chats:realtime:${userId}`)
+      if (!currentUser?.id) {
+        return;
+      }
+
+      const channel = client
+        .channel(`chats:realtime:${currentUser.id}`)
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'Messages' },
@@ -161,7 +117,7 @@ export function useChats(
               const target = { ...next[index] };
               target.last_message = incoming;
               if (
-                incoming.sender_id !== userId &&
+                incoming.sender_id !== currentUser.id &&
                 target.chat_id !== activeChatId
               ) {
                 target.unread_count = target.unread_count + 1;
@@ -179,8 +135,9 @@ export function useChats(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'Chats' },
           (payload) => {
-            const newChat = payload.new as ChatRow;
-            if (!newChat.members?.includes(userId)) {
+            const newChat = payload.new as ChatsSchema;
+            const members = (newChat.members as string[]) ?? [];
+            if (!members.includes(currentUser.id)) {
               return;
             }
 
@@ -191,9 +148,9 @@ export function useChats(
 
               const summary: ChatSummary = {
                 chat_id: newChat.chat_id,
-                members: newChat.members,
-                is_direct_message: newChat.is_direct_message,
-                created_at: newChat.created_at,
+                members,
+                is_direct_message: Boolean(newChat.is_direct_message),
+                created_at: newChat.created_at ?? new Date().toISOString(),
                 last_message: null,
                 unread_count: 0,
               };
@@ -205,6 +162,8 @@ export function useChats(
                 return new Date(bDate).getTime() - new Date(aDate).getTime();
               });
             });
+
+            void loadChats();
           }
         );
 
@@ -217,23 +176,19 @@ export function useChats(
         }
       });
 
-      if (isMounted) {
-        channelRef.current = channel;
-      } else {
-        void supabase.removeChannel(channel);
-      }
+      channelRef.current = channel;
     };
 
     void subscribe();
 
     return () => {
       isMounted = false;
-      if (channelRef.current) {
-        void supabase.removeChannel(channelRef.current);
+      if (supabaseClient && channelRef.current) {
+        void supabaseClient.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [supabase, userId, activeChatId]);
+  }, [currentUser?.id, activeChatId, loadChats]);
 
   const markChatAsRead = useCallback((chatId: string) => {
     setChats((prev) =>
@@ -245,8 +200,11 @@ export function useChats(
 
   return {
     chats,
+    participantDisplayNames,
+    currentUser,
     isLoading,
     error,
     markChatAsRead,
+    reload: loadChats,
   };
 }

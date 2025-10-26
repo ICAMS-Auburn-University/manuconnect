@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 interface RealtimeChatProps {
   roomName: string;
   username: string;
+  currentUserId: string | null;
   participants?: Record<string, string>;
   onMessage?: (messages: ChatMessage[]) => void;
   messages?: ChatMessage[];
@@ -22,6 +23,7 @@ interface RealtimeChatProps {
 export const RealtimeChat = ({
   roomName,
   username,
+  currentUserId,
   participants = {},
   onMessage,
   messages: initialMessages = [],
@@ -32,10 +34,11 @@ export const RealtimeChat = ({
     messages: realtimeMessages,
     sendMessage,
     isConnected,
-    currentUserId,
+    currentUserId: resolvedCurrentUserId,
   } = useRealtimeChat({
     chatId: roomName,
     currentUserName: username,
+    currentUserId,
     participants,
   });
 
@@ -105,7 +108,7 @@ export const RealtimeChat = ({
               >
                 <ChatMessageItem
                   message={message}
-                  isOwnMessage={message.user.id === currentUserId}
+                  isOwnMessage={message.user.id === resolvedCurrentUserId}
                   showHeader={showHeader}
                 />
               </div>

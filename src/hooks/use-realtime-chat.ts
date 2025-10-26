@@ -1,214 +1,230 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
-import { createClient } from '@/services/supabase/client';
+import type {
+  ChatMessage,
+  MessageSummary,
+  UseRealtimeChatOptions,
+} from '@/domain/chats/types';
 import { abbreviateUUID } from '@/lib/utils/transforms';
+import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
 
-import type { ChatMessage, UseRealtimeChatOptions } from '@/domain/chats/types';
-
-import { MessagesSchema } from '@/types/schemas';
-
-const TABLE_NAME = 'Messages';
+type MessagesResponse = {
+  messages?: MessageSummary[];
+  message?: MessageSummary;
+  error?: string;
+};
 
 export function useRealtimeChat({
   chatId,
   currentUserName,
+  currentUserId,
   participants = {},
 }: UseRealtimeChatOptions) {
-  const supabase = useMemo(() => createClient(), []);
+  // const supabase = useMemo(() => createClient(), []);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [resolvedCurrentUserId, setResolvedCurrentUserId] = useState<
+    string | null
+  >(currentUserId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
-    supabase.auth.getUser().then(({ data }) => {
-      if (!isMounted) {
-        return;
-      }
-      setCurrentUserId(data.user?.id ?? null);
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [supabase]);
+    setResolvedCurrentUserId(currentUserId);
+  }, [currentUserId]);
 
   const resolveUserName = useCallback(
     (senderId: string) => {
-      if (senderId === currentUserId) {
+      if (senderId === resolvedCurrentUserId) {
         return currentUserName || 'You';
       }
       return participants[senderId] ?? `User ${abbreviateUUID(senderId)}`;
     },
-    [currentUserId, currentUserName, participants]
+    [resolvedCurrentUserId, currentUserName, participants]
   );
 
-  const mapRowToMessage = useCallback(
-    (row: MessagesSchema): ChatMessage => ({
-      id: row.message_id,
-      chatId: row.chat_id,
-      content: row.content,
-      createdAt: row.time_sent,
+  const mapSummaryToMessage = useCallback(
+    (summary: MessageSummary): ChatMessage => ({
+      id: summary.message_id,
+      chatId: summary.chat_id,
+      content: summary.content,
+      createdAt: summary.time_sent,
       user: {
-        id: row.sender_id,
-        name: resolveUserName(row.sender_id),
+        id: summary.sender_id,
+        name: resolveUserName(summary.sender_id),
       },
     }),
     [resolveUserName]
   );
 
-  // Load existing messages
+  const mergeMessage = useCallback((incoming: ChatMessage) => {
+    setMessages((previous) => {
+      if (previous.some((item) => item.id === incoming.id)) {
+        return previous;
+      }
+
+      const next = [...previous, incoming];
+      next.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      return next;
+    });
+  }, []);
+
+  // Load existing messages from API
   useEffect(() => {
-    if (!chatId || !currentUserId) {
+    if (!chatId) {
       setMessages([]);
       return;
     }
 
-    let isMounted = true;
+    const abortController = new AbortController();
 
     const loadMessages = async () => {
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .select('message_id, chat_id, sender_id, content, time_sent, read_by')
-        .eq('chat_id', chatId)
-        .order('time_sent', { ascending: true });
+      try {
+        const response = await fetch(`/api/chats/${chatId}/messages`, {
+          method: 'GET',
+          credentials: 'include',
+          signal: abortController.signal,
+        });
 
-      if (error) {
-        console.error('Failed to load chat messages', error);
-        if (isMounted) {
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as
+            | MessagesResponse
+            | undefined;
+          const errorMessage =
+            payload?.error ??
+            `Failed to load messages (status ${response.status})`;
+          console.error(errorMessage);
+          setMessages([]);
+          return;
+        }
+
+        const payload = (await response.json()) as MessagesResponse;
+        const rows = payload.messages ?? [];
+        setMessages(rows.map(mapSummaryToMessage));
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          console.error('Failed to load chat messages', error);
           setMessages([]);
         }
-        return;
-      }
-
-      if (!data) {
-        if (isMounted) {
-          setMessages([]);
-        }
-        return;
-      }
-
-      if (isMounted) {
-        setMessages(data.map((row) => mapRowToMessage(row as MessagesSchema)));
       }
     };
 
     void loadMessages();
 
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
-  }, [chatId, currentUserId, mapRowToMessage, supabase]);
+  }, [chatId, mapSummaryToMessage]);
 
-  // Subscribe to realtime broadcast updates
+  // Subscribe to realtime updates (broadcast channel configured elsewhere)
   useEffect(() => {
-    if (!chatId || !currentUserId) {
-      return;
-    }
+    let isMounted = true;
+    let supabaseClient: Awaited<
+      ReturnType<typeof createSupabaseServiceRoleClient>
+    > | null = null;
 
-    if (channelRef.current) {
-      void supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    const subscribe = async () => {
+      if (!chatId || !resolvedCurrentUserId) {
+        return;
+      }
 
-    const topic = `chat:${chatId}:messages`;
+      const client = await createSupabaseServiceRoleClient();
+      if (!isMounted) {
+        return;
+      }
 
-    const channel = supabase
-      .channel(topic, {
-        config: {
-          broadcast: {
-            ack: true,
+      supabaseClient = client;
+
+      if (channelRef.current) {
+        void client.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+
+      const topic = `chat:${chatId}:messages`;
+
+      const channel = client
+        .channel(topic, {
+          config: {
+            broadcast: {
+              ack: true,
+            },
           },
-        },
-      })
-      .on('broadcast', { event: 'message' }, (payload) => {
-        const row = payload.message as MessagesSchema;
-        const message = mapRowToMessage(row);
-        setMessages((previous) => {
-          if (previous.some((item) => item.id === message.id)) {
-            return previous;
-          }
-          const next = [...previous, message];
-          next.sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-          return next;
+        })
+        .on('broadcast', { event: 'message' }, (payload) => {
+          const raw = payload.message as MessageSummary;
+          const message = mapSummaryToMessage(raw);
+          mergeMessage(message);
         });
+
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsConnected(true);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to messages channel', {
+            topic,
+          });
+          setIsConnected(false);
+        } else if (status === 'CLOSED') {
+          setIsConnected(false);
+        }
       });
 
-    channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        setIsConnected(true);
-      } else if (status === 'CHANNEL_ERROR') {
-        console.error('Failed to subscribe to messages channel', {
-          topic,
-        });
-        setIsConnected(false);
-      } else if (status === 'CLOSED') {
-        setIsConnected(false);
-      }
-    });
+      channelRef.current = channel;
+    };
 
-    channelRef.current = channel;
+    void subscribe();
 
     return () => {
+      isMounted = false;
       setIsConnected(false);
-      if (channelRef.current) {
-        void supabase.removeChannel(channelRef.current);
+      if (supabaseClient && channelRef.current) {
+        void supabaseClient.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [chatId, currentUserId, mapRowToMessage, supabase]);
+  }, [chatId, resolvedCurrentUserId, mapSummaryToMessage, mergeMessage]);
 
   const sendMessage = useCallback(
     async (content: string) => {
       const trimmed = content.trim();
-      if (!trimmed || !currentUserId) {
+      if (!trimmed || !resolvedCurrentUserId) {
         return;
       }
 
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .insert({
-          chat_id: chatId,
-          sender_id: currentUserId,
-          content: trimmed,
-          time_sent: new Date().toISOString(),
-          read_by: [currentUserId],
-        })
-        .select('message_id, chat_id, sender_id, content, time_sent, read_by')
-        .single();
+      const response = await fetch(`/api/chats/${chatId}/messages`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: trimmed }),
+      });
 
-      if (error) {
-        throw new Error(error.message);
+      const payload = (await response.json().catch(() => ({}))) as
+        | MessagesResponse
+        | undefined;
+
+      if (!response.ok || !payload?.message) {
+        const errorMessage =
+          payload?.error ??
+          `Failed to send message (status ${response.status})`;
+        throw new Error(errorMessage);
       }
 
-      if (data) {
-        const message = mapRowToMessage(data as MessagesSchema);
-        setMessages((previous) => {
-          if (previous.some((item) => item.id === message.id)) {
-            return previous;
-          }
-          const next = [...previous, message];
-          next.sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-          return next;
-        });
-      }
+      const message = mapSummaryToMessage(payload.message);
+      mergeMessage(message);
     },
-    [chatId, currentUserId, mapRowToMessage, supabase]
+    [chatId, mergeMessage, mapSummaryToMessage, resolvedCurrentUserId]
   );
 
   return {
     messages,
     sendMessage,
     isConnected,
-    currentUserId,
+    currentUserId: resolvedCurrentUserId,
   };
 }

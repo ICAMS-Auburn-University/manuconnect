@@ -29,6 +29,10 @@ const withCookieStore = async (supabaseKey: string) => {
 export const createSupabasePublicClient = () =>
   withCookieStore(env.NEXT_PUBLIC_SUPABASE_KEY);
 
+// NOTE: use this for authenticated server-side operations that rely on user cookies (uses anon/public key)
+export const createSupabaseServerClient = () =>
+  withCookieStore(env.NEXT_PUBLIC_SUPABASE_KEY);
+
 // NOTE: use this ONLY for privileged server-side operations (uses service role key)
 export const createSupabaseServiceRoleClient = () =>
   withCookieStore(env.NEXT_PRIVATE_SUPABASE_SERVICE_ROLE_KEY);

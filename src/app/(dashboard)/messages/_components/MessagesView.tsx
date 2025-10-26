@@ -11,8 +11,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChats } from '@/hooks/useChats';
-import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
-// import { createClient } from '@/services/supabase/client';
 
 const getInitialsFromMembers = (
   members: string[],
@@ -68,121 +66,22 @@ export function MessagesView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentUserName, setCurrentUserName] = useState<string>('You');
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
-
-  useEffect(async () => {
-    const supabase = await createSupabaseServiceRoleClient();
-    let isMounted = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!isMounted) {
-        return;
-      }
-      const sessionUser = data.session?.user;
-      setCurrentUserId(sessionUser?.id ?? null);
-      setCurrentUserName(
-        sessionUser?.user_metadata?.display_name ??
-          sessionUser?.user_metadata?.full_name ??
-          sessionUser?.email ??
-          'You'
-      );
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user;
-      setCurrentUserId(user?.id ?? null);
-      setCurrentUserName(
-        user?.user_metadata?.display_name ??
-          user?.user_metadata?.full_name ??
-          user?.email ??
-          'You'
-      );
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
 
   const {
     chats,
+    participantDisplayNames,
+    currentUser,
     isLoading: chatsLoading,
     error: chatsError,
     markChatAsRead,
-  } = useChats(currentUserId, { activeChatId: selectedChatId });
+  } = useChats({ activeChatId: selectedChatId });
+
+  const currentUserId = currentUser?.id ?? null;
+  const currentUserName = currentUser?.name ?? 'You';
 
   const chatFromQuery = searchParams.get('chat');
-
-  useEffect(() => {
-    if (!currentUserId) {
-      setDisplayNames({});
-      return;
-    }
-    setDisplayNames((prev) => {
-      if (prev[currentUserId] === currentUserName) {
-        return prev;
-      }
-      return { ...prev, [currentUserId]: currentUserName };
-    });
-  }, [currentUserId, currentUserName]);
-
-  useEffect(() => {
-    if (chats.length === 0) {
-      return;
-    }
-
-    const missing = new Set<string>();
-    chats.forEach((chat) => {
-      chat.members.forEach((memberId) => {
-        if (memberId && memberId !== currentUserId && !displayNames[memberId]) {
-          missing.add(memberId);
-        }
-      });
-    });
-
-    if (missing.size === 0) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchDisplayNames = async () => {
-      const { data, error } = await supabase
-        .from('UsersMap')
-        .select('id, display_name')
-        .in('id', Array.from(missing));
-
-      if (error) {
-        console.error('Failed to load participant display names', error);
-        return;
-      }
-
-      if (!data || cancelled) {
-        return;
-      }
-
-      setDisplayNames((prev) => {
-        const next = { ...prev };
-        data.forEach((user) => {
-          next[user.id] = user.display_name;
-        });
-        return next;
-      });
-    };
-
-    void fetchDisplayNames();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [chats, currentUserId, displayNames, supabase]);
 
   const getMemberDisplayName = useCallback(
     (memberId: string) => {
@@ -190,10 +89,11 @@ export function MessagesView() {
         return currentUserName;
       }
       return (
-        displayNames[memberId] ?? `User ${memberId.slice(0, 8).toUpperCase()}`
+        participantDisplayNames[memberId] ??
+        `User ${memberId.slice(0, 8).toUpperCase()}`
       );
     },
-    [currentUserId, currentUserName, displayNames]
+    [currentUserId, currentUserName, participantDisplayNames]
   );
 
   useEffect(() => {
@@ -416,6 +316,7 @@ export function MessagesView() {
                 <RealtimeChat
                   roomName={selectedChat.chat_id}
                   username={currentUserName}
+                  currentUserId={currentUserId}
                   participants={participantMap}
                 />
               </div>
