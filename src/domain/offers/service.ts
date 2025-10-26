@@ -101,12 +101,6 @@ export async function createOffer(input: CreateOfferInput) {
       react: await NewOffer({
         offer: {
           ...offerData[0],
-          created_at: new Date(offerData[0].created_at),
-          unit_cost: parseFloat(offerData[0].unit_cost),
-          projected_cost: parseFloat(offerData[0].projected_cost),
-          projected_units: parseInt(offerData[0].projected_units, 10),
-          shipping_cost: parseFloat(offerData[0].shipping_cost),
-          lead_time: parseInt(offerData[0].lead_time, 10),
         },
         email: creatorData.user.email || 'default@example.com',
       }),
@@ -183,13 +177,6 @@ export async function acceptOffer(offerId: string) {
       react: await OfferAcceptanceEmail({
         offer: {
           ...offerData[0],
-          // Keep IDs as strings
-          created_at: new Date(offerData[0].created_at),
-          unit_cost: parseFloat(offerData[0].unit_cost),
-          projected_cost: parseFloat(offerData[0].projected_cost),
-          projected_units: parseInt(offerData[0].projected_units, 10),
-          shipping_cost: parseFloat(offerData[0].shipping_cost),
-          lead_time: parseInt(offerData[0].lead_time, 10),
         },
         email: manufacturerData.user.email || 'default@example.com',
       }),

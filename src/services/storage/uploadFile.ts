@@ -1,8 +1,8 @@
 'use server';
 
-import { createSupabaseServerClient } from '@/app/_internal/supabase/server-client';
+import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
 
-const getServerClient = async () => await createSupabaseServerClient();
+const getServerClient = async () => await createSupabaseServiceRoleClient();
 
 async function getUserId() {
   const supabase = await getServerClient();

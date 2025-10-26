@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChats } from '@/hooks/useChats';
+import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
 // import { createClient } from '@/services/supabase/client';
 
 const getInitialsFromMembers = (
@@ -63,7 +64,6 @@ const formatRelativeTime = (timestamp: string | undefined | null) => {
 };
 
 export function MessagesView() {
-  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -74,7 +74,8 @@ export function MessagesView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
 
-  useEffect(() => {
+  useEffect(async () => {
+    const supabase = await createSupabaseServiceRoleClient();
     let isMounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
