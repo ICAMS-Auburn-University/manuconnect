@@ -22,7 +22,6 @@ import {
   fetchOrdersByManufacturer,
   fetchUnclaimedOrders,
   fetchOrderById,
-  getLatestOrderNumber,
 } from '@/lib/supabase/orders';
 
 const createResendClient = () => {

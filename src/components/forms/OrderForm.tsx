@@ -32,7 +32,6 @@ import { useState } from 'react';
 import { createOrder } from '@/domain/orders/service';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
-import { OrderStatus } from '@/types/enums';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -105,7 +104,7 @@ const OrderForm = () => {
     }
 
     try {
-      const { data: _, error: error } = await createOrder({
+      const { error: error } = await createOrder({
         title: values.title,
         description: values.description,
         quantity: values.quantity,
@@ -128,13 +127,16 @@ const OrderForm = () => {
 
       toast.success('Order created successfully!');
       form.reset();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating order:', error);
       // Properly handle caught exceptions
-      setErrorMessage(
-        (error?.message || 'An unexpected error occurred') +
-          '. Please try again.'
-      );
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : 'An unexpected error occurred';
+      setErrorMessage(message + '. Please try again.');
     } finally {
       setIsLoading(false);
     }

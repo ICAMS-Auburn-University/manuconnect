@@ -1,7 +1,4 @@
-import {
-  createSupabasePublicClient,
-  createSupabaseServiceRoleClient,
-} from '@/app/_internal/supabase/server-client';
+import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
 import type { EventsSchema } from '@/types/schemas';
 
 export async function fetchEventsByUser(

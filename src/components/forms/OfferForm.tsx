@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CreateOfferInput } from '@/domain/offers/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +16,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { getUserId } from '@/domain/users/service';
 import { createOffer } from '@/domain/offers/service';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
@@ -50,7 +48,6 @@ interface OfferFormProps {
 
 const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Define your form with updated types
   const form = useForm<z.infer<typeof OfferSchema>>({
@@ -90,7 +87,6 @@ const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
 
     form.handleSubmit(async (values) => {
       setLoading(true);
-      setError(null);
 
       console.log('Form values validated:', values);
 
@@ -111,7 +107,6 @@ const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
         form.reset();
       } catch (error) {
         console.error('Error creating offer:', error);
-        setError(typeof error === 'string' ? error : 'Failed to create offer');
         toast.error(
           'Failed to create offer. Please try again or contact support.'
         );

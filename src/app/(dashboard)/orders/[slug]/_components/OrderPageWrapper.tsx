@@ -118,7 +118,7 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
   }
 
   if (!order || !isAuthorized) {
-    return <div>Order not found or you're not authorized to view it</div>;
+    return <div>Order not found or you&#39;re not authorized to view it</div>;
   }
 
   return (
