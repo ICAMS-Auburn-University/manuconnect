@@ -1,6 +1,21 @@
-# ICAMS Distributed Manufacturing System (ManuConnect)
+# ManuConnect
 
-## Tech Stack
-- ![Next JS](https://img.shields.io/badge/Next-black?style=for-the-badge&logo=next.js&logoColor=white) 
-- ![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white)
-- ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white) 
+The [ManuConnect](https://manuconnect.org) platform is built with NextJS and utilizes Vercel for hosting and Supabase for backend services (auth, database, storage, etc.)
+
+## Set Up Instructions
+
+1. Clone the repository and install NodeJS v23.x
+2. Run `npm install` to install all required dependencies
+3. Pull environment variables from Vercel by running `vercel env pull`
+4. Edits to the `main` branch of the repo are automatically pushed to the live website.
+
+## Services
+
+- **Hosting**: Vercel
+- **Framework**: NextJS
+- **Backend**: Supabase
+- **Mail**: Resend
+
+## Contact
+
+Please contact [jordanlee@auburn.edu](mailto:jordanlee@auburn.edu) for any questions or inqueries.
