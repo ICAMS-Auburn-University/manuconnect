@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
+import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
 import type {
   ChatSummary,
   ChatsResponse,
@@ -78,11 +78,11 @@ export function useChats({ activeChatId }: UseChatsOptions = {}) {
   useEffect(() => {
     let isMounted = true;
     let supabaseClient: Awaited<
-      ReturnType<typeof createSupabaseServiceRoleClient>
+      ReturnType<typeof createSupabaseBrowserClient>
     > | null = null;
 
     const subscribe = async () => {
-      const client = await createSupabaseServiceRoleClient();
+      const client = await createSupabaseBrowserClient();
       if (!isMounted) {
         return;
       }

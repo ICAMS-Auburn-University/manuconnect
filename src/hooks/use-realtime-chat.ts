@@ -7,7 +7,7 @@ import type {
   UseRealtimeChatOptions,
 } from '@/domain/chats/types';
 import { abbreviateUUID } from '@/lib/utils/transforms';
-import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
+import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
 
 type MessagesResponse = {
   messages?: MessageSummary[];
@@ -124,7 +124,7 @@ export function useRealtimeChat({
   useEffect(() => {
     let isMounted = true;
     let supabaseClient: Awaited<
-      ReturnType<typeof createSupabaseServiceRoleClient>
+      ReturnType<typeof createSupabaseBrowserClient>
     > | null = null;
 
     const subscribe = async () => {
@@ -132,7 +132,7 @@ export function useRealtimeChat({
         return;
       }
 
-      const client = await createSupabaseServiceRoleClient();
+      const client = await createSupabaseBrowserClient();
       if (!isMounted) {
         return;
       }

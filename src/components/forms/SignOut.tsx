@@ -3,7 +3,7 @@
 import React, { useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
+import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
 
 interface SignOutProps {
   className?: string;
@@ -14,7 +14,7 @@ const SignOut = ({ className }: SignOutProps) => {
   const [isPending, startTransition] = useTransition();
 
   async function handleSignOut() {
-    const supabase = await createSupabaseServiceRoleClient();
+    const supabase = await createSupabaseBrowserClient();
     const { error } = await supabase.auth.signOut({ scope: 'local' });
 
     if (error) {

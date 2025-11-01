@@ -1,7 +1,4 @@
-import {
-  createSupabasePublicClient,
-  createSupabaseServiceRoleClient,
-} from '@/app/_internal/supabase/server-client';
+import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
 import { SignUpData } from '@/domain/auth/types';
 
 // --------- Server-side functions (START) ---------
@@ -49,22 +46,3 @@ export async function supabaseGetUserServer() {
   const { data, error } = await supabase.auth.getUser();
   return { user: data?.user || null, error };
 }
-// --------- Server-side functions (END) ---------
-
-// --------- Client-side functions (START) ---------
-export async function updateUserMetadata(metadata: Record<string, unknown>) {
-  'use client';
-  const supabase = await createSupabasePublicClient();
-  const { data, error } = await supabase.auth.updateUser({
-    data: metadata,
-  });
-  return { data, error };
-}
-
-export async function supabaseGetUser() {
-  'use client';
-  const supabase = await createSupabasePublicClient();
-  const { data, error } = await supabase.auth.getUser();
-  return { user: data?.user || null, error };
-}
-// --------- Client-side functions (END) ---------

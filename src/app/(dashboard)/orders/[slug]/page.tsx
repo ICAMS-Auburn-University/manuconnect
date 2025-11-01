@@ -5,14 +5,16 @@ import { notFound } from 'next/navigation';
 export default async function OrderDetailsPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const resolvedParams = await params;
+
   // Validate that slug exists and is a string
-  if (!params?.slug || typeof params.slug !== 'string') {
+  if (!resolvedParams?.slug || typeof resolvedParams.slug !== 'string') {
     notFound();
   }
 
-  const slug = params.slug;
+  const slug = resolvedParams.slug;
 
   try {
     const order = await getOrderById(slug);

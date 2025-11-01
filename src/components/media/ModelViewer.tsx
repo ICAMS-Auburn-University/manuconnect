@@ -7,7 +7,7 @@ import { Download, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { OrdersSchema } from '@/types/schemas';
-import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
+import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
 
 const DEFAULT_MODEL_PATH = '/error.glb';
 
@@ -89,7 +89,7 @@ export default function View3DModel({ order }: { order: OrdersSchema }) {
       }
 
       try {
-        const supabase = await createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseBrowserClient();
 
         const { data, error } = await supabase.storage
           .from('project-files')

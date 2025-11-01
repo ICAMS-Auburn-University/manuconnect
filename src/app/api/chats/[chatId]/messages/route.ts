@@ -11,7 +11,7 @@ type RouteParams = {
 };
 
 type RouteContext = {
-  params: RouteParams | Promise<RouteParams>;
+  params: Promise<RouteParams>;
 };
 
 const jsonError = (message: string, status: number) =>

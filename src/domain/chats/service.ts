@@ -1,5 +1,3 @@
-'use server';
-
 import 'server-only';
 
 import type { User } from '@supabase/supabase-js';
