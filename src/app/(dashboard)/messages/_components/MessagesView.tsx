@@ -10,7 +10,7 @@ import { RealtimeChat } from '@/components/chats/realtime-chat';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useChats } from '@/hooks/useChats';
+import { useChats } from '@/hooks/chats/useChats';
 
 const getInitialsFromMembers = (
   members: string[],

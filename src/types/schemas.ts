@@ -28,15 +28,9 @@ export interface MessagesSchema {
   content: string;
   time_sent: string;
   read_by: string[]; // uuid[]
+  attachment_ids: string[]; // uuid[]
 }
-export interface MessagesSchema {
-  message_id: string; // uuid
-  chat_id: string;
-  sender_id: string;
-  content: string;
-  time_sent: string;
-  read_by: string[]; // uuid[]
-}
+
 export interface OffersSchema {
   id: string; // uuid
   created_at: string; // timestamp with time zone (ISO string)
@@ -96,4 +90,15 @@ export interface AddressesSchema extends Address {
   id: string; // uuid
   created_at: string; // timestamp with time zone (ISO string)
   updated_at: string; // timestamp with time zone (ISO string)
+}
+
+export interface MessageAttachmentsSchema {
+  attachment_id: string; // uuid,
+  message_id: string; // uuid,
+  bucket_id: string;
+  path: string;
+  filename: string;
+  mime: string;
+  size: number;
+  time_uploaded: string; // timestamp with time zone (ISO string)
 }

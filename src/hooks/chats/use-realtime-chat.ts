@@ -3,6 +3,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import type {
   ChatMessage,
+  MessageAttachmentSummary,
   MessageSummary,
   UseRealtimeChatOptions,
 } from '@/domain/chats/types';
@@ -54,6 +55,8 @@ export function useRealtimeChat({
         id: summary.sender_id,
         name: resolveUserName(summary.sender_id),
       },
+      attachmentIds: summary.attachment_ids ?? [],
+      attachments: summary.attachments ?? [],
     }),
     [resolveUserName]
   );
@@ -155,9 +158,41 @@ export function useRealtimeChat({
           },
         })
         .on('broadcast', { event: 'message' }, (payload) => {
-          const raw = payload.message as MessageSummary;
-          const message = mapSummaryToMessage(raw);
-          mergeMessage(message);
+          const raw = payload.message as MessageSummary | undefined;
+          if (!raw) {
+            return;
+          }
+
+          void (async () => {
+            let summary = raw;
+            const attachmentCount = summary.attachment_ids?.length ?? 0;
+            const hydratedCount = summary.attachments?.length ?? 0;
+            if (attachmentCount > 0 && hydratedCount < attachmentCount) {
+              try {
+                const response = await fetch(
+                  `/api/chats/${chatId}/messages?messageId=${summary.message_id}`,
+                  {
+                    method: 'GET',
+                    credentials: 'include',
+                  }
+                );
+
+                if (response.ok) {
+                  const detail = (await response.json().catch(() => ({}))) as {
+                    message?: MessageSummary;
+                  };
+                  if (detail.message) {
+                    summary = detail.message;
+                  }
+                }
+              } catch (error) {
+                console.error('Failed to hydrate message attachments', error);
+              }
+            }
+
+            const message = mapSummaryToMessage(summary);
+            mergeMessage(message);
+          })();
         });
 
       channel.subscribe((status) => {
@@ -189,9 +224,9 @@ export function useRealtimeChat({
   }, [chatId, resolvedCurrentUserId, mapSummaryToMessage, mergeMessage]);
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, attachments: MessageAttachmentSummary[] = []) => {
       const trimmed = content.trim();
-      if (!trimmed || !resolvedCurrentUserId) {
+      if ((!trimmed && attachments.length === 0) || !resolvedCurrentUserId) {
         return;
       }
 
@@ -201,7 +236,10 @@ export function useRealtimeChat({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content: trimmed }),
+        body: JSON.stringify({
+          content: trimmed,
+          attachments,
+        }),
       });
 
       const payload = (await response.json().catch(() => ({}))) as

@@ -1,4 +1,3 @@
-// import type { Tables } from '@/types/supabase';
 import type { StartChatPayload } from '@/domain/chats/types';
 import { ChatsSchema } from '@/types/schemas';
 

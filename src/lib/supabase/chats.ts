@@ -1,5 +1,10 @@
 import { createSupabaseServiceRoleClient } from '@/app/_internal/supabase/server-client';
-import { ChatsSchema, MessagesSchema, UsersMapSchema } from '@/types/schemas';
+import {
+  ChatsSchema,
+  MessageAttachmentsSchema,
+  MessagesSchema,
+  UsersMapSchema,
+} from '@/types/schemas';
 
 type ChatInsertPayload = {
   members: string[];
@@ -13,6 +18,18 @@ type MessageInsertPayload = {
   content: string;
   time_sent: string;
   read_by: string[];
+  attachment_ids: string[];
+};
+
+type MessageAttachmentInsertPayload = {
+  attachment_id: string;
+  message_id: string;
+  bucket_id: string;
+  path: string;
+  filename: string;
+  mime: string;
+  size: number;
+  time_uploaded: string;
 };
 
 export async function fetchChatsForMember(
@@ -139,6 +156,24 @@ export async function fetchMessagesForChat(
   return (data as MessagesSchema[]) ?? [];
 }
 
+export async function fetchMessageById(
+  messageId: string
+): Promise<MessagesSchema | null> {
+  const supabase = await createSupabaseServiceRoleClient();
+
+  const { data, error } = await supabase
+    .from('Messages')
+    .select('*')
+    .eq('message_id', messageId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data as MessagesSchema) ?? null;
+}
+
 export async function insertMessage(
   payload: MessageInsertPayload
 ): Promise<MessagesSchema> {
@@ -155,6 +190,67 @@ export async function insertMessage(
   }
 
   return data as MessagesSchema;
+}
+
+export async function insertMessageAttachments(
+  payload: MessageAttachmentInsertPayload[]
+): Promise<MessageAttachmentsSchema[]> {
+  if (payload.length === 0) {
+    return [];
+  }
+
+  const supabase = await createSupabaseServiceRoleClient();
+
+  const { data, error } = await supabase
+    .from('MessageAttachments')
+    .insert(payload)
+    .select('*');
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data as MessageAttachmentsSchema[]) ?? [];
+}
+
+export async function fetchAttachmentsForMessages(
+  messageIds: string[]
+): Promise<Record<string, MessageAttachmentsSchema[]>> {
+  if (messageIds.length === 0) {
+    return {};
+  }
+
+  const supabase = await createSupabaseServiceRoleClient();
+
+  const { data, error } = await supabase
+    .from('MessageAttachments')
+    .select('*')
+    .in('message_id', messageIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data as MessageAttachmentsSchema[]) ?? [];
+  return rows.reduce<Record<string, MessageAttachmentsSchema[]>>((acc, row) => {
+    if (!acc[row.message_id]) {
+      acc[row.message_id] = [];
+    }
+    acc[row.message_id].push(row);
+    return acc;
+  }, {});
+}
+
+export async function deleteMessageById(messageId: string): Promise<void> {
+  const supabase = await createSupabaseServiceRoleClient();
+  const { error } = await supabase
+    .from('Messages')
+    .delete()
+    .eq('message_id', messageId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 export async function fetchUsersDisplayNames(
