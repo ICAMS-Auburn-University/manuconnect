@@ -40,7 +40,7 @@ export async function splitCadAssembly({
   formData.append('order_id', orderId);
   formData.append('cad_file', file);
 
-  const response = await fetch(`${baseUrl}/split`, {
+  const response = await fetch(`${baseUrl}api/split`, {
     method: 'POST',
     body: formData,
   });
