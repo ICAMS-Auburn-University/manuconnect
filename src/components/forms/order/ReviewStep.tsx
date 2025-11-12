@@ -2,11 +2,11 @@
 
 import { useFormContext } from 'react-hook-form';
 
-import { SplitCadAssemblyResult } from '@/services/cad/splitCadAssembly';
+import type { SplitAssemblyResult } from '@/domain/cad/types';
 import { OrderFormValues } from './schema';
 
 interface ReviewStepProps {
-  cadResult: SplitCadAssemblyResult | null;
+  cadResult: SplitAssemblyResult | null;
 }
 
 export function ReviewStep({ cadResult }: ReviewStepProps) {
@@ -68,15 +68,15 @@ export function ReviewStep({ cadResult }: ReviewStepProps) {
           <div className="space-y-3 text-sm text-gray-700">
             <p>
               Original assembly stored at{' '}
-              <span className="font-mono">{cadResult.original}</span>
+              <span className="font-mono">{cadResult.originalPath}</span>
             </p>
             <ul className="grid gap-2 md:grid-cols-2">
               {cadResult.parts.map((part) => (
                 <li
-                  key={part}
+                  key={part.storagePath}
                   className="rounded border border-gray-200 bg-gray-50 p-3 font-mono text-xs"
                 >
-                  {part}
+                  {part.storagePath}
                 </li>
               ))}
             </ul>

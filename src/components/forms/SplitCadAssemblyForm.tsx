@@ -1,13 +1,16 @@
+'use client';
+
 import { ChangeEvent, FormEvent, useCallback, useState } from 'react';
 
-import { useSplitCadAssembly } from '@/hooks/cad/useSplitCadAssembly';
+import { CadSplitViewer } from '@/components/cad/CadSplitViewer';
+import { useSplitAssembly } from '@/hooks/cad/useSplitAssembly';
 
 export function SplitCadAssemblyForm() {
   const [userId, setUserId] = useState('');
   const [orderId, setOrderId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const { splitCadAssembly, data, error, isLoading } = useSplitCadAssembly();
+  const { splitAssembly, data, error, isLoading } = useSplitAssembly();
 
   const handleFileChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -28,7 +31,7 @@ export function SplitCadAssemblyForm() {
       setFormError(null);
 
       try {
-        await splitCadAssembly({
+        await splitAssembly({
           userId,
           orderId,
           file,
@@ -37,7 +40,7 @@ export function SplitCadAssemblyForm() {
         // Error state is handled via the hook; no-op to avoid noisy console errors.
       }
     },
-    [file, orderId, splitCadAssembly, userId]
+    [file, orderId, splitAssembly, userId]
   );
 
   return (
@@ -106,24 +109,7 @@ export function SplitCadAssemblyForm() {
         </p>
       )}
 
-      {data && (
-        <div className="rounded bg-gray-50 p-3 text-sm">
-          <p className="font-semibold text-gray-800">Supabase Paths</p>
-          <p className="mt-2 text-gray-700">
-            Original: <span className="font-mono">{data.original}</span>
-          </p>
-          <div className="mt-2">
-            <p className="text-gray-700">Parts:</p>
-            <ul className="mt-1 list-disc pl-5">
-              {data.parts.map((partPath) => (
-                <li key={partPath} className="font-mono text-gray-700">
-                  {partPath}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
+      {data && <CadSplitViewer splitResult={data} />}
     </form>
   );
 }

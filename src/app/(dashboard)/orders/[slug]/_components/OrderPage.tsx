@@ -170,7 +170,7 @@ const OrderPage = ({
       <Tabs defaultValue="details" className="w-full">
         <TabsList className="flex w-full">
           <TabsTrigger value="details" className="flex-1">
-            OrdersSchema Details
+            Order Details
           </TabsTrigger>
           <TabsTrigger value="model" className="flex-1">
             3D Model

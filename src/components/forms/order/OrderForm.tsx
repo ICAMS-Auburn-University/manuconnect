@@ -16,8 +16,8 @@ import { CadProcessingStep } from './CadProcessingStep';
 import { ShippingStep } from './ShippingStep';
 import { ReviewStep } from './ReviewStep';
 import { OrderFormValues, orderFormSchema } from './schema';
-import { useSplitCadAssembly } from '@/hooks/cad/useSplitCadAssembly';
-import { SplitCadAssemblyResult } from '@/services/cad/splitCadAssembly';
+import { useSplitAssembly } from '@/hooks/cad/useSplitAssembly';
+import { SplitAssemblyResult } from '@/domain/cad/types';
 import { createOrder } from '@/domain/orders/service';
 import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
 
@@ -58,7 +58,7 @@ export function OrderForm() {
   const [currentStep, setCurrentStep] = useState<StepIndex>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [splitResult, setSplitResult] = useState<SplitCadAssemblyResult | null>(
+  const [splitResult, setSplitResult] = useState<SplitAssemblyResult | null>(
     null
   );
   const [splitErrorMessage, setSplitErrorMessage] = useState<string | null>(
@@ -69,11 +69,11 @@ export function OrderForm() {
   const draftOrderId = useMemo(() => crypto.randomUUID(), []);
 
   const {
-    splitCadAssembly,
+    splitAssembly,
     data: cadData,
     error: cadError,
     isLoading: isProcessingCad,
-  } = useSplitCadAssembly();
+  } = useSplitAssembly();
 
   useEffect(() => {
     let isMounted = true;
@@ -203,7 +203,7 @@ export function OrderForm() {
     }
 
     try {
-      await splitCadAssembly({
+      await splitAssembly({
         userId,
         orderId: draftOrderId,
         file,
@@ -215,7 +215,7 @@ export function OrderForm() {
           : 'Failed to process CAD assembly. Please retry.'
       );
     }
-  }, [draftOrderId, form, splitCadAssembly, userId]);
+  }, [draftOrderId, form, splitAssembly, userId]);
 
   const onSubmit = useCallback(
     async (values: OrderFormValues) => {
@@ -238,7 +238,7 @@ export function OrderForm() {
           description: values.description,
           quantity: values.quantity,
           due_date: dueDate,
-          file: splitResult.original,
+          file: splitResult.originalPath,
           tags: values.tags,
           shipping_country: values.shippingCountry,
           shipping_address_1: values.shippingAddress1,

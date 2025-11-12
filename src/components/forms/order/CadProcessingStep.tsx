@@ -14,10 +14,11 @@ import {
 } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { OrderFormValues } from './schema';
-import { SplitCadAssemblyResult } from '@/services/cad/splitCadAssembly';
+import { SplitAssemblyResult } from '@/domain/cad/types';
+import { CadSplitViewer } from '@/components/cad/CadSplitViewer';
 
 interface CadProcessingStepProps {
-  splitResult: SplitCadAssemblyResult | null;
+  splitResult: SplitAssemblyResult | null;
   onProcessFile: () => Promise<void>;
   onFileSelected: (file: File | null) => void;
   isProcessing: boolean;
@@ -91,34 +92,7 @@ export function CadProcessingStep({
 
       {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
 
-      {splitResult && (
-        <div className="rounded border border-gray-200 bg-gray-50 p-4">
-          <h3 className="text-sm font-semibold text-gray-800">
-            Derived parts ({splitResult.parts.length})
-          </h3>
-          <p className="mt-1 text-xs text-gray-500">
-            Original assembly stored at{' '}
-            <span className="font-mono">{splitResult.original}</span>.
-          </p>
-          <ul className="mt-3 space-y-2 text-sm">
-            {splitResult.parts.map((part) => (
-              <li
-                key={part}
-                className="rounded border border-gray-200 bg-white p-2"
-              >
-                <span className="font-mono text-xs text-gray-700">{part}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-gray-500">
-            Need to replace the upload? Just pick a new file and re-run the
-            split.
-          </p>
-          <p className="mt-1 text-xs text-gray-400">
-            Coming soon: automatic material detection from CAD metadata.
-          </p>
-        </div>
-      )}
+      {splitResult && <CadSplitViewer splitResult={splitResult} />}
     </div>
   );
 }
