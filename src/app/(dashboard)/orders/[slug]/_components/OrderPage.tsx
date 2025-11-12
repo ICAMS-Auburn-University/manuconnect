@@ -384,41 +384,41 @@ const OrderPage = ({
         />
 
         <TabsContent value="livestream" className="space-y-6">
-          {(order.livestream_url || UserType === 'admin') && (
-            <Card>
-              <CardHeader>
+          <Card>
+            <CardHeader className="flex flex-row items-start justify-between">
+              <div>
                 <CardTitle>Live Feed</CardTitle>
                 <CardDescription>
                   Livestream provided by manufacturer
                 </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {order.livestream_url ? (
-                  <iframe
-                    src={`https://www.youtube.com/embed/${order.livestream_url.substring(
-                      order.livestream_url.length - 11
-                    )}?autoplay=1`}
-                    title="Live Stream"
-                    className="w-full h-96"
-                    allowFullScreen
-                  />
-                ) : (
-                  <>
-                    <p>No live stream available.</p>
-                    {UserType === 'admin' && (
-                      <Button
-                        variant="outline"
-                        className="text-muted-foreground"
-                        onClick={() => setIsLivestreamDialogOpen(true)}
-                      >
-                        Add Live Stream
-                      </Button>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          )}
+              </div>
+              {(UserType === 'admin' || UserType === 'manufacturer') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsLivestreamDialogOpen(true)}
+                >
+                  {order.livestream_url ? 'Update URL' : 'Add URL'}
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {order.livestream_url ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${order.livestream_url.substring(
+                    order.livestream_url.length - 11
+                  )}?autoplay=1`}
+                  title="Live Stream"
+                  className="w-full h-96"
+                  allowFullScreen
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No live stream available yet.
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="timeline" className="space-y-6">
@@ -446,9 +446,7 @@ const OrderPage = ({
               </CardDescription>
             </CardHeader>
             <CardContent className="w-full">
-              {(UserType === 'creator' || UserType === 'admin') && (
-                <OrderProgressBar currentStatus={currentStatus} />
-              )}
+              <OrderProgressBar currentStatus={currentStatus} />
             </CardContent>
           </Card>
 
