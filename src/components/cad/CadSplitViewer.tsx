@@ -432,11 +432,13 @@ function PartLeaf({
         <FileText className="h-4 w-4 text-slate-600" />
         <span className="font-medium text-gray-900">{part.name}</span>
         {!hasDrawing && (
-          <Info
-            className="h-4 w-4 text-amber-500"
-            aria-label="Drawing missing"
-            title="No drawing uploaded yet"
-          />
+          <>
+            <Info
+              className="h-4 w-4 text-amber-500"
+              aria-label="Drawing missing"
+            />
+            <span className="sr-only">No drawing uploaded yet</span>
+          </>
         )}
         {drawingStatus?.status === 'uploaded' && (
           <Badge
