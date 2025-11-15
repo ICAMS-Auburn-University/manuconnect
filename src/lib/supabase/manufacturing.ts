@@ -4,6 +4,7 @@ import type {
   AssemblyPartsSchema,
   PartSpecificationsSchema,
   ShippingAddressesSchema,
+  SplitPartsSchema,
 } from '@/types/schemas';
 
 type AssemblyInsertPayload = Pick<
@@ -192,6 +193,30 @@ export async function upsertShippingAddress(
 
   return {
     data: data as ShippingAddressesSchema | null,
+    error,
+  };
+}
+
+export async function upsertSplitParts(
+  parts: Array<
+    Pick<
+      SplitPartsSchema,
+      'id' | 'order_id' | 'name' | 'storage_path' | 'hierarchy'
+    >
+  >
+) {
+  if (parts.length === 0) {
+    return { data: [] as SplitPartsSchema[], error: null };
+  }
+
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('split_parts')
+    .upsert(parts, { onConflict: 'id', ignoreDuplicates: false })
+    .select('*');
+
+  return {
+    data: (data as SplitPartsSchema[]) ?? [],
     error,
   };
 }

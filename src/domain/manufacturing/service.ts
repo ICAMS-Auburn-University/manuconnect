@@ -11,6 +11,7 @@ import {
   updateAssemblyBuildOrders,
   upsertPartSpecification,
   upsertShippingAddress,
+  upsertSplitParts,
 } from '@/lib/supabase/manufacturing';
 import { getCurrentUser } from '@/lib/supabase/users';
 import type {
@@ -18,6 +19,7 @@ import type {
   PartSpecificationContent,
   PartSpecificationRecord,
 } from './types';
+import { createHash } from 'crypto';
 
 const requireAuth = async () => {
   const { user, error } = await getCurrentUser();
@@ -55,25 +57,48 @@ export async function createAssemblyWithParts({
   orderId,
   assemblyName,
   partIds,
+  parts,
 }: {
   orderId: string;
   assemblyName: string;
   partIds: string[];
+  parts: {
+    storagePath: string;
+    name: string;
+    hierarchy: string[];
+  }[];
 }): Promise<AssemblyWithParts> {
   await requireAuth();
   const assemblyPayload = {
     order_id: orderId,
-    assembly_name: assemblyName,
+    assembly_name: sanitizeLabel(assemblyName),
     build_order: null,
     specifications_completed: false,
   } as const;
+
+  const partRecords = parts.map((part) => ({
+    id: derivePartId(orderId, part.storagePath),
+    order_id: orderId,
+    name: sanitizeLabel(part.name),
+    storage_path: part.storagePath,
+    hierarchy: part.hierarchy.map(sanitizeLabel),
+  }));
+
+  if (partRecords.length > 0) {
+    await upsertSplitParts(partRecords);
+  }
 
   const { data, error } = await insertAssembly(assemblyPayload);
   if (error || !data) {
     throw error ?? new Error('Failed to create assembly');
   }
 
-  const { error: linkError } = await insertAssemblyParts(data.id, partIds);
+  const dbPartIds =
+    partRecords.length > 0
+      ? partRecords.map((record) => record.id)
+      : partIds.map((path) => derivePartId(orderId, path));
+
+  const { error: linkError } = await insertAssemblyParts(data.id, dbPartIds);
   if (linkError) {
     throw linkError;
   }
@@ -208,3 +233,24 @@ export async function fetchShippingDetails(orderId: string) {
   }
   return data;
 }
+const sanitizeLabel = (value: string): string => {
+  const normalized = value
+    .normalize('NFKD')
+    .replace(/[^\w\s.-]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return normalized || 'Part';
+};
+
+const derivePartId = (orderId: string, storagePath: string): string => {
+  const hash = createHash('sha1')
+    .update(`${orderId}:${storagePath}`)
+    .digest('hex');
+  return [
+    hash.slice(0, 8),
+    hash.slice(8, 12),
+    hash.slice(12, 16),
+    hash.slice(16, 20),
+    hash.slice(20, 32),
+  ].join('-');
+};

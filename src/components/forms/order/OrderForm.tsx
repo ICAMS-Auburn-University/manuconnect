@@ -387,12 +387,24 @@ export function OrderForm() {
       }
       setIsCreatingAssembly(true);
       try {
+        const selectedParts = partIds
+          .map((id) => availableParts.find((part) => part.storagePath === id))
+          .filter((part): part is PartSummary => Boolean(part));
+
         const response = await fetch(`/api/orders/${draftOrderId}/assemblies`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ name, partIds }),
+          body: JSON.stringify({
+            name,
+            partIds,
+            parts: selectedParts.map((part) => ({
+              storagePath: part.storagePath,
+              name: part.name,
+              hierarchy: part.hierarchy,
+            })),
+          }),
         });
 
         if (!response.ok) {

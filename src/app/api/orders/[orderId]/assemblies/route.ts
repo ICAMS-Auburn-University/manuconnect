@@ -34,9 +34,14 @@ export async function POST(
   context: RouteContext
 ): Promise<NextResponse> {
   const { orderId } = await context.params;
-  const { name, partIds } = (await request.json().catch(() => ({}))) as {
+  const { name, partIds, parts } = (await request.json().catch(() => ({}))) as {
     name?: string;
     partIds?: string[];
+    parts?: {
+      storagePath?: string;
+      name?: string;
+      hierarchy?: string[];
+    }[];
   };
 
   if (!name || !Array.isArray(partIds) || partIds.length === 0) {
@@ -46,11 +51,42 @@ export async function POST(
     );
   }
 
+  const normalizedParts =
+    Array.isArray(parts) && parts.length > 0
+      ? parts
+          .filter(
+            (part): part is {
+              storagePath: string;
+              name: string;
+              hierarchy: string[];
+            } =>
+              Boolean(part.storagePath) &&
+              Boolean(part.name) &&
+              Array.isArray(part.hierarchy)
+          )
+          .map((part) => ({
+            storagePath: part.storagePath,
+            name: part.name,
+            hierarchy: part.hierarchy,
+          }))
+      : [];
+
+  if (normalizedParts.length !== partIds.length) {
+    return NextResponse.json(
+      {
+        error:
+          'Part metadata is required for every selected part to create an assembly.',
+      },
+      { status: 400 }
+    );
+  }
+
   try {
     const assembly = await createAssemblyWithParts({
       orderId,
       assemblyName: name.trim(),
       partIds,
+      parts: normalizedParts,
     });
     return NextResponse.json({ assembly });
   } catch (error) {

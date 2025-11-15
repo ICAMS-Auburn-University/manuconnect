@@ -18,7 +18,7 @@ export const orderDetailsSchema = z.object({
       (value) => !Number.isNaN(Date.parse(value)),
       'Due date must be a valid date.'
     ),
-  tags: z.array(z.string()).min(1, 'Select at least one tag for your project.'),
+  tags: z.array(z.string()).optional(),
 });
 
 export const cadProcessingSchema = z.object({
