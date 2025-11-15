@@ -102,3 +102,46 @@ export interface MessageAttachmentsSchema {
   size: number;
   time_uploaded: string; // timestamp with time zone (ISO string)
 }
+
+export interface AssembliesSchema {
+  id: string; // uuid
+  order_id: string; // uuid
+  assembly_name: string;
+  build_order: number | null;
+  specifications_completed: boolean;
+  created_at: string;
+}
+
+export interface AssemblyPartsSchema {
+  assembly_id: string; // uuid
+  part_id: string; // uuid or storage path reference
+}
+
+export interface PartSpecificationsSchema {
+  id: string; // uuid
+  order_id: string; // uuid
+  assembly_id: string; // uuid
+  part_id: string; // uuid
+  quantity: number;
+  specifications: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ShippingAddressesSchema extends Address {
+  id: string; // uuid
+  order_id: string; // uuid
+  recipient_name: string;
+  company_name: string | null;
+  phone_number: string;
+  created_at: string;
+}
+
+export interface SplitPartsSchema {
+  id: string; // uuid
+  order_id: string; // uuid
+  name: string;
+  storage_path: string;
+  hierarchy: string[];
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}

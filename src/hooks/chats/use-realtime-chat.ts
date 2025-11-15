@@ -150,65 +150,61 @@ export function useRealtimeChat({
 
       const topic = `chat:${chatId}:messages`;
 
-      const channel = client
-        .channel(topic)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'Messages',
-            filter: `chat_id=eq.${chatId}`,
-          },
-          (payload) => {
-            const row = payload.new as MessagesSchema | null;
-            if (!row) {
-              return;
+      const channel = client.channel(topic).on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'Messages',
+          filter: `chat_id=eq.${chatId}`,
+        },
+        (payload) => {
+          const row = payload.new as MessagesSchema | null;
+          if (!row) {
+            return;
+          }
+
+          void (async () => {
+            let summary: MessageSummary = {
+              message_id: row.message_id,
+              chat_id: row.chat_id,
+              sender_id: row.sender_id,
+              content: row.content ?? '',
+              time_sent: row.time_sent,
+              read_by: (row.read_by as string[] | null) ?? null,
+              attachment_ids: (row.attachment_ids as string[] | null) ?? [],
+              attachments: [],
+            };
+
+            const attachmentCount = summary.attachment_ids?.length ?? 0;
+            if (attachmentCount > 0) {
+              try {
+                const response = await fetch(
+                  `/api/chats/${chatId}/messages?messageId=${summary.message_id}`,
+                  {
+                    method: 'GET',
+                    credentials: 'include',
+                  }
+                );
+
+                if (response.ok) {
+                  const detail = (await response.json().catch(() => ({}))) as {
+                    message?: MessageSummary;
+                  };
+                  if (detail.message) {
+                    summary = detail.message;
+                  }
+                }
+              } catch (error) {
+                console.error('Failed to hydrate message attachments', error);
+              }
             }
 
-            void (async () => {
-              let summary: MessageSummary = {
-                message_id: row.message_id,
-                chat_id: row.chat_id,
-                sender_id: row.sender_id,
-                content: row.content ?? '',
-                time_sent: row.time_sent,
-                read_by: (row.read_by as string[] | null) ?? null,
-                attachment_ids: (row.attachment_ids as string[] | null) ?? [],
-                attachments: [],
-              };
-
-              const attachmentCount = summary.attachment_ids?.length ?? 0;
-              if (attachmentCount > 0) {
-                try {
-                  const response = await fetch(
-                    `/api/chats/${chatId}/messages?messageId=${summary.message_id}`,
-                    {
-                      method: 'GET',
-                      credentials: 'include',
-                    }
-                  );
-
-                  if (response.ok) {
-                    const detail = (await response
-                      .json()
-                      .catch(() => ({}))) as {
-                      message?: MessageSummary;
-                    };
-                    if (detail.message) {
-                      summary = detail.message;
-                    }
-                  }
-                } catch (error) {
-                  console.error('Failed to hydrate message attachments', error);
-                }
-              }
-
-              const message = mapSummaryToMessage(summary);
-              mergeMessage(message);
-            })();
-          }
-        );
+            const message = mapSummaryToMessage(summary);
+            mergeMessage(message);
+          })();
+        }
+      );
 
       channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {

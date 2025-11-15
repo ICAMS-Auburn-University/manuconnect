@@ -51,7 +51,7 @@ export async function createOrder(data: CreateOrderInput): Promise<{
   const userId = user.id;
   console.log('Creating order for user:', userId);
   try {
-    const orderId = randomUUID();
+    const orderId = data.orderId ?? randomUUID();
 
     const orderToInsert: OrdersSchema = {
       id: orderId,

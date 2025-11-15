@@ -15,20 +15,33 @@ import { OrderDetailsStep } from './OrderDetailsStep';
 import { CadProcessingStep } from './CadProcessingStep';
 import { ShippingStep } from './ShippingStep';
 import { ReviewStep } from './ReviewStep';
+import { AssemblySelectionStep } from './AssemblySelectionStep';
+import { BuildOrderStep } from './BuildOrderStep';
+import { SpecificationsOverviewStep } from './SpecificationsOverviewStep';
+import { PartSpecificationsStep } from './PartSpecificationsStep';
 import { OrderFormValues, orderFormSchema } from './schema';
 import { useSplitAssembly } from '@/hooks/cad/useSplitAssembly';
-import { SplitAssemblyResult } from '@/domain/cad/types';
+import type { PartSummary, SplitAssemblyResult } from '@/domain/cad/types';
 import { createOrder } from '@/domain/orders/service';
 import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
+import type {
+  AssemblyClientModel,
+  PartSpecificationState,
+  SpecificationDraft,
+} from './types';
 
 const STEP_LABELS = [
-  'Order Details',
-  'CAD Processing',
+  'Project Details',
+  'Upload & Split',
+  'Select Assemblies',
+  'Build Order',
+  'Specifications Overview',
+  'Part Specifications',
   'Shipping',
-  'Review & Timeline',
+  'Review & Submit',
 ] as const;
 
-type StepIndex = 0 | 1 | 2 | 3;
+type StepIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 const initialDueDate = () => {
   const date = new Date();
@@ -52,6 +65,9 @@ export function OrderForm() {
       shippingState: '',
       shippingZip: '',
       shippingCountry: 'us',
+      shippingRecipient: '',
+      shippingCompany: '',
+      shippingPhone: '',
     },
   });
 
@@ -65,8 +81,22 @@ export function OrderForm() {
     null
   );
   const [userId, setUserId] = useState<string | null>(null);
+  const [assemblies, setAssemblies] = useState<AssemblyClientModel[]>([]);
+  const [assignedPartIds, setAssignedPartIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [isCreatingAssembly, setIsCreatingAssembly] = useState(false);
+  const [isSavingBuildOrder, setIsSavingBuildOrder] = useState(false);
+  const [buildOrderConfirmed, setBuildOrderConfirmed] = useState(false);
+  const [activeAssemblyId, setActiveAssemblyId] = useState<string | null>(null);
+  const [partSpecifications, setPartSpecifications] =
+    useState<PartSpecificationState>({});
+  const [isMarkingAssemblyComplete, setIsMarkingAssemblyComplete] =
+    useState(false);
+  const [isSavingShipping, setIsSavingShipping] = useState(false);
+  const [flowError, setFlowError] = useState<string | null>(null);
 
-  const draftOrderId = useMemo(() => crypto.randomUUID(), []);
+  const [draftOrderId, setDraftOrderId] = useState(() => crypto.randomUUID());
 
   const {
     splitAssembly,
@@ -113,11 +143,21 @@ export function OrderForm() {
     }
   }, [cadError]);
 
+  useEffect(() => {
+    if (splitResult && currentStep < 2) {
+      setCurrentStep(2);
+    }
+  }, [splitResult, currentStep]);
+
   const stepFieldMap = useMemo<Record<StepIndex, (keyof OrderFormValues)[]>>(
     () => ({
       0: ['title', 'description', 'quantity', 'dueDate', 'tags'],
       1: ['cadFile'],
-      2: [
+      2: [],
+      3: [],
+      4: [],
+      5: [],
+      6: [
         'shippingAddress1',
         'shippingAddress2',
         'shippingCity',
@@ -125,19 +165,68 @@ export function OrderForm() {
         'shippingZip',
         'shippingCountry',
       ],
-      3: [],
+      7: [],
     }),
     []
   );
 
-  const handleFileSelected = useCallback((file: File | null) => {
-    setSplitResult(null);
-    if (!file) {
-      setSplitErrorMessage(null);
-    } else {
-      setSplitErrorMessage('Process the new assembly file to continue.');
+  const availableParts = splitResult?.parts ?? [];
+
+  const activeAssembly = useMemo(
+    () =>
+      assemblies.find((assembly) => assembly.id === activeAssemblyId) ?? null,
+    [assemblies, activeAssemblyId]
+  );
+
+  const assembliesComplete =
+    assemblies.length > 0 &&
+    assemblies.every((assembly) => assembly.specifications_completed);
+
+  const saveShippingDetails = useCallback(async () => {
+    setIsSavingShipping(true);
+    try {
+      const values = form.getValues();
+      const companyName =
+        values.shippingCompany && values.shippingCompany.trim().length > 0
+          ? values.shippingCompany.trim()
+          : null;
+      const response = await fetch(`/api/orders/${draftOrderId}/shipping`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipientName:
+            values.shippingRecipient || values.title || 'Project Owner',
+          companyName,
+          street1: values.shippingAddress1,
+          street2: values.shippingAddress2,
+          city: values.shippingCity,
+          state: values.shippingState,
+          postalCode: values.shippingZip,
+          country: values.shippingCountry,
+          phoneNumber: values.shippingPhone?.trim() || 'N/A',
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        setFlowError(payload.error ?? 'Failed to save shipping address.');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to save shipping.';
+      setFlowError(message);
+      return false;
+    } finally {
+      setIsSavingShipping(false);
     }
-  }, []);
+  }, [draftOrderId, form]);
 
   const goToStep = useCallback(
     async (nextStep: StepIndex) => {
@@ -145,23 +234,56 @@ export function OrderForm() {
 
       if (nextStep > currentStep) {
         const fields = stepFieldMap[currentStep];
-        const isValid = await form.trigger(fields);
-
-        if (!isValid) {
-          return;
+        if (fields.length > 0) {
+          const isValid = await form.trigger(fields);
+          if (!isValid) {
+            return;
+          }
         }
 
         if (currentStep === 1 && !splitResult) {
           setSplitErrorMessage(
-            'Process the assembly before moving on to shipping.'
+            'Process the assembly before moving on to the next step.'
           );
           return;
         }
+
+        if (currentStep === 2 && assemblies.length === 0) {
+          setFlowError('Create at least one assembly to continue.');
+          return;
+        }
+
+        if (currentStep === 3 && !buildOrderConfirmed) {
+          setFlowError('Confirm and save your build order first.');
+          return;
+        }
+
+        if (currentStep === 4 && !assembliesComplete) {
+          setFlowError('Complete specifications for every assembly first.');
+          return;
+        }
+
+        if (currentStep === 6) {
+          const saved = await saveShippingDetails();
+          if (!saved) {
+            return;
+          }
+        }
       }
 
+      setFlowError(null);
       setCurrentStep(nextStep);
     },
-    [currentStep, form, splitResult, stepFieldMap]
+    [
+      currentStep,
+      stepFieldMap,
+      form,
+      splitResult,
+      assemblies.length,
+      buildOrderConfirmed,
+      assembliesComplete,
+      saveShippingDetails,
+    ]
   );
 
   const handleNext = useCallback(async () => {
@@ -169,12 +291,28 @@ export function OrderForm() {
       return;
     }
 
-    const nextStep = (currentStep + 1) as StepIndex;
+    let nextStep: StepIndex;
+    if (currentStep === 4) {
+      nextStep = 6;
+    } else {
+      nextStep = (currentStep + 1) as StepIndex;
+    }
+
     await goToStep(nextStep);
   }, [currentStep, goToStep]);
 
   const handleBack = useCallback(() => {
     if (currentStep === 0) {
+      return;
+    }
+
+    if (currentStep === 5) {
+      setCurrentStep(4);
+      return;
+    }
+
+    if (currentStep === 6) {
+      setCurrentStep(4);
       return;
     }
 
@@ -203,6 +341,13 @@ export function OrderForm() {
     }
 
     try {
+      setFlowError(null);
+      setSplitErrorMessage('Splitting file into parts...');
+      setAssemblies([]);
+      setAssignedPartIds(() => new Set());
+      setPartSpecifications({});
+      setActiveAssemblyId(null);
+      setBuildOrderConfirmed(false);
       await splitAssembly({
         userId,
         orderId: draftOrderId,
@@ -217,6 +362,196 @@ export function OrderForm() {
     }
   }, [draftOrderId, form, splitAssembly, userId]);
 
+  const handleFileSelected = useCallback(
+    (file: File | null) => {
+      setSplitResult(null);
+      setAssemblies([]);
+      setAssignedPartIds(() => new Set());
+      setPartSpecifications({});
+      setActiveAssemblyId(null);
+      setBuildOrderConfirmed(false);
+      if (!file) {
+        setSplitErrorMessage(null);
+        return;
+      }
+      void handleProcessCad();
+    },
+    [handleProcessCad]
+  );
+
+  const handleCreateAssembly = useCallback(
+    async ({ name, partIds }: { name: string; partIds: string[] }) => {
+      if (!splitResult) {
+        toast.error('Process your CAD assembly before creating groups.');
+        return;
+      }
+      setIsCreatingAssembly(true);
+      try {
+        const response = await fetch(`/api/orders/${draftOrderId}/assemblies`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name, partIds }),
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(payload.error ?? 'Failed to create assembly');
+        }
+
+        const payload = (await response.json()) as {
+          assembly: AssemblyClientModel;
+        };
+        setAssemblies((prev) => [...prev, payload.assembly]);
+        setAssignedPartIds((prev) => {
+          const next = new Set(prev);
+          partIds.forEach((id) => next.add(id));
+          return next;
+        });
+        setBuildOrderConfirmed(false);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Failed to create assembly';
+        toast.error(message);
+        throw error;
+      } finally {
+        setIsCreatingAssembly(false);
+      }
+    },
+    [draftOrderId, splitResult]
+  );
+
+  const handleConfirmBuildOrder = useCallback(
+    async (assemblyIds: string[]) => {
+      setIsSavingBuildOrder(true);
+      try {
+        const response = await fetch(
+          `/api/orders/${draftOrderId}/assemblies/build-order`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ assemblyOrder: assemblyIds }),
+          }
+        );
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(payload.error ?? 'Failed to update build order');
+        }
+
+        setAssemblies((prev) =>
+          prev.map((assembly) => {
+            const index = assemblyIds.indexOf(assembly.id);
+            return index === -1
+              ? assembly
+              : { ...assembly, build_order: index + 1 };
+          })
+        );
+        setBuildOrderConfirmed(true);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Failed to save build order';
+        toast.error(message);
+        throw error;
+      } finally {
+        setIsSavingBuildOrder(false);
+      }
+    },
+    [draftOrderId]
+  );
+
+  const handleSelectAssembly = useCallback((assemblyId: string) => {
+    setActiveAssemblyId(assemblyId);
+    setCurrentStep(5);
+  }, []);
+
+  const handleSavePartSpecification = useCallback(
+    async (
+      assemblyId: string,
+      partId: string,
+      specifications: SpecificationDraft,
+      quantity: number
+    ) => {
+      const response = await fetch(
+        `/api/assemblies/${assemblyId}/specifications`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orderId: draftOrderId,
+            partId,
+            quantity,
+            specifications,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(payload.error ?? 'Failed to save specifications');
+      }
+
+      const { specification } = (await response.json()) as {
+        specification: PartSpecificationState[string];
+      };
+
+      setPartSpecifications((prev) => ({
+        ...prev,
+        [partId]: specification,
+      }));
+    },
+    [draftOrderId]
+  );
+
+  const handleMarkAssemblyComplete = useCallback(async (assemblyId: string) => {
+    setIsMarkingAssemblyComplete(true);
+    try {
+      const response = await fetch(`/api/assemblies/${assemblyId}/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ completed: true }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(payload.error ?? 'Failed to update assembly');
+      }
+
+      const { assembly } = (await response.json()) as {
+        assembly: AssemblyClientModel;
+      };
+      setAssemblies((prev) =>
+        prev.map((item) => (item.id === assembly.id ? assembly : item))
+      );
+      setActiveAssemblyId(null);
+      setCurrentStep(4);
+      toast.success('Assembly marked complete.');
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to update assembly status';
+      toast.error(message);
+    } finally {
+      setIsMarkingAssemblyComplete(false);
+    }
+  }, []);
+
   const onSubmit = useCallback(
     async (values: OrderFormValues) => {
       if (!splitResult) {
@@ -227,6 +562,14 @@ export function OrderForm() {
         return;
       }
 
+      if (!assembliesComplete) {
+        setFlowError(
+          'Complete specifications for all assemblies before submitting.'
+        );
+        setCurrentStep(4);
+        return;
+      }
+
       setIsSubmitting(true);
       setErrorMessage(null);
 
@@ -234,6 +577,7 @@ export function OrderForm() {
         const dueDate = new Date(values.dueDate);
 
         const { error } = await createOrder({
+          orderId: draftOrderId,
           title: values.title,
           description: values.description,
           quantity: values.quantity,
@@ -257,6 +601,13 @@ export function OrderForm() {
         form.reset();
         setSplitResult(null);
         setSplitErrorMessage(null);
+        setAssemblies([]);
+        setAssignedPartIds(() => new Set());
+        setPartSpecifications({});
+        setActiveAssemblyId(null);
+        setBuildOrderConfirmed(false);
+        setFlowError(null);
+        setDraftOrderId(crypto.randomUUID());
         setCurrentStep(0);
       } catch (error) {
         console.error('Error creating order:', error);
@@ -269,7 +620,7 @@ export function OrderForm() {
         setIsSubmitting(false);
       }
     },
-    [form, splitResult]
+    [assembliesComplete, draftOrderId, form, splitResult]
   );
 
   const handleSubmit = form.handleSubmit(onSubmit);
@@ -297,12 +648,66 @@ export function OrderForm() {
                 errorMessage={splitErrorMessage}
               />
             )}
-            {currentStep === 2 && <ShippingStep />}
-            {currentStep === 3 && <ReviewStep cadResult={splitResult} />}
+            {currentStep === 2 && (
+              <AssemblySelectionStep
+                parts={availableParts}
+                assemblies={assemblies}
+                assignedPartIds={assignedPartIds}
+                onCreateAssembly={handleCreateAssembly}
+                isSaving={isCreatingAssembly}
+              />
+            )}
+            {currentStep === 3 && (
+              <BuildOrderStep
+                assemblies={assemblies}
+                onConfirmOrder={handleConfirmBuildOrder}
+                isSaving={isSavingBuildOrder}
+              />
+            )}
+            {currentStep === 4 && (
+              <SpecificationsOverviewStep
+                assemblies={assemblies}
+                onSelectAssembly={handleSelectAssembly}
+                disableContinue={!assembliesComplete}
+                onContinue={() => goToStep(6)}
+              />
+            )}
+            {currentStep === 5 && (
+              <PartSpecificationsStep
+                assembly={activeAssembly}
+                parts={availableParts}
+                specifications={partSpecifications}
+                onSavePartSpecification={(partId, payload, quantity) =>
+                  activeAssembly
+                    ? handleSavePartSpecification(
+                        activeAssembly.id,
+                        partId,
+                        payload,
+                        quantity
+                      )
+                    : Promise.resolve()
+                }
+                onMarkAssemblyComplete={() =>
+                  activeAssembly
+                    ? handleMarkAssemblyComplete(activeAssembly.id)
+                    : Promise.resolve()
+                }
+                onBack={() => {
+                  setActiveAssemblyId(null);
+                  setCurrentStep(4);
+                }}
+                isMarkingComplete={isMarkingAssemblyComplete}
+              />
+            )}
+            {currentStep === 6 && <ShippingStep isSaving={isSavingShipping} />}
+            {currentStep === 7 && (
+              <ReviewStep cadResult={splitResult} assemblies={assemblies} />
+            )}
 
             {errorMessage && (
               <p className="text-sm text-red-600">*{errorMessage}</p>
             )}
+            {flowError && <p className="text-sm text-red-600">*{flowError}</p>}
 
             <div className="flex flex-col gap-3 pt-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
@@ -316,16 +721,18 @@ export function OrderForm() {
                   <ChevronLeft className="h-4 w-4" />
                   Back
                 </Button>
-                {currentStep < STEP_LABELS.length - 1 && (
-                  <Button
-                    type="button"
-                    onClick={handleNext}
-                    className="flex items-center gap-2"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                )}
+                {currentStep < STEP_LABELS.length - 1 &&
+                  currentStep !== 4 &&
+                  currentStep !== 5 && (
+                    <Button
+                      type="button"
+                      onClick={handleNext}
+                      className="flex items-center gap-2"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  )}
               </div>
 
               {currentStep === STEP_LABELS.length - 1 && (

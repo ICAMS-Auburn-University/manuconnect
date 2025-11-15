@@ -20,11 +20,48 @@ import { useFormContext } from 'react-hook-form';
 
 import { OrderFormValues } from './schema';
 
-export function ShippingStep() {
+interface ShippingStepProps {
+  isSaving?: boolean;
+}
+
+export function ShippingStep({ isSaving = false }: ShippingStepProps) {
   const form = useFormContext<OrderFormValues>();
 
   return (
     <div className="grid gap-6">
+      <div className="grid gap-4 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="shippingRecipient"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-base font-semibold">
+                Recipient Name
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="Alex Smith" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="shippingCompany"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-base font-semibold">
+                Company (optional)
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="Acme Manufacturing" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <FormField
           control={form.control}
@@ -126,6 +163,28 @@ export function ShippingStep() {
           </FormItem>
         )}
       />
+
+      <FormField
+        control={form.control}
+        name="shippingPhone"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-base font-semibold">
+              Phone Number
+            </FormLabel>
+            <FormControl>
+              <Input placeholder="+1 555 0100" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {isSaving && (
+        <p className="text-sm text-muted-foreground">
+          Saving shipping details…
+        </p>
+      )}
     </div>
   );
 }

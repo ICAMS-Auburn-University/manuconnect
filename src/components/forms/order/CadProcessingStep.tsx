@@ -90,6 +90,12 @@ export function CadProcessingStep({
         </p>
       </div>
 
+      {isProcessing && (
+        <p className="text-sm text-muted-foreground">
+          Splitting file into parts...
+        </p>
+      )}
+
       {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
 
       {splitResult && <CadSplitViewer splitResult={splitResult} />}

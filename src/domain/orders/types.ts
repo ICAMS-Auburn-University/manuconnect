@@ -1,4 +1,5 @@
 export type CreateOrderInput = {
+  orderId?: string;
   title: string;
   description: string;
   quantity: number;

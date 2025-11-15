@@ -33,12 +33,14 @@ export const cadProcessingSchema = z.object({
 });
 
 export const shippingSchema = z.object({
+  shippingRecipient: z
+    .string()
+    .min(2, 'Recipient name must be at least 2 characters.'),
+  shippingCompany: z.string().optional().or(z.literal('')),
   shippingAddress1: z
     .string()
     .min(3, 'Address line 1 must be at least 3 characters.'),
-  shippingAddress2: z
-    .string()
-    .min(2, 'Address line 2 must be at least 2 characters.'),
+  shippingAddress2: z.string().optional().or(z.literal('')),
   shippingCity: z.string().min(2, 'City must be at least 2 characters.'),
   shippingState: z.string().min(2, 'State must be at least 2 characters.'),
   shippingZip: z
@@ -48,6 +50,9 @@ export const shippingSchema = z.object({
   shippingCountry: z.enum(['us'], {
     required_error: 'Currently only US shipping is supported.',
   }),
+  shippingPhone: z
+    .string()
+    .min(7, 'Phone number must be at least 7 characters.'),
 });
 
 export const orderFormSchema = orderDetailsSchema
