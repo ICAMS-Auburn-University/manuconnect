@@ -83,6 +83,27 @@ export async function fetchAssemblyParts(assemblyIds: string[]) {
   };
 }
 
+export async function fetchSplitPartsByStoragePath(
+  orderId: string,
+  storagePaths: string[]
+) {
+  if (storagePaths.length === 0) {
+    return { data: [] as SplitPartsSchema[], error: null };
+  }
+
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('split_parts')
+    .select('*')
+    .eq('order_id', orderId)
+    .in('storage_path', storagePaths);
+
+  return {
+    data: (data as SplitPartsSchema[]) ?? [],
+    error,
+  };
+}
+
 export async function updateAssemblyBuildOrders(
   buildOrders: { id: string; build_order: number }[]
 ) {
@@ -91,12 +112,17 @@ export async function updateAssemblyBuildOrders(
   }
 
   const supabase = await createSupabaseServiceRoleClient();
-  const { error } = await supabase.from('assemblies').upsert(buildOrders, {
-    onConflict: 'id',
-    ignoreDuplicates: false,
-  });
+  for (const entry of buildOrders) {
+    const { error } = await supabase
+      .from('assemblies')
+      .update({ build_order: entry.build_order })
+      .eq('id', entry.id);
+    if (error) {
+      return { error };
+    }
+  }
 
-  return { error };
+  return { error: null };
 }
 
 export async function markAssemblySpecificationsCompleted(
@@ -193,30 +219,6 @@ export async function upsertShippingAddress(
 
   return {
     data: data as ShippingAddressesSchema | null,
-    error,
-  };
-}
-
-export async function upsertSplitParts(
-  parts: Array<
-    Pick<
-      SplitPartsSchema,
-      'id' | 'order_id' | 'name' | 'storage_path' | 'hierarchy'
-    >
-  >
-) {
-  if (parts.length === 0) {
-    return { data: [] as SplitPartsSchema[], error: null };
-  }
-
-  const supabase = await createSupabaseServiceRoleClient();
-  const { data, error } = await supabase
-    .from('split_parts')
-    .upsert(parts, { onConflict: 'id', ignoreDuplicates: false })
-    .select('*');
-
-  return {
-    data: (data as SplitPartsSchema[]) ?? [],
     error,
   };
 }

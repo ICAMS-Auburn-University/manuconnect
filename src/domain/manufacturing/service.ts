@@ -5,13 +5,13 @@ import {
   fetchAssemblyParts,
   fetchPartSpecificationsByAssembly,
   fetchShippingAddress,
+  fetchSplitPartsByStoragePath,
   insertAssembly,
   insertAssemblyParts,
   markAssemblySpecificationsCompleted,
   updateAssemblyBuildOrders,
   upsertPartSpecification,
   upsertShippingAddress,
-  upsertSplitParts,
 } from '@/lib/supabase/manufacturing';
 import { getCurrentUser } from '@/lib/supabase/users';
 import type {
@@ -19,7 +19,6 @@ import type {
   PartSpecificationContent,
   PartSpecificationRecord,
 } from './types';
-import { createHash } from 'crypto';
 
 const requireAuth = async () => {
   const { user, error } = await getCurrentUser();
@@ -69,6 +68,11 @@ export async function createAssemblyWithParts({
   }[];
 }): Promise<AssemblyWithParts> {
   await requireAuth();
+  console.log('[service:createAssemblyWithParts] start', {
+    orderId,
+    assemblyName,
+    partCount: parts.length,
+  });
   const assemblyPayload = {
     order_id: orderId,
     assembly_name: sanitizeLabel(assemblyName),
@@ -76,33 +80,73 @@ export async function createAssemblyWithParts({
     specifications_completed: false,
   } as const;
 
-  const partRecords = parts.map((part) => ({
-    id: derivePartId(orderId, part.storagePath),
-    order_id: orderId,
-    name: sanitizeLabel(part.name),
-    storage_path: part.storagePath,
-    hierarchy: part.hierarchy.map(sanitizeLabel),
-  }));
+  const { data: existingParts } = await fetchSplitPartsByStoragePath(
+    orderId,
+    parts.map((part) => part.storagePath)
+  );
+  const existingByPath = new Map(
+    existingParts.map((part) => [part.storage_path, part])
+  );
+  console.log('[service:createAssemblyWithParts] existing parts match', {
+    orderId,
+    requested: parts.length,
+    existing: existingParts.length,
+  });
 
-  if (partRecords.length > 0) {
-    await upsertSplitParts(partRecords);
+  const resolvedPartIds: string[] = [];
+  const missingPaths: string[] = [];
+
+  parts.forEach((part) => {
+    const existing = existingByPath.get(part.storagePath);
+    if (existing) {
+      resolvedPartIds.push(existing.id);
+    } else {
+      missingPaths.push(part.storagePath);
+    }
+  });
+
+  if (missingPaths.length > 0) {
+    console.error(
+      '[service:createAssemblyWithParts] missing split parts in storage',
+      {
+        orderId,
+        missingPaths,
+      }
+    );
+    throw new Error(
+      `Unable to locate ${missingPaths.length} split part(s) for this order. Ensure the CAD split service uploaded the parts before creating assemblies.`
+    );
   }
 
   const { data, error } = await insertAssembly(assemblyPayload);
   if (error || !data) {
+    console.error('[service:createAssemblyWithParts] insertAssembly failed', {
+      orderId,
+      error,
+    });
     throw error ?? new Error('Failed to create assembly');
   }
 
-  const dbPartIds =
-    partRecords.length > 0
-      ? partRecords.map((record) => record.id)
-      : partIds.map((path) => derivePartId(orderId, path));
+  const dbPartIds = resolvedPartIds;
 
   const { error: linkError } = await insertAssemblyParts(data.id, dbPartIds);
   if (linkError) {
+    console.error(
+      '[service:createAssemblyWithParts] insertAssemblyParts failed',
+      {
+        orderId,
+        assemblyId: data.id,
+        error: linkError,
+      }
+    );
     throw linkError;
   }
 
+  console.log('[service:createAssemblyWithParts] success', {
+    orderId,
+    assemblyId: data.id,
+    linkedParts: dbPartIds.length,
+  });
   return {
     ...data,
     partIds,
@@ -136,10 +180,23 @@ export async function savePartSpecification({
   specifications: PartSpecificationContent;
 }): Promise<PartSpecificationRecord> {
   await requireAuth();
+  const { data: splitPartRecords, error: splitPartError } =
+    await fetchSplitPartsByStoragePath(orderId, [partId]);
+  if (splitPartError) {
+    throw splitPartError;
+  }
+
+  const splitPart = splitPartRecords[0];
+  if (!splitPart) {
+    throw new Error(
+      'Unable to locate the selected part for specifications. Please refresh the CAD data and try again.'
+    );
+  }
+
   const payload = {
     order_id: orderId,
     assembly_id: assemblyId,
-    part_id: partId,
+    part_id: splitPart.id,
     quantity,
     specifications,
   } as const;
@@ -240,17 +297,4 @@ const sanitizeLabel = (value: string): string => {
     .replace(/\s+/g, ' ')
     .trim();
   return normalized || 'Part';
-};
-
-const derivePartId = (orderId: string, storagePath: string): string => {
-  const hash = createHash('sha1')
-    .update(`${orderId}:${storagePath}`)
-    .digest('hex');
-  return [
-    hash.slice(0, 8),
-    hash.slice(8, 12),
-    hash.slice(12, 16),
-    hash.slice(16, 20),
-    hash.slice(20, 32),
-  ].join('-');
 };

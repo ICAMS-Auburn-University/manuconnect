@@ -131,6 +131,46 @@ export function OrderForm() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    const ensureDraftOrder = async () => {
+      try {
+        const response = await fetch('/api/orders/drafts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ orderId: draftOrderId }),
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          console.error('Failed to ensure draft order exists', payload?.error);
+          if (!cancelled) {
+            setFlowError(
+              'Unable to initialize order. Please refresh and try again.'
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Failed to ensure draft order exists', error);
+        if (!cancelled) {
+          setFlowError(
+            'Unable to initialize order. Please refresh and try again.'
+          );
+        }
+      }
+    };
+
+    void ensureDraftOrder();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [draftOrderId]);
+
+  useEffect(() => {
     if (cadData) {
       setSplitResult(cadData);
       setSplitErrorMessage(null);
@@ -771,4 +811,3 @@ export function OrderForm() {
       </Form>
     </FormProvider>
   );
-}

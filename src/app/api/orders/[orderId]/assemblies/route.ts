@@ -82,6 +82,11 @@ export async function POST(
   }
 
   try {
+    console.log('[assemblies:POST] request payload', {
+      orderId,
+      name,
+      partIdsCount: partIds.length,
+    });
     const assembly = await createAssemblyWithParts({
       orderId,
       assemblyName: name.trim(),
@@ -90,6 +95,10 @@ export async function POST(
     });
     return NextResponse.json({ assembly });
   } catch (error) {
+    console.error('[assemblies:POST] failed', {
+      orderId,
+      error,
+    });
     const message =
       error instanceof Error ? error.message : 'Failed to create assembly';
     return NextResponse.json({ error: message }, { status: 500 });

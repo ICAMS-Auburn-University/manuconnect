@@ -125,7 +125,7 @@ export function SpecificationWizard({
   const heatTreatmentOptions = useMemo(() => {
     const steel = SPECIFICATIONS.HEAT_TREATMENTS?.steel ?? [];
     const aluminum = SPECIFICATIONS.HEAT_TREATMENTS?.aluminum ?? [];
-    return [...steel, ...aluminum];
+    return Array.from(new Set([...steel, ...aluminum]));
   }, []);
 
   useEffect(() => {

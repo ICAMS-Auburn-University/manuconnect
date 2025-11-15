@@ -25,7 +25,13 @@ export function BuildOrderStep({
 
   useEffect(() => {
     setOrderedIds(assemblies.map((assembly) => assembly.id));
-    setIsDirty(false);
+    const needsSave = assemblies.some((assembly, index) => {
+      if (assembly.build_order == null) {
+        return true;
+      }
+      return assembly.build_order !== index + 1;
+    });
+    setIsDirty(needsSave);
   }, [assemblies]);
 
   const orderedAssemblies = useMemo(() => {
