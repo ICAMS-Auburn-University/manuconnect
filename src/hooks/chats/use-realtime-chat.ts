@@ -9,6 +9,7 @@ import type {
 } from '@/domain/chats/types';
 import { abbreviateUUID } from '@/lib/utils/transforms';
 import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
+import type { MessagesSchema } from '@/types/schemas';
 
 type MessagesResponse = {
   messages?: MessageSummary[];
@@ -123,7 +124,7 @@ export function useRealtimeChat({
     };
   }, [chatId, mapSummaryToMessage]);
 
-  // Subscribe to realtime updates (broadcast channel configured elsewhere)
+  // Subscribe to realtime updates via Supabase Postgres changes feed
   useEffect(() => {
     let isMounted = true;
     let supabaseClient: Awaited<
@@ -150,50 +151,64 @@ export function useRealtimeChat({
       const topic = `chat:${chatId}:messages`;
 
       const channel = client
-        .channel(topic, {
-          config: {
-            broadcast: {
-              ack: true,
-            },
+        .channel(topic)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'Messages',
+            filter: `chat_id=eq.${chatId}`,
           },
-        })
-        .on('broadcast', { event: 'message' }, (payload) => {
-          const raw = payload.message as MessageSummary | undefined;
-          if (!raw) {
-            return;
-          }
-
-          void (async () => {
-            let summary = raw;
-            const attachmentCount = summary.attachment_ids?.length ?? 0;
-            const hydratedCount = summary.attachments?.length ?? 0;
-            if (attachmentCount > 0 && hydratedCount < attachmentCount) {
-              try {
-                const response = await fetch(
-                  `/api/chats/${chatId}/messages?messageId=${summary.message_id}`,
-                  {
-                    method: 'GET',
-                    credentials: 'include',
-                  }
-                );
-
-                if (response.ok) {
-                  const detail = (await response.json().catch(() => ({}))) as {
-                    message?: MessageSummary;
-                  };
-                  if (detail.message) {
-                    summary = detail.message;
-                  }
-                }
-              } catch (error) {
-                console.error('Failed to hydrate message attachments', error);
-              }
+          (payload) => {
+            const row = payload.new as MessagesSchema | null;
+            if (!row) {
+              return;
             }
 
-            const message = mapSummaryToMessage(summary);
-            mergeMessage(message);
-          })();
-        });
+            void (async () => {
+              let summary: MessageSummary = {
+                message_id: row.message_id,
+                chat_id: row.chat_id,
+                sender_id: row.sender_id,
+                content: row.content ?? '',
+                time_sent: row.time_sent,
+                read_by: (row.read_by as string[] | null) ?? null,
+                attachment_ids: (row.attachment_ids as string[] | null) ?? [],
+                attachments: [],
+              };
+
+              const attachmentCount = summary.attachment_ids?.length ?? 0;
+              if (attachmentCount > 0) {
+                try {
+                  const response = await fetch(
+                    `/api/chats/${chatId}/messages?messageId=${summary.message_id}`,
+                    {
+                      method: 'GET',
+                      credentials: 'include',
+                    }
+                  );
+
+                  if (response.ok) {
+                    const detail = (await response
+                      .json()
+                      .catch(() => ({}))) as {
+                      message?: MessageSummary;
+                    };
+                    if (detail.message) {
+                      summary = detail.message;
+                    }
+                  }
+                } catch (error) {
+                  console.error('Failed to hydrate message attachments', error);
+                }
+              }
+
+              const message = mapSummaryToMessage(summary);
+              mergeMessage(message);
+            })();
+          }
+        );
 
       channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
