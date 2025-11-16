@@ -136,6 +136,7 @@ export function OrderForm() {
       try {
         const response = await fetch('/api/orders/drafts', {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -588,7 +589,15 @@ export function OrderForm() {
         assembly: AssemblyClientModel;
       };
       setAssemblies((prev) =>
-        prev.map((item) => (item.id === assembly.id ? assembly : item))
+        prev.map((item) =>
+          item.id === assembly.id
+            ? {
+                ...item,
+                ...assembly,
+                partIds: item.partIds ?? assembly.partIds ?? [],
+              }
+            : item
+        )
       );
       setActiveAssemblyId(null);
       setCurrentStep(4);

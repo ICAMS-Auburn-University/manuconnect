@@ -8,10 +8,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   };
 
   if (!orderId) {
-    return NextResponse.json(
-      { error: 'orderId is required' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'orderId is required' }, { status: 400 });
   }
 
   try {

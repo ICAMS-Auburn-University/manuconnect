@@ -22,6 +22,7 @@ import {
   fetchOrdersByManufacturer,
   fetchUnclaimedOrders,
   fetchOrderById,
+  upsertOrder,
 } from '@/lib/supabase/orders';
 
 const createResendClient = () => {
@@ -58,7 +59,8 @@ export async function createOrder(data: CreateOrderInput): Promise<{
     }
 
     const orderId = data.orderId ?? randomUUID();
-    const createdTimestamp = existingOrder?.created_at ?? new Date().toISOString();
+    const createdTimestamp =
+      existingOrder?.created_at ?? new Date().toISOString();
 
     const orderPayload: OrdersSchema = {
       id: orderId,
@@ -213,7 +215,8 @@ export async function ensureDraftOrder(orderId: string): Promise<OrdersSchema> {
     livestream_url: '',
   };
 
-  const { data: insertedOrder, error: insertError } = await insertOrder(draftOrder);
+  const { data: insertedOrder, error: insertError } =
+    await upsertOrder(draftOrder);
   if (!insertedOrder || insertError) {
     logger.error(insertError, 'orders:ensureDraftOrder:insert');
     throw new Error(
@@ -221,7 +224,7 @@ export async function ensureDraftOrder(orderId: string): Promise<OrdersSchema> {
     );
   }
 
-  return insertedOrder[0];
+  return insertedOrder as OrdersSchema;
 }
 
 export async function updateOrder(params: Partial<OrdersSchema>) {

@@ -127,11 +127,17 @@ export interface PartSpecificationsSchema {
   created_at: string;
 }
 
-export interface ShippingAddressesSchema extends Address {
+export interface ShippingAddressesSchema {
   id: string; // uuid
   order_id: string; // uuid
   recipient_name: string;
   company_name: string | null;
+  street1: string;
+  street2: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
   phone_number: string;
   created_at: string;
 }

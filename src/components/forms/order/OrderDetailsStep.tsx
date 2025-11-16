@@ -108,7 +108,6 @@ export function OrderDetailsStep() {
           )}
         />
       </div>
-
     </div>
   );
 }

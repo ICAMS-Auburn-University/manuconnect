@@ -55,7 +55,9 @@ export async function POST(
     Array.isArray(parts) && parts.length > 0
       ? parts
           .filter(
-            (part): part is {
+            (
+              part
+            ): part is {
               storagePath: string;
               name: string;
               hierarchy: string[];

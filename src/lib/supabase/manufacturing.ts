@@ -150,12 +150,39 @@ export async function upsertPartSpecification(
   >
 ) {
   const supabase = await createSupabaseServiceRoleClient();
+
+  const { data: existing, error: lookupError } = await supabase
+    .from('part_specifications')
+    .select('id')
+    .eq('order_id', payload.order_id)
+    .eq('assembly_id', payload.assembly_id)
+    .eq('part_id', payload.part_id)
+    .maybeSingle();
+
+  if (lookupError) {
+    return { data: null, error: lookupError };
+  }
+
+  if (existing?.id) {
+    const { data, error } = await supabase
+      .from('part_specifications')
+      .update({
+        quantity: payload.quantity,
+        specifications: payload.specifications,
+      })
+      .eq('id', existing.id)
+      .select('*')
+      .single();
+
+    return {
+      data: data as PartSpecificationsSchema | null,
+      error,
+    };
+  }
+
   const { data, error } = await supabase
     .from('part_specifications')
-    .upsert(payload, {
-      onConflict: 'order_id,assembly_id,part_id',
-      ignoreDuplicates: false,
-    })
+    .insert(payload)
     .select('*')
     .single();
 

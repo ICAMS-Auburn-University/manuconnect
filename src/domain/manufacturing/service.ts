@@ -193,16 +193,26 @@ export async function savePartSpecification({
     );
   }
 
+  const sanitizedSpecifications = JSON.parse(
+    JSON.stringify(specifications)
+  ) as PartSpecificationContent;
+
   const payload = {
     order_id: orderId,
     assembly_id: assemblyId,
     part_id: splitPart.id,
     quantity,
-    specifications,
+    specifications: sanitizedSpecifications,
   } as const;
 
   const { data, error } = await upsertPartSpecification(payload);
   if (error || !data) {
+    console.error('Failed to upsert part specification', {
+      error,
+      orderId,
+      assemblyId,
+      partId: splitPart.id,
+    });
     throw error ?? new Error('Failed to save part specifications');
   }
 
@@ -264,6 +274,18 @@ export async function saveShippingDetails({
   phoneNumber: string;
 }) {
   await requireAuth();
+  console.log('[service:saveShippingDetails] payload', {
+    orderId,
+    recipientName,
+    companyName,
+    street1,
+    street2,
+    city,
+    state,
+    postalCode,
+    country,
+    phoneNumber,
+  });
   const { data, error } = await upsertShippingAddress({
     order_id: orderId,
     recipient_name: recipientName,
@@ -277,6 +299,10 @@ export async function saveShippingDetails({
     phone_number: phoneNumber,
   });
   if (error || !data) {
+    console.error('[service:saveShippingDetails] upsert failed', {
+      orderId,
+      error,
+    });
     throw error ?? new Error('Failed to save shipping address');
   }
   return data;

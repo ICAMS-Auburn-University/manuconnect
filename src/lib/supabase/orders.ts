@@ -23,8 +23,19 @@ export async function insertOrder(orderData: OrdersSchema) {
   const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Orders')
-    .insert(orderData)
+    .insert(orderData, { upsert: true })
     .select();
+
+  return { data, error };
+}
+
+export async function upsertOrder(orderData: OrdersSchema) {
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('Orders')
+    .upsert(orderData, { onConflict: 'id' })
+    .select()
+    .maybeSingle();
 
   return { data, error };
 }
@@ -84,7 +95,9 @@ export async function fetchOrderById(orderId: string) {
     .from('Orders')
     .select('*')
     .eq('id', orderId)
-    .single();
-  console.log(error);
+    .maybeSingle();
+  if (error) {
+    console.log(error);
+  }
   return { data, error };
 }

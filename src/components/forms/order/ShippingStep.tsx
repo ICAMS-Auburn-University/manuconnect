@@ -173,7 +173,7 @@ export function ShippingStep({ isSaving = false }: ShippingStepProps) {
               Phone Number
             </FormLabel>
             <FormControl>
-              <Input placeholder="+1 555 0100" {...field} />
+              <Input placeholder="+1 1234567891" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
