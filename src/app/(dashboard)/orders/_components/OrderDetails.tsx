@@ -64,9 +64,7 @@ const OrderDetails = ({ order }: { order: OrdersSchema | null }) => {
     <Card className="w-full max-w-md mx-auto shadow-sm min-h-[30rem] my-10">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-2xl font-bold">
-            OrdersSchema Details
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold">Order Details</CardTitle>
           <Badge variant="outline" className="text-sm font-medium">
             {order.status}
           </Badge>

@@ -3,6 +3,20 @@ export type StartChatPayload = {
   orderId: string;
 };
 
+export interface MessageAttachmentSummary {
+  attachment_id: string;
+  bucket_id: string;
+  path: string;
+  filename: string;
+  mime: string;
+  size: number;
+  time_uploaded: string;
+}
+
+export interface ChatMessageAttachment extends MessageAttachmentSummary {
+  signedUrl?: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   chatId: string;
@@ -12,6 +26,8 @@ export interface ChatMessage {
     id: string;
     name: string;
   };
+  attachmentIds: string[];
+  attachments: ChatMessageAttachment[];
 }
 
 export interface MessageSummary {
@@ -21,6 +37,8 @@ export interface MessageSummary {
   content: string;
   time_sent: string;
   read_by: string[] | null;
+  attachment_ids: string[];
+  attachments: MessageAttachmentSummary[];
 }
 
 export interface ChatSummary {

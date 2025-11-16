@@ -12,6 +12,10 @@ import {
   insertChat,
   insertMessage,
   fetchChatById,
+  insertMessageAttachments,
+  fetchAttachmentsForMessages,
+  deleteMessageById,
+  fetchMessageById,
 } from '@/lib/supabase/chats';
 import type {
   ChatSummary,
@@ -19,10 +23,15 @@ import type {
   CurrentUserSummary,
   MessageSummary,
 } from './types';
-import { ChatsSchema, MessagesSchema } from '@/types/schemas';
+import {
+  ChatsSchema,
+  MessageAttachmentsSchema,
+  MessagesSchema,
+} from '@/types/schemas';
 
 const DEFAULT_MESSAGES_LIMIT = 50;
 const MAX_MESSAGES_LIMIT = 200;
+const MAX_ATTACHMENTS_PER_MESSAGE = 5;
 
 export class ChatsServiceError extends Error {
   status: number;
@@ -41,13 +50,30 @@ const sanitizeLimit = (limit?: number | null) => {
   return Math.min(Math.max(limit, 1), MAX_MESSAGES_LIMIT);
 };
 
-const toMessageSummary = (row: MessagesSchema): MessageSummary => ({
+const toAttachmentSummary = (
+  record: MessageAttachmentsSchema
+): MessageSummary['attachments'][number] => ({
+  attachment_id: record.attachment_id,
+  bucket_id: record.bucket_id,
+  path: record.path,
+  filename: record.filename,
+  mime: record.mime,
+  size: record.size,
+  time_uploaded: record.time_uploaded,
+});
+
+const toMessageSummary = (
+  row: MessagesSchema,
+  attachments: MessageAttachmentsSchema[]
+): MessageSummary => ({
   message_id: row.message_id,
   chat_id: row.chat_id,
   sender_id: row.sender_id,
   content: row.content ?? '',
   time_sent: row.time_sent,
   read_by: (row.read_by as string[] | null) ?? null,
+  attachment_ids: (row.attachment_ids as string[] | null) ?? [],
+  attachments: attachments.map(toAttachmentSummary),
 });
 
 const toChatSummary = (
@@ -156,15 +182,40 @@ export async function getChatsForCurrentUser(): Promise<ChatsResponse> {
 
   const summaries: ChatSummary[] = [];
   const memberIds = new Set<string>();
+  const messageLookup = new Map<
+    string,
+    { chatIndex: number; schema: MessagesSchema }
+  >();
 
   for (const chat of chats) {
     const members = (chat.members as string[]) ?? [];
     members.forEach((member) => member && memberIds.add(member));
 
     const message = await fetchLatestMessageForChat(chat.chat_id);
+    if (message) {
+      messageLookup.set(message.message_id, {
+        chatIndex: summaries.length,
+        schema: message,
+      });
+    }
     summaries.push(
-      toChatSummary(chat, message ? toMessageSummary(message) : null)
+      toChatSummary(chat, message ? toMessageSummary(message, []) : null)
     );
+  }
+
+  if (messageLookup.size > 0) {
+    const attachmentsByMessage = await fetchAttachmentsForMessages([
+      ...messageLookup.keys(),
+    ]);
+
+    messageLookup.forEach(({ chatIndex, schema }, messageId) => {
+      const chatSummary = summaries[chatIndex];
+      if (!chatSummary.last_message) {
+        return;
+      }
+      const attachments = attachmentsByMessage[messageId] ?? [];
+      chatSummary.last_message = toMessageSummary(schema, attachments);
+    });
   }
 
   const participantDisplayNames = await fetchUsersDisplayNames([...memberIds]);
@@ -191,33 +242,86 @@ export async function getChatMessages(
     before: options.before ?? null,
   });
 
+  const attachmentsByMessage = await fetchAttachmentsForMessages(
+    rawMessages.map((row) => row.message_id)
+  );
+
   return rawMessages
-    .map(toMessageSummary)
+    .map((row) =>
+      toMessageSummary(row, attachmentsByMessage[row.message_id] ?? [])
+    )
     .sort(
       (a, b) =>
         new Date(a.time_sent).getTime() - new Date(b.time_sent).getTime()
     );
 }
 
+export async function getChatMessageById(
+  chatId: string,
+  messageId: string
+): Promise<MessageSummary | null> {
+  const user = await requireCurrentUser();
+  await ensureChatMember(chatId, user.id);
+
+  const message = await fetchMessageById(messageId);
+  if (!message || message.chat_id !== chatId) {
+    return null;
+  }
+
+  const attachmentsByMessage = await fetchAttachmentsForMessages([messageId]);
+  return toMessageSummary(message, attachmentsByMessage[messageId] ?? []);
+}
+
 export async function sendChatMessage(
   chatId: string,
-  content: string
+  content: string,
+  attachments: {
+    attachment_id: string;
+    bucket_id: string;
+    path: string;
+    filename: string;
+    mime: string;
+    size: number;
+    time_uploaded: string;
+  }[] = []
 ): Promise<MessageSummary> {
   const user = await requireCurrentUser();
   await ensureChatMember(chatId, user.id);
 
   const trimmed = content.trim();
-  if (!trimmed) {
+  if (!trimmed && attachments.length === 0) {
     throw new ChatsServiceError('Missing content', 400);
   }
+
+  if (attachments.length > MAX_ATTACHMENTS_PER_MESSAGE) {
+    throw new ChatsServiceError('Too many attachments', 400);
+  }
+
+  const timestamp = new Date().toISOString();
 
   const message = await insertMessage({
     chat_id: chatId,
     sender_id: user.id,
     content: trimmed,
-    time_sent: new Date().toISOString(),
+    time_sent: timestamp,
     read_by: [user.id],
+    attachment_ids: attachments.map((item) => item.attachment_id),
   });
 
-  return toMessageSummary(message);
+  try {
+    const insertedAttachments = await insertMessageAttachments(
+      attachments.map((item) => ({
+        ...item,
+        message_id: message.message_id,
+      }))
+    );
+
+    return toMessageSummary(message, insertedAttachments);
+  } catch (error) {
+    await deleteMessageById(message.message_id);
+    throw new ChatsServiceError(
+      error instanceof Error ? error.message : 'Failed to save attachments',
+      500
+    );
+  }
 }

@@ -7,7 +7,7 @@ import type {
   CurrentUserSummary,
   MessageSummary,
 } from '@/domain/chats/types';
-import { ChatsSchema } from '@/types/schemas';
+import { ChatsSchema, MessagesSchema } from '@/types/schemas';
 
 type UseChatsOptions = {
   activeChatId?: string | null;
@@ -104,7 +104,17 @@ export function useChats({ activeChatId }: UseChatsOptions = {}) {
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'Messages' },
           (payload) => {
-            const incoming = payload.new as MessageSummary;
+            const row = payload.new as MessagesSchema;
+            const incoming: MessageSummary = {
+              message_id: row.message_id,
+              chat_id: row.chat_id,
+              sender_id: row.sender_id,
+              content: row.content ?? '',
+              time_sent: row.time_sent,
+              read_by: (row.read_by as string[] | null) ?? null,
+              attachment_ids: (row.attachment_ids as string[] | null) ?? [],
+              attachments: [],
+            };
             setChats((prev) => {
               const index = prev.findIndex(
                 (chat) => chat.chat_id === incoming.chat_id

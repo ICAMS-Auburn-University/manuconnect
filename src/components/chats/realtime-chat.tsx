@@ -1,15 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Send } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
 
 import { ChatMessageItem } from '@/components/chats/chat-message';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useChatScroll } from '@/hooks/use-chat-scroll';
+import { useChatScroll } from '@/hooks/chats/use-chat-scroll';
 import type { ChatMessage } from '@/domain/chats/types';
-import { useRealtimeChat } from '@/hooks/use-realtime-chat';
-import { cn } from '@/lib/utils';
+import { useRealtimeChat } from '@/hooks/chats/use-realtime-chat';
+import { ChatMessageComposer } from '@/components/chats/chat-message-composer';
 
 interface RealtimeChatProps {
   roomName: string;
@@ -42,8 +39,6 @@ export const RealtimeChat = ({
     participants,
   });
 
-  const [newMessage, setNewMessage] = useState('');
-
   const allMessages = useMemo(() => {
     const merged = [...initialMessages, ...realtimeMessages];
     const unique = merged.filter(
@@ -63,23 +58,6 @@ export const RealtimeChat = ({
   useEffect(() => {
     scrollToBottom();
   }, [allMessages, scrollToBottom]);
-
-  const handleSendMessage = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (!newMessage.trim() || !isConnected) {
-        return;
-      }
-
-      try {
-        await sendMessage(newMessage);
-        setNewMessage('');
-      } catch (error) {
-        console.error('Failed to send message', error);
-      }
-    },
-    [isConnected, newMessage, sendMessage]
-  );
 
   return (
     <div className="flex h-full min-h-0 max-h-full w-full flex-col overflow-hidden bg-background text-foreground antialiased">
@@ -117,30 +95,11 @@ export const RealtimeChat = ({
         </div>
       </div>
 
-      <form
-        onSubmit={handleSendMessage}
-        className="flex w-full gap-2 border-t border-border p-4"
-      >
-        <Input
-          className={cn(
-            'rounded-full bg-background text-sm transition-all duration-300',
-            isConnected && newMessage.trim() ? 'w-[calc(100%-36px)]' : 'w-full'
-          )}
-          type="text"
-          value={newMessage}
-          onChange={(event) => setNewMessage(event.target.value)}
-          placeholder="Type a message..."
-          disabled={!isConnected}
-        />
-        {isConnected && newMessage.trim() && (
-          <Button
-            className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300"
-            type="submit"
-          >
-            <Send className="size-4" />
-          </Button>
-        )}
-      </form>
+      <ChatMessageComposer
+        chatId={roomName}
+        isConnected={isConnected}
+        onSendMessage={sendMessage}
+      />
     </div>
   );
 };

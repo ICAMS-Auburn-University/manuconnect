@@ -22,6 +22,7 @@ import {
   fetchOrdersByManufacturer,
   fetchUnclaimedOrders,
   fetchOrderById,
+  upsertOrder,
 } from '@/lib/supabase/orders';
 
 const createResendClient = () => {
@@ -51,9 +52,17 @@ export async function createOrder(data: CreateOrderInput): Promise<{
   const userId = user.id;
   console.log('Creating order for user:', userId);
   try {
-    const orderId = randomUUID();
+    let existingOrder: OrdersSchema | null = null;
+    if (data.orderId) {
+      const { data: fetchedOrder } = await fetchOrderById(data.orderId);
+      existingOrder = (fetchedOrder as OrdersSchema) ?? null;
+    }
 
-    const orderToInsert: OrdersSchema = {
+    const orderId = data.orderId ?? randomUUID();
+    const createdTimestamp =
+      existingOrder?.created_at ?? new Date().toISOString();
+
+    const orderPayload: OrdersSchema = {
       id: orderId,
       title: data.title,
       description: data.description,
@@ -62,7 +71,7 @@ export async function createOrder(data: CreateOrderInput): Promise<{
         user.user_metadata.display_name ||
         `${user.user_metadata.first_name} ${user.user_metadata.last_name}`,
       status: OrderStatus.OrderCreated,
-      created_at: new Date().toISOString(),
+      created_at: createdTimestamp,
       last_update: new Date().toISOString(),
       manufacturer: null,
       due_date: data.due_date.toISOString(),
@@ -71,11 +80,11 @@ export async function createOrder(data: CreateOrderInput): Promise<{
       tags: data.tags,
       delivery_address: {
         street:
-          `${data.shipping_address_1} ${data.shipping_address_2 || ''}`.trim(),
-        city: data.shipping_city,
-        state: data.shipping_state,
-        postal_code: data.shipping_zip,
-        country: data.shipping_country,
+          `${data.shipping_address_1 ?? ''} ${data.shipping_address_2 ?? ''}`.trim(),
+        city: data.shipping_city ?? '',
+        state: data.shipping_state ?? '',
+        postal_code: data.shipping_zip ?? '',
+        country: data.shipping_country ?? '',
       },
       isArchived: false,
       selected_offer: null,
@@ -94,8 +103,22 @@ export async function createOrder(data: CreateOrderInput): Promise<{
       livestream_url: '',
     };
 
-    const { data: OrderData, error: OrderError } =
-      await insertOrder(orderToInsert);
+    let OrderData: OrdersSchema[] | null = null;
+    let OrderError: string | null = null;
+
+    if (existingOrder) {
+      const { data: updatedData, error: updateError } = await updateOrderById(
+        orderId,
+        orderPayload
+      );
+      OrderData = updatedData;
+      OrderError = updateError ?? null;
+    } else {
+      const { data: insertedData, error: insertError } =
+        await insertOrder(orderPayload);
+      OrderData = insertedData;
+      OrderError = insertError ? String(insertError) : null;
+    }
 
     if (!OrderData || OrderError) {
       logger.error(OrderError, 'orders:createOrder:insert');
@@ -134,6 +157,74 @@ export async function createOrder(data: CreateOrderInput): Promise<{
       error: error instanceof Error ? error.message : String(error),
     };
   }
+}
+
+export async function ensureDraftOrder(orderId: string): Promise<OrdersSchema> {
+  const { data: existingOrder } = await fetchOrderById(orderId);
+  if (existingOrder) {
+    return existingOrder as OrdersSchema;
+  }
+
+  const { user, error } = await getCurrentUser();
+  if (error || !user) {
+    throw new Error('User data not found');
+  }
+
+  const timestamp = new Date().toISOString();
+  const draftOrder: OrdersSchema = {
+    id: orderId,
+    title: 'New Order Draft',
+    description: '',
+    creator: user.id,
+    creator_name:
+      user.user_metadata.display_name ||
+      `${user.user_metadata.first_name ?? ''} ${
+        user.user_metadata.last_name ?? ''
+      }`.trim() ||
+      user.email ||
+      'You',
+    status: OrderStatus.OrderCreated,
+    created_at: timestamp,
+    last_update: timestamp,
+    manufacturer: null,
+    due_date: timestamp,
+    fileURLs: '',
+    quantity: 1,
+    tags: [],
+    delivery_address: {
+      street: '',
+      city: '',
+      state: '',
+      postal_code: '',
+      country: '',
+    },
+    isArchived: false,
+    selected_offer: null,
+    offers: [],
+    manufacturer_name: '',
+    price: {
+      unit_cost: 0,
+      projected_cost: 0,
+      shipping_cost: 0,
+      projected_units: 0,
+    },
+    shipping_info: {
+      carrier: null,
+      tracking_number: null,
+    },
+    livestream_url: '',
+  };
+
+  const { data: insertedOrder, error: insertError } =
+    await upsertOrder(draftOrder);
+  if (!insertedOrder || insertError) {
+    logger.error(insertError, 'orders:ensureDraftOrder:insert');
+    throw new Error(
+      insertError ? String(insertError) : 'Failed to create draft order'
+    );
+  }
+
+  return insertedOrder as OrdersSchema;
 }
 
 export async function updateOrder(params: Partial<OrdersSchema>) {
