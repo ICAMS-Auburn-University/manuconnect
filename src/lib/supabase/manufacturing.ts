@@ -27,6 +27,25 @@ export async function fetchAssemblies(orderId: string) {
   };
 }
 
+export async function fetchAssembliesForOrders(orderIds: string[]) {
+  if (orderIds.length === 0) {
+    return { data: [] as AssembliesSchema[], error: null };
+  }
+
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('assemblies')
+    .select('*')
+    .in('order_id', orderIds)
+    .order('order_id', { ascending: true })
+    .order('created_at', { ascending: true });
+
+  return {
+    data: (data as AssembliesSchema[]) ?? [],
+    error,
+  };
+}
+
 export async function insertAssembly(payload: AssemblyInsertPayload) {
   const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase

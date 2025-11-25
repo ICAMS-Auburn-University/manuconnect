@@ -115,7 +115,9 @@ export function SpecificationWizard({
   );
 
   const selectedMaterials =
-    SPECIFICATIONS.MATERIALS[formState.material.category] ?? [];
+    SPECIFICATIONS.MATERIALS[
+      formState.material.category as keyof typeof SPECIFICATIONS.MATERIALS
+    ] ?? [];
 
   const processTypes = useMemo(
     () => Object.keys(SPECIFICATIONS.PROCESS_TYPES ?? {}),

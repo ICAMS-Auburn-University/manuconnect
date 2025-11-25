@@ -42,7 +42,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ Orders }) => {
     <Table className="body-1 mb-16">
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[100px]">OrdersSchema Number</TableHead>
+          <TableHead className="w-[100px]">Order Number</TableHead>
           <TableHead className="w-[100px]">Status</TableHead>
           <TableHead className="w-[100px]">Title</TableHead>
           <TableHead>Last Updated</TableHead>
@@ -76,7 +76,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ Orders }) => {
                     className="bg-brand hover:bg-brand-100 transition text-white "
                     size={'sm'}
                   >
-                    View OrdersSchema
+                    View Order
                   </Button>
                 </Link>
                 <TooltipProvider>

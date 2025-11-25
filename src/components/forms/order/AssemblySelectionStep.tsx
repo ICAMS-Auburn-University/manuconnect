@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { formatPartLocation } from '@/domain/cad/format';
 
 interface AssemblySelectionStepProps {
   parts: PartSummary[];
@@ -69,6 +70,7 @@ const Node = ({
   const partId = node.part!.storagePath;
   const selected = selectedPartIds.has(partId);
   const disabled = disabledPartIds.has(partId);
+  const locationLabel = formatPartLocation(node.part);
 
   return (
     <label className="flex items-center justify-between rounded border border-muted-foreground/40 px-3 py-2 text-sm shadow-sm">
@@ -80,13 +82,13 @@ const Node = ({
         />
         <div className="flex flex-col">
           <span className="font-medium">{node.part.name}</span>
-          <span className="text-xs text-muted-foreground">
-            {node.part.storagePath}
-          </span>
         </div>
       </div>
       {disabled && (
-        <Badge variant="secondary" className="text-xs">
+        <Badge
+          variant="secondary"
+          className="border-emerald-200 bg-emerald-50 text-emerald-700 text-xs"
+        >
           Assigned
         </Badge>
       )}
@@ -102,6 +104,9 @@ export function AssemblySelectionStep({
   isSaving,
 }: AssemblySelectionStepProps) {
   const tree = useMemo(() => buildPartTree(parts), [parts]);
+  const totalParts = parts.length;
+  const assignedCount = assignedPartIds.size;
+  const remainingCount = Math.max(totalParts - assignedCount, 0);
   const [selectedPartIds, setSelectedPartIds] = useState<Set<string>>(
     () => new Set()
   );
@@ -217,14 +222,41 @@ export function AssemblySelectionStep({
                 </div>
                 <Badge
                   variant={
-                    assembly.specifications_completed ? 'default' : 'outline'
+                    assembly.specifications_completed ? 'default' : 'secondary'
+                  }
+                  className={
+                    assembly.specifications_completed
+                      ? undefined
+                      : 'border-sky-200 bg-sky-50 text-sky-700'
                   }
                 >
-                  {assembly.specifications_completed ? 'Ready' : 'Pending'}
+                  {assembly.specifications_completed ? 'Ready' : 'Next: Specs'}
                 </Badge>
               </li>
             ))}
           </ul>
+        )}
+      </div>
+
+      <div
+        className={`rounded border px-4 py-3 text-sm ${
+          totalParts === 0
+            ? 'border-muted-foreground/40 bg-muted-foreground/10 text-muted-foreground'
+            : remainingCount > 0
+              ? 'border-amber-200 bg-amber-50 text-amber-900'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+        }`}
+      >
+        {totalParts === 0 ? (
+          <p>Upload and split a CAD file to start assigning parts.</p>
+        ) : remainingCount > 0 ? (
+          <p>
+            {remainingCount} of {totalParts} part
+            {totalParts === 1 ? '' : 's'} still need assignment before you can
+            continue.
+          </p>
+        ) : (
+          <p>All parts assigned. You can continue to specifications.</p>
         )}
       </div>
 

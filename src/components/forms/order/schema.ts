@@ -4,7 +4,7 @@ export const orderDetailsSchema = z.object({
   title: z.string().min(2, 'Project title must be at least 2 characters.'),
   description: z
     .string()
-    .min(10, 'Please provide a more detailed project description.'),
+    .min(4, 'Project description must be at least 4 characters long.'),
   quantity: z.coerce
     .number({
       invalid_type_error: 'Quantity must be a number.',

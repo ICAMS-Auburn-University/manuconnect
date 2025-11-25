@@ -5,6 +5,7 @@ import { useFormContext } from 'react-hook-form';
 import type { SplitAssemblyResult } from '@/domain/cad/types';
 import { OrderFormValues } from './schema';
 import type { AssemblyClientModel } from './types';
+import { formatPartBreadcrumb } from '@/domain/cad/format';
 
 interface ReviewStepProps {
   cadResult: SplitAssemblyResult | null;
@@ -45,7 +46,7 @@ export function ReviewStep({ cadResult, assemblies }: ReviewStepProps) {
           </p>
           <p>
             <span className="font-medium text-gray-900">Tags:</span>{' '}
-            {values.tags.join(', ')}
+            {Array.isArray(values.tags) ? values.tags.join(', ') : '—'}
           </p>
         </div>
       </section>
@@ -78,7 +79,7 @@ export function ReviewStep({ cadResult, assemblies }: ReviewStepProps) {
         {assemblies.length === 0 ? (
           <p className="text-sm text-gray-500">No assemblies defined yet.</p>
         ) : (
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="flex flex-col gap-3">
             {assemblies.map((assembly) => (
               <li
                 key={assembly.id}
@@ -104,34 +105,6 @@ export function ReviewStep({ cadResult, assemblies }: ReviewStepProps) {
               </li>
             ))}
           </ul>
-        )}
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-          Assembly Breakdown
-        </h3>
-        {cadResult ? (
-          <div className="space-y-3 text-sm text-gray-700">
-            <p>
-              Original assembly stored at{' '}
-              <span className="font-mono">{cadResult.originalPath}</span>
-            </p>
-            <ul className="grid gap-2 md:grid-cols-2">
-              {cadResult.parts.map((part) => (
-                <li
-                  key={part.storagePath}
-                  className="rounded border border-gray-200 bg-gray-50 p-3 font-mono text-xs"
-                >
-                  {part.storagePath}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">
-            Upload a CAD assembly in the previous step to review derived parts.
-          </p>
         )}
       </section>
 

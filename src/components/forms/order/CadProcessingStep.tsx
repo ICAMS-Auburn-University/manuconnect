@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useId, useRef } from 'react';
 import { UploadCloud } from 'lucide-react';
 import { useFormContext } from 'react-hook-form';
 
@@ -33,6 +33,9 @@ export function CadProcessingStep({
   errorMessage,
 }: CadProcessingStepProps) {
   const form = useFormContext<OrderFormValues>();
+  const hasSelectedFile = form.watch('cadFile') instanceof File;
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputId = useId();
 
   return (
     <div className="flex flex-col gap-6">
@@ -45,6 +48,9 @@ export function CadProcessingStep({
             field.onChange(file);
             onFileSelected(file);
           };
+          const hasFile = field.value instanceof File;
+          const currentFile =
+            field.value instanceof File ? (field.value as File) : null;
 
           return (
             <FormItem>
@@ -56,45 +62,65 @@ export function CadProcessingStep({
                 individual part files and auto-populate metadata where possible.
               </FormDescription>
               <FormControl>
-                <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded border-2 border-dashed border-gray-300 p-6 text-center hover:border-blue-500">
+                <input
+                  id={fileInputId}
+                  ref={(node) => {
+                    fileInputRef.current = node;
+                  }}
+                  type="file"
+                  accept=".step,.stp,.iges,.igs"
+                  className="hidden"
+                  onChange={handleChange}
+                />
+              </FormControl>
+              {hasFile && currentFile ? (
+                <div className="flex flex-col gap-3 rounded border border-gray-200 bg-white p-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {currentFile.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {(currentFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Replace file
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Uploading a new file will replace the existing CAD parts.
+                  </p>
+                </div>
+              ) : (
+                <label
+                  htmlFor={fileInputId}
+                  className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded border-2 border-dashed border-gray-300 p-6 text-center hover:border-blue-500"
+                >
                   <UploadCloud className="h-8 w-8 text-blue-500" />
                   <span className="text-sm text-gray-600">
-                    {field.value instanceof File
-                      ? field.value.name
-                      : 'Drop your .step or .iges file here, or click to select'}
+                    Drop your .step or .iges file here, or click to select
                   </span>
-                  <input
-                    type="file"
-                    accept=".step,.stp,.iges,.igs"
-                    className="hidden"
-                    onChange={handleChange}
-                  />
                 </label>
-              </FormControl>
+              )}
               <FormMessage />
             </FormItem>
           );
         }}
       />
 
-      <div className="flex items-center gap-3">
-        <Button
-          type="button"
-          onClick={onProcessFile}
-          disabled={isProcessing || !(form.getValues().cadFile instanceof File)}
-        >
-          {isProcessing ? 'Processing assembly…' : 'Process assembly'}
-        </Button>
-        <p className="text-sm text-gray-500">
-          We store the original file and its parts in Supabase for you.
-        </p>
+      <div className="text-sm text-gray-500">
+        {isProcessing
+          ? 'Processing assembly… this may take a moment.'
+          : hasSelectedFile
+            ? 'Assembly ready. Replace the file if you need to reprocess.'
+            : 'Upload a CAD file to split parts automatically.'}
       </div>
-
-      {isProcessing && (
-        <p className="text-sm text-muted-foreground">
-          Splitting file into parts...
-        </p>
-      )}
 
       {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
 

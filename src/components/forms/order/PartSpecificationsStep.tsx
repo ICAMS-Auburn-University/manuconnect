@@ -13,6 +13,7 @@ import type {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SpecificationWizard } from './SpecificationWizard';
+import { formatPartLocation } from '@/domain/cad/format';
 
 interface PartSpecificationsStepProps {
   assembly: AssemblyClientModel | null;
@@ -122,15 +123,17 @@ export function PartSpecificationsStep({
           No parts linked to this assembly yet.
         </p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-3">
           {resolvedParts.map((part) => {
             const specRecord = specifications[part.storagePath];
             const isComplete = Boolean(specRecord);
             return (
               <Card key={part.storagePath}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between text-base">
-                    <span>{part.name}</span>
+                <CardHeader className="py-3">
+                  <CardTitle className="flex items-center justify-between text-sm">
+                    <span className="break-words min-w-0 truncate">
+                      {part.name}
+                    </span>
                     {isComplete ? (
                       <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                     ) : (
@@ -138,10 +141,7 @@ export function PartSpecificationsStep({
                     )}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    {part.storagePath}
-                  </p>
+                <CardContent className="space-y-2 pb-4">
                   {isComplete ? (
                     <p className="text-xs text-muted-foreground">
                       {specRecord.specifications.material.material} |{' '}

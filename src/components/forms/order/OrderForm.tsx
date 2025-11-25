@@ -24,6 +24,7 @@ import { useSplitAssembly } from '@/hooks/cad/useSplitAssembly';
 import type { PartSummary, SplitAssemblyResult } from '@/domain/cad/types';
 import { createOrder } from '@/domain/orders/service';
 import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
+import { useRouter } from 'next/navigation';
 import type {
   AssemblyClientModel,
   PartSpecificationState,
@@ -43,6 +44,48 @@ const STEP_LABELS = [
 
 type StepIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
+const DRAFT_STORAGE_KEY = 'manuconnect:lastDraftOrderId';
+
+type DraftStorageRecord = {
+  orderId: string;
+  userId: string | null;
+};
+
+const readStoredDraftRecord = (): DraftStorageRecord | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+  if (!raw) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(raw) as Partial<DraftStorageRecord>;
+    if (!parsed || typeof parsed.orderId !== 'string') {
+      return null;
+    }
+    return {
+      orderId: parsed.orderId,
+      userId:
+        typeof parsed.userId === 'string' && parsed.userId.length > 0
+          ? parsed.userId
+          : null,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const persistDraftRecord = (orderId: string, userId: string | null) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  window.localStorage.setItem(
+    DRAFT_STORAGE_KEY,
+    JSON.stringify({ orderId, userId })
+  );
+};
+
 const initialDueDate = () => {
   const date = new Date();
   date.setDate(date.getDate() + 7);
@@ -50,6 +93,7 @@ const initialDueDate = () => {
 };
 
 export function OrderForm() {
+  const router = useRouter();
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderFormSchema),
     defaultValues: {
@@ -96,7 +140,15 @@ export function OrderForm() {
   const [isSavingShipping, setIsSavingShipping] = useState(false);
   const [flowError, setFlowError] = useState<string | null>(null);
 
-  const [draftOrderId, setDraftOrderId] = useState(() => crypto.randomUUID());
+  const [draftOrderId, setDraftOrderId] = useState(() => {
+    const stored = readStoredDraftRecord();
+    if (stored?.orderId) {
+      return stored.orderId;
+    }
+    const freshId = crypto.randomUUID();
+    persistDraftRecord(freshId, stored?.userId ?? null);
+    return freshId;
+  });
 
   const {
     splitAssembly,
@@ -129,6 +181,26 @@ export function OrderForm() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+    const stored = readStoredDraftRecord();
+    if (stored?.userId && stored.userId === userId) {
+      if (stored.orderId !== draftOrderId) {
+        persistDraftRecord(draftOrderId, userId);
+      }
+      return;
+    }
+    if (stored?.userId && stored.userId !== userId) {
+      const nextId = crypto.randomUUID();
+      setDraftOrderId(nextId);
+      persistDraftRecord(nextId, userId);
+      return;
+    }
+    persistDraftRecord(draftOrderId, userId);
+  }, [userId, draftOrderId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -184,12 +256,6 @@ export function OrderForm() {
     }
   }, [cadError]);
 
-  useEffect(() => {
-    if (splitResult && currentStep < 2) {
-      setCurrentStep(2);
-    }
-  }, [splitResult, currentStep]);
-
   const stepFieldMap = useMemo<Record<StepIndex, (keyof OrderFormValues)[]>>(
     () => ({
       0: ['title', 'description', 'quantity', 'dueDate', 'tags'],
@@ -212,6 +278,8 @@ export function OrderForm() {
   );
 
   const availableParts = splitResult?.parts ?? [];
+  const totalSplitParts = availableParts.length;
+  const assignedPartsCount = assignedPartIds.size;
 
   const activeAssembly = useMemo(
     () =>
@@ -289,9 +357,15 @@ export function OrderForm() {
           return;
         }
 
-        if (currentStep === 2 && assemblies.length === 0) {
-          setFlowError('Create at least one assembly to continue.');
-          return;
+        if (currentStep === 2) {
+          if (assemblies.length === 0) {
+            setFlowError('Create at least one assembly to continue.');
+            return;
+          }
+          if (totalSplitParts > 0 && assignedPartsCount < totalSplitParts) {
+            setFlowError('Assign every part to an assembly before continuing.');
+            return;
+          }
         }
 
         if (currentStep === 3 && !buildOrderConfirmed) {
@@ -324,6 +398,8 @@ export function OrderForm() {
       buildOrderConfirmed,
       assembliesComplete,
       saveShippingDetails,
+      totalSplitParts,
+      assignedPartsCount,
     ]
   );
 
@@ -659,17 +735,12 @@ export function OrderForm() {
         }
 
         toast.success('Order created successfully!');
-        form.reset();
-        setSplitResult(null);
-        setSplitErrorMessage(null);
-        setAssemblies([]);
-        setAssignedPartIds(() => new Set());
-        setPartSpecifications({});
-        setActiveAssemblyId(null);
-        setBuildOrderConfirmed(false);
-        setFlowError(null);
-        setDraftOrderId(crypto.randomUUID());
-        setCurrentStep(0);
+        if (typeof window !== 'undefined' && window.history.length > 1) {
+          router.back();
+        } else {
+          router.push('/orders');
+        }
+        return;
       } catch (error) {
         console.error('Error creating order:', error);
         const message =
@@ -681,7 +752,7 @@ export function OrderForm() {
         setIsSubmitting(false);
       }
     },
-    [assembliesComplete, draftOrderId, form, splitResult]
+    [assembliesComplete, draftOrderId, form, splitResult, userId]
   );
 
   const handleSubmit = form.handleSubmit(onSubmit);
@@ -695,10 +766,7 @@ export function OrderForm() {
             currentStep={currentStep}
           />
 
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-8 rounded border border-gray-200 bg-white p-6"
-          >
+          <form onSubmit={handleSubmit} className="space-y-8">
             {currentStep === 0 && <OrderDetailsStep />}
             {currentStep === 1 && (
               <CadProcessingStep
@@ -771,7 +839,7 @@ export function OrderForm() {
             {flowError && <p className="text-sm text-red-600">*{flowError}</p>}
 
             <div className="flex flex-col gap-3 pt-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 justify-between w-full">
                 <Button
                   type="button"
                   variant="ghost"
@@ -782,18 +850,16 @@ export function OrderForm() {
                   <ChevronLeft className="h-4 w-4" />
                   Back
                 </Button>
-                {currentStep < STEP_LABELS.length - 1 &&
-                  currentStep !== 4 &&
-                  currentStep !== 5 && (
-                    <Button
-                      type="button"
-                      onClick={handleNext}
-                      className="flex items-center gap-2"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  )}
+                {currentStep < STEP_LABELS.length - 1 && currentStep !== 5 && (
+                  <Button
+                    type="button"
+                    onClick={handleNext}
+                    className="flex items-center gap-2"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
 
               {currentStep === STEP_LABELS.length - 1 && (
@@ -820,3 +886,4 @@ export function OrderForm() {
       </Form>
     </FormProvider>
   );
+}

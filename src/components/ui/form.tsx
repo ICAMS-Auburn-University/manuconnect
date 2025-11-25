@@ -61,6 +61,7 @@ const useFormField = () => {
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
     ...fieldState,
+    isSubmitted: formState.isSubmitted,
   };
 };
 
@@ -147,10 +148,12 @@ const FormMessage = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
-  const { error, formMessageId } = useFormField();
+  const { error, formMessageId, isDirty, isSubmitted } = useFormField();
   const body = error ? String(error?.message) : children;
 
-  if (!body) {
+  const shouldShow = !!body && (isDirty || isSubmitted);
+
+  if (!shouldShow) {
     return null;
   }
 

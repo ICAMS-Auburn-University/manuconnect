@@ -129,14 +129,6 @@ export function RecentEvents({
                         addSuffix: true,
                       })}
                     </div>
-                    {/* {event.metadata &&
-                      Object.keys(event.metadata).length > 0 && (
-                        <div className="mt-1 text-xs text-muted-foreground bg-muted/50 p-1.5 rounded">
-                          <code className="text-xs">
-                            {JSON.stringify(event.metadata, null, 2)}
-                          </code>
-                        </div>
-                      )} */}
                   </div>
                 </Link>
               ))}

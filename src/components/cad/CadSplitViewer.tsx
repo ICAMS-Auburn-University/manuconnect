@@ -30,9 +30,19 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { buildPartTree, PartTreeNode } from '@/domain/cad/tree';
 import type { PartSummary, SplitAssemblyResult } from '@/domain/cad/types';
+import {
+  formatAssemblyDisplayName,
+  formatPartLocation,
+} from '@/domain/cad/format';
 import { cn } from '@/lib/utils';
 import { buildPublicStorageUrl, parseStoragePath } from '@/lib/storage/paths';
 import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type DrawingUploadState = {
   status: 'idle' | 'uploading' | 'uploaded' | 'error';
@@ -60,9 +70,24 @@ export function CadSplitViewer({ splitResult }: CadSplitViewerProps) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const treeNodes = useMemo(
+  const derivedTree = useMemo(
     () => buildPartTree(splitResult.parts),
     [splitResult.parts]
+  );
+
+  const assemblyLabel = useMemo(
+    () => formatAssemblyDisplayName(splitResult.originalPath),
+    [splitResult.originalPath]
+  );
+
+  const treeRoot = useMemo<PartTreeNode>(
+    () => ({
+      id: 'assembly-root',
+      label: assemblyLabel,
+      path: assemblyLabel,
+      children: derivedTree,
+    }),
+    [assemblyLabel, derivedTree]
   );
 
   useEffect(() => {
@@ -266,15 +291,13 @@ export function CadSplitViewer({ splitResult }: CadSplitViewerProps) {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="rounded border border-muted bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-        Original assembly stored at{' '}
-        <span className="font-mono text-muted-foreground">
-          {splitResult.originalPath}
-        </span>
-      </div>
+    <TooltipProvider delayDuration={0}>
+      <div className="space-y-4">
+        <div className="rounded border border-muted bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
+          Original assembly securely stored. Derived parts are ready for review
+          below.
+        </div>
 
-      <div className="flex flex-col gap-4">
         <div className="rounded border border-gray-200 bg-white p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -285,57 +308,48 @@ export function CadSplitViewer({ splitResult }: CadSplitViewerProps) {
                 {splitResult.parts.length} generated file
                 {splitResult.parts.length === 1 ? '' : 's'}
               </p>
+              {treeRoot.children.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Open the parent assembly folder to reveal its subparts.
+                </p>
+              )}
             </div>
           </div>
 
-          {splitResult.parts.length === 0 ? (
+          {treeRoot.children.length === 0 ? (
             <p className="mt-6 text-sm text-muted-foreground">
               No parts returned from the CAD service.
             </p>
           ) : (
-            <ScrollArea className="mt-4 h-96 pr-4">
+            <ScrollArea className="mt-4 h-auto pr-4">
               <div className="space-y-2">
-                {treeNodes.map((node) => (
-                  <TreeNode
-                    key={node.id}
-                    node={node}
-                    level={0}
-                    selectedPartId={selectedPart?.storagePath ?? null}
-                    drawingStatuses={drawingStatuses}
-                    downloadUrls={downloadUrls}
-                    pendingDownload={pendingDownload}
-                    onSelectPart={setSelectedPart}
-                    onDownloadPart={handleDownloadPart}
-                    onUploadDrawing={openUploadDialog}
-                  />
-                ))}
+                <TreeNode
+                  key={treeRoot.id}
+                  node={treeRoot}
+                  level={0}
+                  selectedPartId={selectedPart?.storagePath ?? null}
+                  drawingStatuses={drawingStatuses}
+                  downloadUrls={downloadUrls}
+                  pendingDownload={pendingDownload}
+                  onSelectPart={setSelectedPart}
+                  onDownloadPart={handleDownloadPart}
+                  onUploadDrawing={openUploadDialog}
+                />
               </div>
             </ScrollArea>
           )}
         </div>
 
-        <PartDetailsPanel
-          part={selectedPart}
-          drawingStatus={
-            selectedPart ? drawingStatuses[selectedPart.storagePath] : undefined
-          }
-          downloadUrl={
-            selectedPart ? downloadUrls[selectedPart.storagePath] : undefined
-          }
-          pendingDownload={pendingDownload}
-          onDownloadPart={handleDownloadPart}
+        <DrawingUploadDialog
+          open={dialogState.open}
+          part={dialogState.part}
+          isUploading={isUploading}
+          errorMessage={uploadError}
+          onOpenChange={closeUploadDialog}
+          onUpload={handleUploadDrawing}
         />
       </div>
-
-      <DrawingUploadDialog
-        open={dialogState.open}
-        part={dialogState.part}
-        isUploading={isUploading}
-        errorMessage={uploadError}
-        onOpenChange={closeUploadDialog}
-        onUpload={handleUploadDrawing}
-      />
-    </div>
+    </TooltipProvider>
   );
 }
 
@@ -351,24 +365,54 @@ interface TreeNodeProps {
   onUploadDrawing: (part: PartSummary) => void;
 }
 
+const hasMissingDrawings = (
+  node: PartTreeNode,
+  drawingStatuses: DrawingStatusMap
+): boolean => {
+  if (node.part) {
+    return drawingStatuses[node.part.storagePath]?.status !== 'uploaded';
+  }
+  return node.children.some((child) =>
+    hasMissingDrawings(child, drawingStatuses)
+  );
+};
+
 function TreeNode({ node, level, ...rest }: TreeNodeProps) {
   if (node.part) {
     return <PartLeaf part={node.part} level={level} {...rest} />;
   }
 
+  const includeWarning = hasMissingDrawings(node, rest.drawingStatuses);
+
   return (
-    <Accordion
-      type="multiple"
-      defaultValue={[node.id]}
-      className="w-full border-none"
-    >
+    <Accordion type="multiple" defaultValue={[]} className="w-full border-none">
       <AccordionItem value={node.id} className="border-none">
         <AccordionTrigger
-          className="justify-start gap-2 text-sm font-semibold text-gray-900"
+          className="gap-2 text-sm font-semibold text-gray-900"
           style={{ marginLeft: level * 16 }}
         >
-          <FolderIcon className="h-4 w-4 text-blue-600" />
-          <span>{node.label}</span>
+          <div className="flex flex-1 items-center gap-2">
+            <FolderIcon className="h-4 w-4 text-blue-600" />
+            <span>{node.label}</span>
+            {includeWarning && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex cursor-help items-center text-amber-500">
+                    <Info
+                      className="h-4 w-4"
+                      aria-label="Some subparts missing drawings"
+                    />
+                    <span className="sr-only">
+                      Some subparts missing drawings
+                    </span>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="start">
+                  Upload drawings for all subparts.
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </AccordionTrigger>
         <AccordionContent className="pl-4">
           <div className="space-y-2">
@@ -407,6 +451,7 @@ function PartLeaf({
   const downloadUrl = downloadUrls[part.storagePath];
   const hasDrawing = drawingStatus?.status === 'uploaded';
   const isSelected = selectedPartId === part.storagePath;
+  const locationLabel = formatPartLocation(part);
   const uploadCtaLabel = hasDrawing
     ? 'Replace 3-view drawing'
     : 'Upload 3-view drawing';
@@ -432,19 +477,20 @@ function PartLeaf({
         <FileText className="h-4 w-4 text-slate-600" />
         <span className="font-medium text-gray-900">{part.name}</span>
         {!hasDrawing && (
-          <>
-            <Info
-              className="h-4 w-4 text-amber-500"
-              aria-label="Drawing missing"
-            />
-            <span className="sr-only">No drawing uploaded yet</span>
-          </>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex cursor-help items-center text-amber-500">
+                <Info className="h-4 w-4" aria-label="Drawing missing" />
+                <span className="sr-only">No drawing uploaded yet</span>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top" align="start">
+              Upload a drawing for this part.
+            </TooltipContent>
+          </Tooltip>
         )}
         {drawingStatus?.status === 'uploaded' && (
-          <Badge
-            variant="secondary"
-            className="border-green-200 text-green-700"
-          >
+          <Badge variant="secondary" className="drawing-badge--uploaded">
             Drawing uploaded
           </Badge>
         )}
@@ -457,9 +503,6 @@ function PartLeaf({
           <Badge variant="destructive">Upload failed</Badge>
         )}
       </div>
-      <p className="mt-1 font-mono text-xs text-muted-foreground">
-        {part.storagePath}
-      </p>
       <div className="mt-3 flex flex-wrap gap-2">
         {downloadUrl ? (
           <Button asChild size="sm" variant="outline">
@@ -498,111 +541,6 @@ function PartLeaf({
           <UploadCloud className="mr-2 h-4 w-4" />
           {uploadCtaLabel}
         </Button>
-      </div>
-    </div>
-  );
-}
-
-interface PartDetailsPanelProps {
-  part: PartSummary | null;
-  drawingStatus?: DrawingUploadState;
-  downloadUrl?: string;
-  pendingDownload: string | null;
-  onDownloadPart: (part: PartSummary) => void;
-}
-
-function PartDetailsPanel({
-  part,
-  drawingStatus,
-  downloadUrl,
-  pendingDownload,
-  onDownloadPart,
-}: PartDetailsPanelProps) {
-  if (!part) {
-    return (
-      <div className="rounded border border-gray-200 bg-white p-4 text-sm text-muted-foreground">
-        Select a part to view its metadata.
-      </div>
-    );
-  }
-
-  const hierarchy =
-    part.hierarchy.length > 0 ? part.hierarchy.join(' / ') : '—';
-
-  return (
-    <div className="rounded border border-gray-200 bg-white p-4">
-      <h3 className="text-sm font-semibold text-gray-900">Part details</h3>
-      <dl className="mt-4 space-y-3 text-sm">
-        <div>
-          <dt className="text-xs uppercase text-muted-foreground">Name</dt>
-          <dd className="font-medium text-gray-900">{part.name}</dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase text-muted-foreground">
-            Supabase path
-          </dt>
-          <dd className="font-mono text-xs">{part.storagePath}</dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase text-muted-foreground">Hierarchy</dt>
-          <dd className="text-gray-900">{hierarchy}</dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase text-muted-foreground">
-            Drawing status
-          </dt>
-          <dd className="flex flex-col gap-1">
-            <span className="font-medium text-gray-900">
-              {drawingStatus?.status === 'uploaded'
-                ? 'Uploaded'
-                : drawingStatus?.status === 'uploading'
-                  ? 'Uploading…'
-                  : drawingStatus?.status === 'error'
-                    ? 'Upload failed'
-                    : 'Not uploaded'}
-            </span>
-            {drawingStatus?.drawingUrl && (
-              <Button asChild size="sm" variant="link" className="px-0">
-                <a
-                  href={drawingStatus.drawingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View drawing
-                </a>
-              </Button>
-            )}
-            {drawingStatus?.error && (
-              <p className="text-xs text-destructive">{drawingStatus.error}</p>
-            )}
-            {drawingStatus?.updatedAt && (
-              <p className="text-xs text-muted-foreground">
-                Updated {new Date(drawingStatus.updatedAt).toLocaleString()}
-              </p>
-            )}
-          </dd>
-        </div>
-      </dl>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {downloadUrl ? (
-          <Button asChild size="sm" variant="default">
-            <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
-              <Download className="mr-2 h-4 w-4" />
-              Download part
-            </a>
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            onClick={() => onDownloadPart(part)}
-            disabled={pendingDownload === part.storagePath}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            {pendingDownload === part.storagePath
-              ? 'Resolving…'
-              : 'Download part'}
-          </Button>
-        )}
       </div>
     </div>
   );

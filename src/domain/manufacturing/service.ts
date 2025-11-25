@@ -2,6 +2,7 @@
 
 import {
   fetchAssemblies,
+  fetchAssembliesForOrders,
   fetchAssemblyParts,
   fetchPartSpecificationsByAssembly,
   fetchShippingAddress,
@@ -14,6 +15,7 @@ import {
   upsertShippingAddress,
 } from '@/lib/supabase/manufacturing';
 import { getCurrentUser } from '@/lib/supabase/users';
+import type { PartSpecificationsSchema } from '@/types/schemas';
 import type {
   AssemblyWithParts,
   PartSpecificationContent,
@@ -197,13 +199,14 @@ export async function savePartSpecification({
     JSON.stringify(specifications)
   ) as PartSpecificationContent;
 
-  const payload = {
+  const payload: Parameters<typeof upsertPartSpecification>[0] = {
     order_id: orderId,
     assembly_id: assemblyId,
     part_id: splitPart.id,
     quantity,
-    specifications: sanitizedSpecifications,
-  } as const;
+    specifications:
+      sanitizedSpecifications as unknown as PartSpecificationsSchema['specifications'],
+  };
 
   const { data, error } = await upsertPartSpecification(payload);
   if (error || !data) {
@@ -218,7 +221,7 @@ export async function savePartSpecification({
 
   return {
     ...data,
-    specifications: data.specifications as PartSpecificationContent,
+    specifications: data.specifications as unknown as PartSpecificationContent,
   };
 }
 
@@ -231,7 +234,7 @@ export async function listPartSpecifications(assemblyId: string) {
 
   return data.map((row) => ({
     ...row,
-    specifications: row.specifications as PartSpecificationContent,
+    specifications: row.specifications as unknown as PartSpecificationContent,
   })) as PartSpecificationRecord[];
 }
 
@@ -311,6 +314,18 @@ export async function saveShippingDetails({
 export async function fetchShippingDetails(orderId: string) {
   await requireAuth();
   const { data, error } = await fetchShippingAddress(orderId);
+  if (error) {
+    throw error;
+  }
+  return data;
+}
+
+export async function listAssembliesByOrderIds(orderIds: string[]) {
+  await requireAuth();
+  if (orderIds.length === 0) {
+    return [];
+  }
+  const { data, error } = await fetchAssembliesForOrders(orderIds);
   if (error) {
     throw error;
   }

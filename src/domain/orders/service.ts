@@ -112,7 +112,7 @@ export async function createOrder(data: CreateOrderInput): Promise<{
         orderPayload
       );
       OrderData = updatedData;
-      OrderError = updateError ?? null;
+      OrderError = updateError ? String(updateError) : null;
     } else {
       const { data: insertedData, error: insertError } =
         await insertOrder(orderPayload);

@@ -235,6 +235,37 @@
     @apply cursor-pointer !important;
   }
 }
+@layer components {
+  .order-step-pill {
+    @apply flex items-center gap-2 rounded-full border px-3 py-1 transition;
+    font-weight: 500;
+  }
+
+  .order-step-pill--active {
+    color: #e87722 !important;
+    background-color: rgba(232, 119, 34, 0.12) !important;
+    border-color: #e87722 !important;
+    box-shadow: 0 0 0 1px rgba(232, 119, 34, 0.2) inset !important;
+  }
+
+  .order-step-pill--complete {
+    color: #047857 !important;
+    background-color: #ecfdf3 !important;
+    border-color: #059669 !important;
+  }
+
+  .order-step-pill--pending {
+    color: #6b7280 !important;
+    background-color: #ffffff !important;
+    border-color: #e5e7eb !important;
+  }
+
+  .drawing-badge--uploaded {
+    color: #0f5132 !important;
+    background-color: #d1fae5 !important;
+    border-color: #10b981 !important;
+  }
+}
 @layer base {
   * {
     @apply border-border;
