@@ -18,4 +18,4 @@ The [ManuConnect](https://manuconnect.org) platform is built with NextJS and uti
 
 ## Contact
 
-Please contact [jordanlee@auburn.edu](mailto:jordanlee@auburn.edu) for any questions or inqueries.
+Please contact jacobhmurrah@gmail.com if you have any questions.
