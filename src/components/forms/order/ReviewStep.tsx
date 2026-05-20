@@ -45,7 +45,7 @@ export function ReviewStep({ cadResult, assemblies }: ReviewStepProps) {
           </p>
           <p>
             <span className="font-medium text-gray-900">Tags:</span>{' '}
-            {values.tags.join(', ')}
+            {values.tags?.length ? values.tags.join(', ') : '—'}
           </p>
         </div>
       </section>
@@ -133,17 +133,6 @@ export function ReviewStep({ cadResult, assemblies }: ReviewStepProps) {
             Upload a CAD assembly in the previous step to review derived parts.
           </p>
         )}
-      </section>
-
-      <section className="space-y-2 rounded border border-dashed border-gray-300 bg-gray-50 p-4 text-sm">
-        <h3 className="font-semibold text-gray-800">
-          Production Timeline (preview)
-        </h3>
-        <p className="text-gray-600">
-          We&apos;ll soon visualize sequencing dependencies pulled from the CAD
-          metadata. For now, this placeholder marks where a part-by-part build
-          schedule will live.
-        </p>
       </section>
     </div>
   );

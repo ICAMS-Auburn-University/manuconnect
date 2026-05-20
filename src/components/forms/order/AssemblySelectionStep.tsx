@@ -109,6 +109,23 @@ export function AssemblySelectionStep({
   const [assemblyName, setAssemblyName] = useState('');
   const [dialogError, setDialogError] = useState<string | null>(null);
 
+  const selectablePartIds = useMemo(
+    () => parts.filter((p) => !assignedPartIds.has(p.storagePath)).map((p) => p.storagePath),
+    [parts, assignedPartIds]
+  );
+
+  const allSelected =
+    selectablePartIds.length > 0 &&
+    selectablePartIds.every((id) => selectedPartIds.has(id));
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedPartIds(new Set());
+    } else {
+      setSelectedPartIds(new Set(selectablePartIds));
+    }
+  };
+
   const togglePart = (partId: string) => {
     if (assignedPartIds.has(partId)) {
       return;
@@ -165,6 +182,18 @@ export function AssemblySelectionStep({
         </p>
       </div>
 
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {selectedPartIds.size} of {selectablePartIds.length} available part
+          {selectablePartIds.length === 1 ? '' : 's'} selected
+        </div>
+        {selectablePartIds.length > 0 && (
+          <Button type="button" variant="outline" size="sm" onClick={toggleAll}>
+            {allSelected ? 'Deselect All' : 'Select All'}
+          </Button>
+        )}
+      </div>
+
       <ScrollArea className="h-[360px] rounded border p-4">
         <div className="space-y-3">
           {tree.length === 0 ? (
@@ -185,11 +214,7 @@ export function AssemblySelectionStep({
         </div>
       </ScrollArea>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="text-sm text-muted-foreground">
-          {selectedPartIds.size} part
-          {selectedPartIds.size === 1 ? '' : 's'} selected
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-4">
         <Button type="button" onClick={handleOpenDialog}>
           Create Assembly
         </Button>

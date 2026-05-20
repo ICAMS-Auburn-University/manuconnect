@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -36,13 +36,23 @@ import ViewOffers from './ViewOffers';
 import ShippingDialog from './ShippingDialog';
 import AddLivestreamForm from '@/components/forms/AddLivestreamForm';
 import View3DModel from '@/components/media/ModelViewer';
+import { AssemblyCollaborationTab } from './AssemblyCollaborationTab';
 import type { UserProfile } from '@/domain/users/types';
+import { ChevronRight } from 'lucide-react';
 
 type OrderPageProps = {
   order: OrdersSchema;
   userData: UserProfile | null;
   manufacturerData: UserProfile | null;
   creatorData: UserProfile | null;
+};
+
+type CollaborationStatusSnapshot = {
+  assignments: Array<{
+    id: string;
+    status: string;
+    partName?: string;
+  }>;
 };
 
 const OrderPage = ({
@@ -56,12 +66,81 @@ const OrderPage = ({
   ); // Local state for status
   const [isShippingDialogOpen, setIsShippingDialogOpen] = useState(false);
   const [isLivestreamDialogOpen, setIsLivestreamDialogOpen] = useState(false);
+  const [waitingOnPartsCount, setWaitingOnPartsCount] = useState(0);
   const UserType = userData?.accountType;
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchPartGate = async () => {
+      try {
+        const res = await fetch(`/api/orders/${order.id}/collaboration`);
+        if (!res.ok) return;
+        const json = (await res.json()) as CollaborationStatusSnapshot;
+        if (!mounted) return;
+        const assignments = json.assignments ?? [];
+        const pending = assignments.filter((a) => a.status !== 'Shipped').length;
+        setWaitingOnPartsCount(pending);
+      } catch {
+        // Keep UI functional even if collaboration snapshot fails.
+      }
+    };
+
+    void fetchPartGate();
+    const timer = setInterval(() => {
+      void fetchPartGate();
+    }, 10000);
+
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, [order.id]);
+
+  const nextStatus = getNextOrderStatus(currentStatus);
+  const blocksAssemblyStart =
+    nextStatus === OrderStatus.StartedManufacturing && waitingOnPartsCount > 0;
+
+  const statusReason = (() => {
+    if (!order.manufacturer) {
+      return {
+        tone: 'text-blue-700 border-blue-200 bg-blue-50',
+        label: 'Waiting on manufacturer selection',
+      };
+    }
+
+    if (waitingOnPartsCount > 0) {
+      return {
+        tone: 'text-amber-800 border-amber-300 bg-amber-50',
+        label: `Waiting on ${waitingOnPartsCount} shipped part${
+          waitingOnPartsCount === 1 ? '' : 's'
+        } before assembly start`,
+      };
+    }
+
+    if (currentStatus === OrderStatus.Shipped) {
+      return {
+        tone: 'text-teal-700 border-teal-200 bg-teal-50',
+        label: 'Waiting on delivery confirmation',
+      };
+    }
+
+    return null;
+  })();
 
   const handleUpdateStatus = async () => {
     const nextStatus = getNextOrderStatus(currentStatus);
     if (!nextStatus) {
       toast.info('No next status available');
+      return;
+    }
+
+    if (nextStatus === OrderStatus.StartedManufacturing && waitingOnPartsCount > 0) {
+      toast.error(
+        `Waiting on ${waitingOnPartsCount} subcontracted part${
+          waitingOnPartsCount === 1 ? '' : 's'
+        } to be marked as Shipped before starting assembly.`
+      );
       return;
     }
 
@@ -71,12 +150,17 @@ const OrderPage = ({
     }
 
     try {
-      await updateOrder({ id: order.id, status: nextStatus });
+      const result = await updateOrder({ id: order.id, status: nextStatus });
+      if (result.error) {
+        throw new Error(String(result.error));
+      }
       setCurrentStatus(nextStatus);
       toast.success('OrdersSchema status updated successfully');
     } catch (error) {
       console.error('Failed to update order status:', error);
-      toast.error('Failed to update order status');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update order status'
+      );
     }
   };
 
@@ -90,7 +174,7 @@ const OrderPage = ({
     }
 
     try {
-      await updateOrder({
+      const result = await updateOrder({
         id: order.id,
         status: OrderStatus.Shipped,
         shipping_info: {
@@ -98,12 +182,17 @@ const OrderPage = ({
           carrier: formValues.carrier,
         },
       });
+      if (result.error) {
+        throw new Error(String(result.error));
+      }
       setCurrentStatus(OrderStatus.Shipped);
       setIsShippingDialogOpen(false);
       toast.success('OrdersSchema status updated to Shipped');
     } catch (error) {
       console.error('Failed to update order status:', error);
-      toast.error('Failed to update order status');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update order status'
+      );
     }
   };
 
@@ -158,6 +247,11 @@ const OrderPage = ({
           >
             {order.status}
           </Badge>
+          {statusReason && (
+            <Badge variant="outline" className={statusReason.tone}>
+              {statusReason.label}
+            </Badge>
+          )}
           {order.isArchived && <Badge variant="destructive">Archived</Badge>}
           {!order.manufacturer && <ViewOffers order={order} />}
           {/* <Button variant="outline" size="sm">
@@ -166,6 +260,56 @@ const OrderPage = ({
           </Button> */}
         </div>
       </div>
+
+      {/* Manufacturer status advancement banner */}
+      {(UserType === 'manufacturer' || UserType === 'admin') &&
+        order.manufacturer &&
+        currentStatus !== OrderStatus.Completed && (
+          <Card className="border-[#e87722] bg-orange-50/50">
+            <CardContent className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-[#e87722] flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">
+                    {Object.values(OrderStatus).indexOf(currentStatus) + 1}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Current Status</p>
+                  <p className="font-semibold">{currentStatus}</p>
+                </div>
+              </div>
+              {nextStatus && (
+                <Button
+                  className="bg-[#e87722] hover:bg-[#d06a1e] text-white"
+                  disabled={blocksAssemblyStart}
+                  onClick={handleUpdateStatus}
+                >
+                  {blocksAssemblyStart
+                    ? `Waiting on ${waitingOnPartsCount} shipped part${
+                        waitingOnPartsCount === 1 ? '' : 's'
+                      }`
+                    : `Advance to ${nextStatus}`}
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+      {order.manufacturer && waitingOnPartsCount > 0 && (
+        <Card className="border-amber-300 bg-amber-50/70">
+          <CardContent className="py-3">
+            <p className="text-sm font-medium text-amber-900">
+              Waiting on parts before assembly can begin
+            </p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              {waitingOnPartsCount} assigned part
+              {waitingOnPartsCount === 1 ? '' : 's'} still need to be marked as
+              Shipped by their manufacturers.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="details" className="w-full">
         <TabsList className="flex w-full">
@@ -180,6 +324,9 @@ const OrderPage = ({
           </TabsTrigger>
           <TabsTrigger value="timeline" className="flex-1">
             Timeline
+          </TabsTrigger>
+          <TabsTrigger value="collaboration" className="flex-1">
+            Assembly & Collaboration
           </TabsTrigger>
         </TabsList>
 
@@ -467,6 +614,10 @@ const OrderPage = ({
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="collaboration" className="space-y-6">
+          <AssemblyCollaborationTab order={order} userData={userData} />
         </TabsContent>
       </Tabs>
 

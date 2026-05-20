@@ -5,4 +5,5 @@ export interface CreateOfferInput {
   projected_units: number;
   shipping_cost: number;
   lead_time: number;
+  part_ids?: string[];
 }

@@ -644,10 +644,10 @@ export function OrderForm() {
           quantity: values.quantity,
           due_date: dueDate,
           file: splitResult.originalPath,
-          tags: values.tags,
+          tags: values.tags ?? [],
           shipping_country: values.shippingCountry,
           shipping_address_1: values.shippingAddress1,
-          shipping_address_2: values.shippingAddress2,
+          shipping_address_2: values.shippingAddress2 ?? '',
           shipping_city: values.shippingCity,
           shipping_state: values.shippingState,
           shipping_zip: values.shippingZip,
@@ -820,3 +820,4 @@ export function OrderForm() {
       </Form>
     </FormProvider>
   );
+}

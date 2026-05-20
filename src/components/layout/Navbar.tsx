@@ -37,6 +37,9 @@ const Navbar = async () => {
           <Link href="/orders">
             <p className="navbarLink hover:underline">Your Orders</p>
           </Link>
+          <Link href="/cad-upload">
+            <p className="navbarLink hover:underline">CAD Upload</p>
+          </Link>
           {(userType === 'creator' || userType === 'admin') && (
             <>
               <Link href="/orders/new">
@@ -65,6 +68,9 @@ const Navbar = async () => {
                   />
                   <p className="navbarLink text-white">Browse Orders</p>
                 </Button>
+              </Link>
+              <Link href="/profile">
+                <p className="navbarLink hover:underline">Shop Profile</p>
               </Link>
             </>
           )}

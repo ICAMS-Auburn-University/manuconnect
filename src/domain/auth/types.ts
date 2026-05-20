@@ -23,12 +23,19 @@ export interface CreatorOnboardingData {
   agreementAccepted: boolean;
 }
 
+export interface ManufacturerCapabilities {
+  processes: string[];
+  materialCategories: string[];
+  certifications: string[];
+}
+
 export interface ManufacturerOnboardingData {
   companyName: string;
   companyType: CompanyType;
   stateOfFormation: USState;
   companyAddress: Address;
   representativeRole: string;
+  capabilities: ManufacturerCapabilities;
   agreementAccepted: boolean;
 }
 

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { CheckCircle2, CircleDashed } from 'lucide-react';
+import { CheckCircle2, CircleDashed, Copy } from 'lucide-react';
 
 import type { PartSummary } from '@/domain/cad/types';
 import type {
@@ -11,8 +11,15 @@ import type {
   SpecificationDraft,
 } from './types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { SpecificationWizard } from './SpecificationWizard';
+import { PartCarousel } from './PartCarousel';
 
 interface PartSpecificationsStepProps {
   assembly: AssemblyClientModel | null;
@@ -39,6 +46,8 @@ export function PartSpecificationsStep({
 }: PartSpecificationsStepProps) {
   const [wizardPartId, setWizardPartId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [isApplyingAll, setIsApplyingAll] = useState(false);
+  const [applySourceId, setApplySourceId] = useState<string>('');
 
   const resolvedParts = useMemo(() => {
     if (!assembly) {
@@ -54,6 +63,14 @@ export function PartSpecificationsStep({
     return resolvedParts
       .filter((part) => Boolean(specifications[part.storagePath]))
       .map((part) => part.storagePath);
+  }, [resolvedParts, specifications]);
+
+  const configuredParts = useMemo(() => {
+    return resolvedParts.filter((p) => Boolean(specifications[p.storagePath]));
+  }, [resolvedParts, specifications]);
+
+  const unconfiguredParts = useMemo(() => {
+    return resolvedParts.filter((p) => !specifications[p.storagePath]);
   }, [resolvedParts, specifications]);
 
   const allCompleted =
@@ -90,6 +107,32 @@ export function PartSpecificationsStep({
     setWizardOpen(true);
   };
 
+  const handleApplyToAll = async () => {
+    const sourceSpec = specifications[applySourceId];
+    if (!sourceSpec || !assembly) return;
+
+    setIsApplyingAll(true);
+    try {
+      const targets = unconfiguredParts;
+      for (const part of targets) {
+        await onSavePartSpecification(
+          part.storagePath,
+          sourceSpec.specifications,
+          sourceSpec.quantity
+        );
+      }
+      toast.success(`Specifications applied to ${targets.length} parts.`);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to apply specifications';
+      toast.error(message);
+    } finally {
+      setIsApplyingAll(false);
+    }
+  };
+
   if (!assembly) {
     return (
       <div className="space-y-4">
@@ -122,50 +165,42 @@ export function PartSpecificationsStep({
           No parts linked to this assembly yet.
         </p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {resolvedParts.map((part) => {
-            const specRecord = specifications[part.storagePath];
-            const isComplete = Boolean(specRecord);
-            return (
-              <Card key={part.storagePath}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between text-base">
-                    <span>{part.name}</span>
-                    {isComplete ? (
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                    ) : (
-                      <CircleDashed className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    {part.storagePath}
-                  </p>
-                  {isComplete ? (
-                    <p className="text-xs text-muted-foreground">
-                      {specRecord.specifications.material.material} |{' '}
-                      {specRecord.specifications.process.type}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Not configured
-                    </p>
-                  )}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={isComplete ? 'outline' : 'default'}
-                    onClick={() => openWizard(part.storagePath)}
-                  >
-                    {isComplete
-                      ? 'Edit specifications'
-                      : 'Configure specifications'}
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <PartCarousel
+          parts={resolvedParts}
+          specifications={specifications}
+          onConfigure={openWizard}
+        />
+      )}
+
+      {configuredParts.length > 0 && unconfiguredParts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-4">
+          <Copy className="hidden h-5 w-5 shrink-0 text-primary sm:block" />
+          <p className="w-full text-sm font-medium sm:w-auto sm:flex-1">
+            Apply specifications to all {unconfiguredParts.length} unconfigured
+            part{unconfiguredParts.length === 1 ? '' : 's'}
+          </p>
+          <Select value={applySourceId} onValueChange={setApplySourceId}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Copy from…" />
+            </SelectTrigger>
+            <SelectContent>
+              {configuredParts.map((part) => (
+                <SelectItem key={part.storagePath} value={part.storagePath}>
+                  {part.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleApplyToAll}
+            disabled={!applySourceId || isApplyingAll}
+          >
+            {isApplyingAll
+              ? 'Applying…'
+              : `Apply to ${unconfiguredParts.length} parts`}
+          </Button>
         </div>
       )}
 
@@ -193,6 +228,14 @@ export function PartSpecificationsStep({
         part={currentWizardPart}
         quantity={currentQuantity}
         defaultValue={currentSpecDraft}
+        configuredParts={configuredParts
+          .filter((p) => p.storagePath !== wizardPartId)
+          .map((p) => ({
+            name: p.name,
+            storagePath: p.storagePath,
+            spec: specifications[p.storagePath]!.specifications,
+            quantity: specifications[p.storagePath]!.quantity,
+          }))}
         onClose={() => setWizardOpen(false)}
         onSubmit={handleSave}
       />

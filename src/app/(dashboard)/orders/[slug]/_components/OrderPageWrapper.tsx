@@ -6,6 +6,7 @@ import { getOrderById } from '@/domain/orders/service';
 import { getUserData } from '@/domain/users/service';
 import { OrdersSchema } from '@/types/schemas';
 import { getUserById } from '@/services/integrations/supabaseAdmin';
+import { getSubcontractedOrders } from '@/domain/collaboration/service';
 import OrderPage from './OrderPage';
 import type { UserProfile } from '@/domain/users/types';
 
@@ -39,6 +40,12 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
             userData?.accountType === 'admin'
           ) {
             setIsAuthorized(true);
+          } else if (userData?.id) {
+            // Check if user is a subcontractor on this order
+            const subOrderIds = await getSubcontractedOrders(userData.id);
+            if (subOrderIds.includes(orderId)) {
+              setIsAuthorized(true);
+            }
           }
 
           // Fetch manufacturer and creator data

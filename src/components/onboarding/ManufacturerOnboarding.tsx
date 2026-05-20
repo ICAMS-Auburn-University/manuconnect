@@ -29,11 +29,14 @@ import { completeManufacturerOnboarding } from '@/domain/auth/service';
 import { isNextRedirectError } from '@/lib/utils/errors';
 import { manufacturerOnboardingSchema } from '@/domain/auth/zod';
 import type { ManufacturerOnboardingFormValues } from '@/domain/auth/types';
+import ManufacturerCapabilitiesStep from '@/components/onboarding/ManufacturerCapabilitiesStep';
 
 export default function ManufacturerOnboarding() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAgreement, setShowAgreement] = useState(false);
+  const [step, setStep] = useState<'company' | 'capabilities' | 'agreement'>(
+    'company'
+  );
   const router = useRouter();
 
   const form = useForm<ManufacturerOnboardingFormValues>({
@@ -51,6 +54,11 @@ export default function ManufacturerOnboarding() {
         country: 'United States',
       },
       representativeRole: '',
+      capabilities: {
+        processes: [],
+        materialCategories: [],
+        certifications: [],
+      },
       agreementAccepted: false,
     },
   });
@@ -66,6 +74,7 @@ export default function ManufacturerOnboarding() {
         stateOfFormation: values.stateOfFormation,
         companyAddress: values.companyAddress,
         representativeRole: values.representativeRole,
+        capabilities: values.capabilities,
         agreementAccepted: values.agreementAccepted,
       });
 
@@ -85,41 +94,106 @@ export default function ManufacturerOnboarding() {
     }
   };
 
-  const handleNextStep = () => {
-    form.trigger([
-      'companyName',
-      'companyType',
-      'stateOfFormation',
-      'companyAddress',
-      'representativeRole',
-    ]);
-    const isFirstStepValid =
-      !form.getFieldState('companyName').invalid &&
-      !form.getFieldState('companyType').invalid &&
-      !form.getFieldState('stateOfFormation').invalid &&
-      !form.getFieldState('representativeRole').invalid &&
-      !form.getFieldState('companyAddress').invalid;
+  const handleNextStep = async () => {
+    if (step === 'company') {
+      await form.trigger([
+        'companyName',
+        'companyType',
+        'stateOfFormation',
+        'companyAddress',
+        'representativeRole',
+      ]);
+      const isFirstStepValid =
+        !form.getFieldState('companyName').invalid &&
+        !form.getFieldState('companyType').invalid &&
+        !form.getFieldState('stateOfFormation').invalid &&
+        !form.getFieldState('representativeRole').invalid &&
+        !form.getFieldState('companyAddress').invalid;
 
-    if (isFirstStepValid) {
-      setShowAgreement(true);
-      window.scrollTo(0, 0);
+      if (isFirstStepValid) {
+        setStep('capabilities');
+        window.scrollTo(0, 0);
+      }
+    } else if (step === 'capabilities') {
+      await form.trigger(['capabilities']);
+      const isCapabilitiesValid =
+        !form.getFieldState('capabilities').invalid;
+
+      if (isCapabilitiesValid) {
+        setStep('agreement');
+        window.scrollTo(0, 0);
+      }
     }
+  };
+
+  const handleBack = () => {
+    if (step === 'capabilities') {
+      setStep('company');
+    } else if (step === 'agreement') {
+      setStep('capabilities');
+    }
+    window.scrollTo(0, 0);
+  };
+
+  const stepTitles = {
+    company: 'Complete Your Profile',
+    capabilities: 'Manufacturing Capabilities',
+    agreement: 'Manufacturer Agreement',
+  };
+
+  const stepDescriptions = {
+    company: 'Please provide your company information to complete your profile.',
+    capabilities:
+      'Tell us about your manufacturing capabilities so we can match you with the right orders.',
+    agreement:
+      'Please review and accept our manufacturer agreement to continue.',
   };
 
   return (
     <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-[#0c2340] mb-2">
-          {showAgreement ? 'Manufacturer Agreement' : 'Complete Your Profile'}
-        </h1>
-        <p className="text-gray-600">
-          {showAgreement
-            ? 'Please review and accept our manufacturer agreement to continue.'
-            : 'Please provide your company information to complete your profile.'}
-        </p>
+      {/* Step Indicator */}
+      <div className="flex items-center justify-center gap-2 text-sm">
+        {(['company', 'capabilities', 'agreement'] as const).map(
+          (s, index) => (
+            <div key={s} className="flex items-center gap-2">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                  step === s
+                    ? 'bg-[#e87722] text-white'
+                    : ['company', 'capabilities', 'agreement'].indexOf(step) >
+                        index
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-200 text-gray-500'
+                }`}
+              >
+                {['company', 'capabilities', 'agreement'].indexOf(step) >
+                index
+                  ? '✓'
+                  : index + 1}
+              </div>
+              {index < 2 && (
+                <div
+                  className={`w-12 h-0.5 ${
+                    ['company', 'capabilities', 'agreement'].indexOf(step) >
+                    index
+                      ? 'bg-green-500'
+                      : 'bg-gray-200'
+                  }`}
+                />
+              )}
+            </div>
+          )
+        )}
       </div>
 
-      {!showAgreement ? (
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-[#0c2340] mb-2">
+          {stepTitles[step]}
+        </h1>
+        <p className="text-gray-600">{stepDescriptions[step]}</p>
+      </div>
+
+      {step === 'company' ? (
         <Form {...form}>
           <form className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -320,8 +394,59 @@ export default function ManufacturerOnboarding() {
               className="bg-[#e87722] text-white w-full rounded-full"
               onClick={handleNextStep}
             >
-              Next: Review Agreement
+              Next: Manufacturing Capabilities
             </Button>
+          </form>
+        </Form>
+      ) : step === 'capabilities' ? (
+        <Form {...form}>
+          <form className="space-y-6">
+            <ManufacturerCapabilitiesStep
+              processes={form.watch('capabilities.processes')}
+              materialCategories={form.watch(
+                'capabilities.materialCategories'
+              )}
+              certifications={form.watch('capabilities.certifications')}
+              onProcessesChange={(val) =>
+                form.setValue('capabilities.processes', val, {
+                  shouldValidate: true,
+                })
+              }
+              onMaterialCategoriesChange={(val) =>
+                form.setValue('capabilities.materialCategories', val, {
+                  shouldValidate: true,
+                })
+              }
+              onCertificationsChange={(val) =>
+                form.setValue('capabilities.certifications', val, {
+                  shouldValidate: true,
+                })
+              }
+              errors={{
+                processes:
+                  form.formState.errors.capabilities?.processes?.message,
+                materialCategories:
+                  form.formState.errors.capabilities?.materialCategories
+                    ?.message,
+              }}
+            />
+
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                className="bg-gray-200 text-gray-800 w-1/2 rounded-full"
+                onClick={handleBack}
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                className="bg-[#e87722] text-white w-1/2 rounded-full"
+                onClick={handleNextStep}
+              >
+                Next: Review Agreement
+              </Button>
+            </div>
           </form>
         </Form>
       ) : (
@@ -358,7 +483,7 @@ export default function ManufacturerOnboarding() {
               <Button
                 type="button"
                 className="bg-gray-200 text-gray-800 w-1/2 rounded-full"
-                onClick={() => setShowAgreement(false)}
+                onClick={handleBack}
               >
                 Back
               </Button>

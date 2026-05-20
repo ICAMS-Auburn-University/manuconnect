@@ -37,9 +37,16 @@ export async function getUserById(userID: string) {
 export async function createUserPfp(userID: string) {
   const supabase = createAdminClient();
 
-  // Access auth admin api
-
-  const UserData = await getUserById(userID);
+  let UserData;
+  try {
+    UserData = await getUserById(userID);
+  } catch {
+    // User may not be immediately available after signup (email confirmation pending)
+    logger.info('createUserPfp: user not yet available, skipping', {
+      userId: userID,
+    });
+    return;
+  }
 
   if (UserData && UserData.user?.user_metadata.profile_picture == '') {
     // Create Random Avatar

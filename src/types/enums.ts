@@ -106,3 +106,11 @@ export enum CompanyType {
   COOP = 'COOP', // Cooperative
   OTHER = 'OTHER', // For entity types not listed
 }
+
+export enum PartStatus {
+  NotStarted = 'Not Started',
+  Received = 'Received',
+  InProgress = 'In Progress',
+  WaitingOnParts = 'Waiting on Parts',
+  Done = 'Done',
+}

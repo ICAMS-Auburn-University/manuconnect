@@ -46,6 +46,7 @@ export async function insertOffer(
         is_accepted: false,
         manufacturer_name: offer.manufacturer_name,
         manufacturer_email: offer.manufacturer_email,
+        part_ids: offer.part_ids ?? [],
       },
     ])
     .select();
@@ -140,6 +141,43 @@ export async function declineOfferById(
   }
 
   return data;
+}
+
+export async function fetchOfferOrderIdsByOfferer(
+  userId: string
+): Promise<string[]> {
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('Offers')
+    .select('order_id')
+    .eq('offerer', userId);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).map((row) => row.order_id);
+}
+
+export async function fetchOfferCountsByOrderIds(
+  orderIds: string[]
+): Promise<Record<string, number>> {
+  if (orderIds.length === 0) return {};
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('Offers')
+    .select('order_id')
+    .in('order_id', orderIds);
+
+  if (error) {
+    throw error;
+  }
+
+  const counts: Record<string, number> = {};
+  for (const row of data || []) {
+    counts[row.order_id] = (counts[row.order_id] || 0) + 1;
+  }
+  return counts;
 }
 
 export async function getCurrentUser() {

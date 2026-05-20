@@ -102,6 +102,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 Home
               </Link>
 
+              <Link
+                href="/cad-upload"
+                className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
+              >
+                CAD Upload
+              </Link>
+
               {(userType === 'creator' || userType === 'admin') && (
                 <>
                   <Link
@@ -128,12 +135,20 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               )}
 
               {(userType === 'manufacturer' || userType === 'admin') && (
-                <Link
-                  href="/orders/browse"
-                  className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
-                >
-                  Browse Orders
-                </Link>
+                <>
+                  <Link
+                    href="/orders/browse"
+                    className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
+                  >
+                    Browse Orders
+                  </Link>
+                  <Link
+                    href="/profile"
+                    className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
+                  >
+                    Shop Profile
+                  </Link>
+                </>
               )}
 
               <Link

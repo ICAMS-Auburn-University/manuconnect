@@ -57,7 +57,7 @@ export interface SpecificationMarking {
   content: string[];
 }
 
-export interface PartSpecificationContent {
+export interface PartSpecificationContent extends Record<string, unknown> {
   material: SpecificationMaterial;
   process: SpecificationProcess;
   tolerances: SpecificationTolerances;

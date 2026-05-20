@@ -23,7 +23,7 @@ export async function insertOrder(orderData: OrdersSchema) {
   const supabase = await createSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from('Orders')
-    .insert(orderData, { upsert: true })
+    .insert(orderData)
     .select();
 
   return { data, error };
@@ -62,7 +62,13 @@ export async function fetchOrdersByCreator(creatorId: string) {
     .eq('creator', creatorId)
     .order('id', { ascending: true });
 
-  return { data, error };
+  // Filter out quick-analysis orders (temporary orders created during quick CAD analysis)
+  const filteredData = data?.filter(order => {
+    const tags = Array.isArray(order.tags) ? order.tags : [];
+    return !tags.includes('quick-analysis');
+  }) || null;
+
+  return { data: filteredData, error };
 }
 
 export async function fetchOrdersByManufacturer(manufacturerId: string) {
@@ -73,7 +79,13 @@ export async function fetchOrdersByManufacturer(manufacturerId: string) {
     .eq('manufacturer', manufacturerId)
     .order('id', { ascending: true });
 
-  return { data, error };
+  // Filter out quick-analysis orders (temporary orders created during quick CAD analysis)
+  const filteredData = data?.filter(order => {
+    const tags = Array.isArray(order.tags) ? order.tags : [];
+    return !tags.includes('quick-analysis');
+  }) || null;
+
+  return { data: filteredData, error };
 }
 
 export async function fetchUnclaimedOrders() {
@@ -84,8 +96,14 @@ export async function fetchUnclaimedOrders() {
     .is('manufacturer', null)
     .eq('isArchived', false);
 
+  // Filter out quick-analysis orders (temporary orders created during quick CAD analysis)
+  const filteredData = data?.filter(order => {
+    const tags = Array.isArray(order.tags) ? order.tags : [];
+    return !tags.includes('quick-analysis');
+  }) || null;
+
   console.log(error);
-  return { data, error };
+  return { data: filteredData, error };
 }
 
 export async function fetchOrderById(orderId: string) {

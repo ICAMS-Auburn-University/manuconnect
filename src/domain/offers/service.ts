@@ -57,6 +57,7 @@ export async function createOffer(input: CreateOfferInput) {
       manufacturer_email: user.email || '',
       manufacturer_name: user.user_metadata?.company_name || '',
       last_update: new Date().toISOString(),
+      part_ids: input.part_ids ?? [],
     };
 
     const offerData = await insertOffer(fullOffer);
@@ -87,24 +88,28 @@ export async function createOffer(input: CreateOfferInput) {
       status: OrderStatus.ManufacturerOffer,
     });
 
-    // Send email to creator
-    const resend = createResendClient();
-    const creatorData = await getUserById(orderDetails.creator);
-    if (!creatorData) {
-      throw new Error('Failed to get creator data');
-    }
+    // Send email to creator (non-blocking)
+    try {
+      const resend = createResendClient();
+      const creatorData = await getUserById(orderDetails.creator);
+      if (!creatorData) {
+        throw new Error('Failed to get creator data');
+      }
 
-    await resend.emails.send({
-      from: 'ManuConnect <alerts@noreply.manuconnect.org>',
-      to: [creatorData.user.email || 'default@example.com'],
-      subject: 'New Offer Received',
-      react: await NewOffer({
-        offer: {
-          ...offerData[0],
-        },
-        email: creatorData.user.email || 'default@example.com',
-      }),
-    });
+      await resend.emails.send({
+        from: 'ManuConnect <alerts@noreply.manuconnect.org>',
+        to: [creatorData.user.email || 'default@example.com'],
+        subject: 'New Offer Received',
+        react: await NewOffer({
+          offer: {
+            ...offerData[0],
+          },
+          email: creatorData.user.email || 'default@example.com',
+        }),
+      });
+    } catch (emailError) {
+      logger.error(emailError, 'offers:createOffer:email');
+    }
 
     // Add events
     await createEvent({
@@ -168,19 +173,23 @@ export async function acceptOffer(offerId: string) {
       throw new Error('Failed to update order');
     }
 
-    // Send email to manufacturer
-    const resend = createResendClient();
-    await resend.emails.send({
-      from: 'ManuConnect <alerts@noreply.manuconnect.org>',
-      to: [manufacturerData.user.email || 'default@example.com'],
-      subject: 'Offer Accepted',
-      react: await OfferAcceptanceEmail({
-        offer: {
-          ...offerData[0],
-        },
-        email: manufacturerData.user.email || 'default@example.com',
-      }),
-    });
+    // Send email to manufacturer (non-blocking)
+    try {
+      const resend = createResendClient();
+      await resend.emails.send({
+        from: 'ManuConnect <alerts@noreply.manuconnect.org>',
+        to: [manufacturerData.user.email || 'default@example.com'],
+        subject: 'Offer Accepted',
+        react: await OfferAcceptanceEmail({
+          offer: {
+            ...offerData[0],
+          },
+          email: manufacturerData.user.email || 'default@example.com',
+        }),
+      });
+    } catch (emailError) {
+      logger.error(emailError, 'offers:acceptOffer:email');
+    }
 
     logger.info(
       `Offer #${abbreviateUUID(offerId)} accepted by creator ${user?.user_metadata?.display_name || null}`

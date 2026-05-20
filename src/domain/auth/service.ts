@@ -18,6 +18,7 @@ import {
 } from './types';
 import { formatDateForPostgres } from '@/lib/utils/transforms';
 import { Address } from '@/types/shared';
+import { insertManufacturerProfile } from '@/lib/supabase/manufacturers';
 
 export async function login({ email, password }: LoginData) {
   logger.info('Auth service: login', { email });
@@ -108,6 +109,27 @@ export async function completeManufacturerOnboarding(
         error.message
       );
       throw new Error(error.message);
+    }
+
+    // Save manufacturing capabilities to manufacturer_profiles table
+    const { user } = await supabaseGetUserServer();
+    if (!user) {
+      throw new Error('Unable to retrieve authenticated user');
+    }
+
+    const { error: profileError } = await insertManufacturerProfile({
+      user_id: user.id,
+      processes: data.capabilities.processes,
+      material_categories: data.capabilities.materialCategories,
+      certifications: data.capabilities.certifications,
+    });
+
+    if (profileError) {
+      logger.error(
+        'Auth service: manufacturer profile creation failed',
+        profileError.message
+      );
+      throw new Error(profileError.message);
     }
 
     logger.info('Auth service: manufacturer onboarding completed successfully');

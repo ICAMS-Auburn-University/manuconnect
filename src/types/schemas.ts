@@ -46,6 +46,7 @@ export interface OffersSchema {
   manufacturer_name: string;
   is_declined: boolean;
   manufacturer_email: string;
+  part_ids?: string[]; // optional: specific part IDs this offer covers
 }
 
 export interface OrdersSchema {
@@ -150,4 +151,27 @@ export interface SplitPartsSchema {
   hierarchy: string[];
   metadata: Record<string, unknown> | null;
   created_at: string;
+}
+
+export interface PartAssignmentsSchema {
+  id: string;
+  order_id: string;
+  part_id: string;
+  assembly_id: string | null;
+  assigned_manufacturer: string | null;
+  manufacturer_name: string;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface ManufacturerProfilesSchema {
+  id: string;
+  user_id: string;
+  processes: string[];
+  material_categories: string[];
+  certifications: string[];
+  created_at: string;
+  updated_at: string;
 }

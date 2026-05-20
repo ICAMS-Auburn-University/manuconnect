@@ -47,6 +47,16 @@ export const creatorOnboardingSchema = z.object({
   timeAccepted: z.date().optional(),
 });
 
+export const manufacturerCapabilitiesSchema = z.object({
+  processes: z
+    .array(z.string())
+    .min(1, { message: 'Select at least one process' }),
+  materialCategories: z
+    .array(z.string())
+    .min(1, { message: 'Select at least one material category' }),
+  certifications: z.array(z.string()).default([]),
+});
+
 export const manufacturerOnboardingSchema = z.object({
   companyName: z.string().min(1, { message: 'Company name is required' }),
   companyType: z.nativeEnum(CompanyType),
@@ -57,6 +67,7 @@ export const manufacturerOnboardingSchema = z.object({
   representativeRole: z
     .string()
     .min(1, { message: 'Representative role is required' }),
+  capabilities: manufacturerCapabilitiesSchema,
   agreementAccepted: z.boolean().refine((val) => val === true, {
     message: 'You must accept the agreement to continue',
   }),

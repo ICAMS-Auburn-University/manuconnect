@@ -70,6 +70,30 @@ export const SPECIFICATIONS = {
     Formed: 'Part is shaped by bending, stamping, or rolling sheet material',
     Additive: 'Part is built layer by layer (3D printing)',
   },
+  // Maps high-level process types to specific manufacturing processes
+  PROCESS_TYPE_TO_PROCESSES: {
+    Machined: [
+      'CNC Milling (3-axis)',
+      'CNC Milling (4-axis)',
+      'CNC Milling (5-axis)',
+      'CNC Turning (Lathe)',
+      'Swiss Screw Machining',
+      'Grinding (Surface)',
+      'Grinding (Cylindrical)',
+      'Grinding (Centerless)',
+      'EDM (Wire)',
+      'EDM (Sinker)',
+    ],
+    Cast: [
+      'Casting (Sand)',
+      'Casting (Investment/Lost wax)',
+      'Casting (Die casting)',
+    ],
+    Forged: ['Forging (Hot)', 'Forging (Cold)'],
+    Molded: ['Injection Molding'],
+    Formed: ['Stamping', 'Laser Cutting', 'Waterjet Cutting', 'Extrusion'],
+    Additive: ['3D Printing (Metal)', '3D Printing (Plastic)'],
+  } as Record<string, string[]>,
   PROCESSES: [
     'CNC Milling (3-axis)',
     'CNC Milling (4-axis)',

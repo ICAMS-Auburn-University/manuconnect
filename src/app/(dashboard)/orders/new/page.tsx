@@ -15,7 +15,7 @@ const NewOrder = async () => {
 
   return (
     <div className="flex justify-center items-center h-full my-auto">
-      <Card className="min-w-full max-w-[700px] my-10">
+      <Card className="w-full max-w-3xl my-10">
         <CardHeader>
           <h1 className="h1">Create a New Order</h1>
         </CardHeader>

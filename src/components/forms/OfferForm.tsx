@@ -44,9 +44,11 @@ const OfferSchema = z.object({
 
 interface OfferFormProps {
   order: OrdersSchema;
+  selectedPartIds?: string[];
+  onOfferCreated?: () => void;
 }
 
-const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
+const OfferForm: React.FC<OfferFormProps> = ({ order, selectedPartIds = [], onOfferCreated }) => {
   const [loading, setLoading] = useState(false);
 
   // Define your form with updated types
@@ -69,9 +71,9 @@ const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
         name === 'projected_units' ||
         name === 'shipping_cost'
       ) {
-        const unitCost = value.unit_cost || 0;
-        const projectedUnits = value.projected_units || 0;
-        const shippingCost = value.shipping_cost || 0;
+        const unitCost = Number(value.unit_cost) || 0;
+        const projectedUnits = Number(value.projected_units) || 0;
+        const shippingCost = Number(value.shipping_cost) || 0;
         const projected_cost = unitCost * projectedUnits + shippingCost;
         form.setValue('projected_cost', projected_cost);
       }
@@ -99,12 +101,14 @@ const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
           projected_units: values.projected_units,
           shipping_cost: values.shipping_cost,
           lead_time: values.lead_time,
+          part_ids: selectedPartIds.length > 0 ? selectedPartIds : undefined,
         });
 
         toast.success(
           'Offer created successfully. The creator will be notified.'
         );
         form.reset();
+        onOfferCreated?.();
       } catch (error) {
         console.error('Error creating offer:', error);
         toast.error(
@@ -120,6 +124,17 @@ const OfferForm: React.FC<OfferFormProps> = ({ order }) => {
     <>
       <Form {...form}>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {selectedPartIds.length > 0 && (
+            <div className="rounded-md bg-blue-50 border border-blue-200 p-3">
+              <p className="text-sm text-blue-800 font-medium">
+                Offering on {selectedPartIds.length} selected part
+                {selectedPartIds.length !== 1 ? 's' : ''}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                Your offer covers only the selected parts, not the full order.
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}

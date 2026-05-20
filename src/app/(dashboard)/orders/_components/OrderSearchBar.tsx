@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { twMerge } from 'tailwind-merge';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Search, X } from 'lucide-react';
+import { Search, X, ArrowUpDown, SlidersHorizontal } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -11,22 +11,42 @@ import {
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   materialTagOptions,
   miscTagOptions,
   processTagOptions,
   TagOption,
 } from '@/types/tags';
+import type { SortOption, QuickFilter } from '@/components/dashboard/BrowseOrdersCard';
 
 interface OrderSearchBarProps {
   className?: string;
   onSearchChange?: (search: string) => void;
   onTagsChange?: (selectedTags: TagOption[]) => void;
+  sortBy: SortOption;
+  onSortChange: (sort: SortOption) => void;
+  quickFilter: QuickFilter;
+  onQuickFilterChange: (filter: QuickFilter) => void;
+  resultCount: number;
+  totalCount: number;
 }
 
 const OrderSearchBar = ({
   className,
   onSearchChange,
   onTagsChange,
+  sortBy,
+  onSortChange,
+  quickFilter,
+  onQuickFilterChange,
+  resultCount,
+  totalCount,
 }: OrderSearchBarProps) => {
   const [searchText, setSearchText] = useState('');
   const [selectedTags, setSelectedTags] = useState<TagOption[]>([]);
@@ -63,31 +83,79 @@ const OrderSearchBar = ({
   };
 
   return (
-    <div className={twMerge('flex flex-col space-y-2 mb-2', className)}>
-      <div className="relative flex items-center">
-        <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={searchText}
-          onChange={handleSearchChange}
-          placeholder="Search orders..."
-          className="pl-10 pr-10"
-        />
-        {searchText && (
-          <button
-            onClick={clearSearch}
-            className="absolute right-3 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+    <div className={twMerge('flex flex-col space-y-2', className)}>
+      {/* Search + Sort row */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchText}
+            onChange={handleSearchChange}
+            placeholder="Search orders..."
+            className="pl-10 pr-10 h-9"
+          />
+          {searchText && (
+            <button
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <Select value={sortBy} onValueChange={(v) => onSortChange(v as SortOption)}>
+          <SelectTrigger className="w-[160px] h-9">
+            <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest first</SelectItem>
+            <SelectItem value="due-date">Due soonest</SelectItem>
+            <SelectItem value="fewest-offers">Fewest offers</SelectItem>
+            <SelectItem value="most-offers">Most offers</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      {/* Quick filters */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {(['all', 'no-offers', 'matching', 'not-offered'] as QuickFilter[]).map(
+          (filter) => {
+            const labels: Record<QuickFilter, string> = {
+              all: 'All',
+              'no-offers': 'No offers',
+              matching: 'Matches shop',
+              'not-offered': "Haven't offered",
+            };
+            return (
+              <Button
+                key={filter}
+                variant={quickFilter === filter ? 'default' : 'outline'}
+                size="sm"
+                className={`h-7 text-xs ${
+                  quickFilter === filter
+                    ? 'bg-[#0c2340] hover:bg-[#0c2340]/90 text-white'
+                    : ''
+                }`}
+                onClick={() => onQuickFilterChange(filter)}
+              >
+                {labels[filter]}
+              </Button>
+            );
+          }
+        )}
+        <span className="text-xs text-muted-foreground ml-auto">
+          {resultCount} of {totalCount} orders
+        </span>
+      </div>
+
+      {/* Tag filters */}
+      <div className="flex flex-wrap gap-1.5">
         {selectedTags.map((tag) => (
           <Badge
             key={tag.id}
             variant="secondary"
-            className="flex items-center gap-1 border-black"
+            className="flex items-center gap-1 text-xs"
           >
             {tag.label}
             <X
@@ -99,11 +167,12 @@ const OrderSearchBar = ({
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-7">
-              Filter
+            <Button variant="outline" size="sm" className="h-6 text-xs px-2">
+              <SlidersHorizontal className="h-3 w-3 mr-1" />
+              Tags
             </Button>
           </PopoverTrigger>
-          <PopoverContent className=" min-w-96 p-0 bg-white" align="start">
+          <PopoverContent className="min-w-96 p-0 bg-white" align="start">
             <Tabs defaultValue="process">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="process">Process</TabsTrigger>
@@ -117,7 +186,7 @@ const OrderSearchBar = ({
                       key={tag.id}
                       variant="ghost"
                       size="sm"
-                      className="justify-start text-left text-sm font-normal border-black"
+                      className="justify-start text-left text-sm font-normal"
                       onClick={() => handleTagSelect(tag)}
                       disabled={isTagSelected(tag.id)}
                     >

@@ -3,9 +3,9 @@ import { useCallback, useState } from 'react';
 import {
   CadServiceError,
   SplitAssemblyParams,
-  SplitAssemblyResult,
   splitAssembly,
 } from '@/services/cad/splitAssembly';
+import type { SplitAssemblyResult } from '@/domain/cad/types';
 
 interface SplitAssemblyState {
   data: SplitAssemblyResult | null;

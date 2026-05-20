@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -28,11 +28,18 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import OrderPartsPreview from '@/components/orders/OrderPartsPreview';
 
 import { startDirectChat } from '@/lib/api/chats';
-const OrderDetails = ({ order }: { order: OrdersSchema | null }) => {
+const OrderDetails = ({ order, onOfferCreated }: { order: OrdersSchema | null; onOfferCreated?: () => void }) => {
   const router = useRouter();
   const [isStartingChat, setIsStartingChat] = useState(false);
+  const [selectedPartIds, setSelectedPartIds] = useState<string[]>([]);
+
+  // Reset selection when switching orders
+  useEffect(() => {
+    setSelectedPartIds([]);
+  }, [order?.id]);
 
   if (!order) {
     return <div>No order selected.</div>;
@@ -143,6 +150,15 @@ const OrderDetails = ({ order }: { order: OrdersSchema | null }) => {
 
           <Separator />
 
+          {/* Parts Breakdown */}
+          <OrderPartsPreview
+            orderId={order.id}
+            selectedPartIds={selectedPartIds}
+            onSelectionChange={setSelectedPartIds}
+          />
+
+          <Separator />
+
           <div className="flex flex-wrap gap-3 w-full">
             <Dialog>
               <DialogTrigger asChild>
@@ -166,7 +182,7 @@ const OrderDetails = ({ order }: { order: OrdersSchema | null }) => {
                 <DialogDescription className="text-muted-foreground">
                   Fill out the form below to create an offer for this order.
                 </DialogDescription>
-                <OfferForm order={order} />
+                <OfferForm order={order} selectedPartIds={selectedPartIds} onOfferCreated={onOfferCreated} />
               </DialogContent>
             </Dialog>
             <Button

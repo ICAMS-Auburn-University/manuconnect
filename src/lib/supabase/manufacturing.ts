@@ -249,3 +249,30 @@ export async function upsertShippingAddress(
     error,
   };
 }
+
+export async function fetchSplitPartsByOrder(orderId: string) {
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('split_parts')
+    .select('*')
+    .eq('order_id', orderId)
+    .order('created_at', { ascending: true });
+
+  return {
+    data: (data as SplitPartsSchema[]) ?? [],
+    error,
+  };
+}
+
+export async function fetchPartSpecificationsByOrder(orderId: string) {
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('part_specifications')
+    .select('*')
+    .eq('order_id', orderId);
+
+  return {
+    data: (data as PartSpecificationsSchema[]) ?? [],
+    error,
+  };
+}

@@ -14,6 +14,7 @@ import { NewOrderConfirmation } from '@/components/emails/order-created-confirma
 import { OrderShippedEmail } from '@/components/emails/order-shipped';
 import { CreateOrderInput } from './types';
 import { abbreviateUUID } from '@/lib/utils/transforms';
+import { fetchPartAssignmentsByOrder } from '@/lib/supabase/part-assignments';
 import {
   getCurrentUser,
   insertOrder,
@@ -31,6 +32,17 @@ const createResendClient = () => {
   }
   return new Resend(env.RESEND_API_KEY);
 };
+
+const REQUIRES_SHIPPED_PARTS = new Set<OrderStatus>([
+  OrderStatus.StartedManufacturing,
+  OrderStatus.QualityCheck,
+  OrderStatus.Shipped,
+  OrderStatus.Completed,
+]);
+
+function requiresShippedPartGate(status: OrderStatus): boolean {
+  return REQUIRES_SHIPPED_PARTS.has(status);
+}
 
 export async function createOrder(data: CreateOrderInput): Promise<{
   data: OrdersSchema[] | null;
@@ -112,7 +124,7 @@ export async function createOrder(data: CreateOrderInput): Promise<{
         orderPayload
       );
       OrderData = updatedData;
-      OrderError = updateError ?? null;
+      OrderError = updateError ? String(updateError) : null;
     } else {
       const { data: insertedData, error: insertError } =
         await insertOrder(orderPayload);
@@ -131,16 +143,20 @@ export async function createOrder(data: CreateOrderInput): Promise<{
     const displayOrderId = abbreviateUUID(orderId);
     logger.info(`Order #${displayOrderId} created`);
 
-    const resend = createResendClient();
-    await resend.emails.send({
-      from: 'ManuConnect <alerts@noreply.manuconnect.org>',
-      to: [user.email || 'default@example.com'],
-      subject: 'Order Confirmation',
-      react: await NewOrderConfirmation({
-        order: OrderData[0],
-        email: user.email || 'default@example.com',
-      }),
-    });
+    try {
+      const resend = createResendClient();
+      await resend.emails.send({
+        from: 'ManuConnect <alerts@noreply.manuconnect.org>',
+        to: [user.email || 'default@example.com'],
+        subject: 'Order Confirmation',
+        react: await NewOrderConfirmation({
+          order: OrderData[0],
+          email: user.email || 'default@example.com',
+        }),
+      });
+    } catch (emailError) {
+      logger.error(emailError, 'orders:createOrder:email');
+    }
 
     await createEvent({
       eventType: EventType.SUCCESS,
@@ -238,6 +254,29 @@ export async function updateOrder(params: Partial<OrdersSchema>) {
       throw new Error('OrdersSchema id is required to update an order');
     }
 
+    if (
+      updateData.status &&
+      requiresShippedPartGate(updateData.status as OrderStatus)
+    ) {
+      const { data: assignments, error: assignmentsError } =
+        await fetchPartAssignmentsByOrder(params.id);
+
+      if (assignmentsError) {
+        logger.error(assignmentsError, 'orders:updateOrder:partAssignments');
+      }
+
+      const assignedParts = assignments ?? [];
+      const unshipped = assignedParts.filter((a) => a.status !== 'Shipped');
+
+      if (assignedParts.length > 0 && unshipped.length > 0) {
+        return {
+          data: null,
+          error:
+            'Cannot advance order status yet. Waiting for all assigned parts to be Shipped.',
+        };
+      }
+    }
+
     const { data: OrderData, error: OrderError } = await updateOrderById(
       params.id,
       updateData
@@ -255,36 +294,44 @@ export async function updateOrder(params: Partial<OrdersSchema>) {
       updateData.status !== OrderStatus.OrderAccepted &&
       updateData.status !== OrderStatus.Shipped
     ) {
-      const UserData = await getUserById(OrderData[0].creator);
-      const resend = createResendClient();
+      try {
+        const UserData = await getUserById(OrderData[0].creator);
+        const resend = createResendClient();
 
-      logger.info('Sending email for order update');
-      // Send email to creator
-      await resend.emails.send({
-        from: 'ManuConnect <alerts@noreply.manuconnect.org>',
-        to: [UserData?.user.email || 'default@example.com'],
-        subject: 'OrdersSchema Update',
-        react: await OrderUpdateEmail({
-          order: OrderData[0],
-          email: UserData?.user.email || 'default@example.com',
-        }),
-      });
+        logger.info('Sending email for order update');
+        // Send email to creator
+        await resend.emails.send({
+          from: 'ManuConnect <alerts@noreply.manuconnect.org>',
+          to: [UserData?.user.email || 'default@example.com'],
+          subject: 'OrdersSchema Update',
+          react: await OrderUpdateEmail({
+            order: OrderData[0],
+            email: UserData?.user.email || 'default@example.com',
+          }),
+        });
+      } catch (emailError) {
+        logger.error(emailError, 'orders:updateOrder:email');
+      }
     }
 
     // Email if status changes from QualityCheck -> OrderShipped
     if (updateData.status === OrderStatus.Shipped) {
-      const UserData = await getUserById(OrderData[0].creator);
-      const resend = createResendClient();
+      try {
+        const UserData = await getUserById(OrderData[0].creator);
+        const resend = createResendClient();
 
-      await resend.emails.send({
-        from: 'ManuConnect <alerts@noreply.manuconnect.org>',
-        to: [UserData?.user.email || 'default@example.com'],
-        subject: 'OrdersSchema Shipped!',
-        react: await OrderShippedEmail({
-          order: OrderData[0],
-          email: UserData?.user.email || 'default@example.com',
-        }),
-      });
+        await resend.emails.send({
+          from: 'ManuConnect <alerts@noreply.manuconnect.org>',
+          to: [UserData?.user.email || 'default@example.com'],
+          subject: 'OrdersSchema Shipped!',
+          react: await OrderShippedEmail({
+            order: OrderData[0],
+            email: UserData?.user.email || 'default@example.com',
+          }),
+        });
+      } catch (emailError) {
+        logger.error(emailError, 'orders:updateOrder:shippedEmail');
+      }
 
       await createEvent({
         eventType: EventType.SUCCESS,
@@ -341,19 +388,43 @@ export async function getManufacturerOrders() {
     return null;
   }
 
+  // Fetch orders where user is the lead manufacturer
   const { data, error } = await fetchOrdersByManufacturer(user.id);
-
-  if (!data) {
-    return null;
-  }
 
   if (error) {
     logger.error(error, 'orders:getManufacturerOrders:query');
-    return null;
   }
 
-  const orders: OrdersSchema[] = data;
-  return orders;
+  const leadOrders: OrdersSchema[] = data ?? [];
+
+  // Also fetch orders where user is a subcontractor
+  try {
+    const { getSubcontractedOrders } = await import(
+      '@/domain/collaboration/service'
+    );
+    const subOrderIds = await getSubcontractedOrders(user.id);
+
+    if (subOrderIds.length > 0) {
+      // Filter out IDs we already have from lead orders
+      const leadIds = new Set(leadOrders.map((o) => o.id));
+      const newIds = subOrderIds.filter((id) => !leadIds.has(id));
+
+      if (newIds.length > 0) {
+        const subOrders: OrdersSchema[] = [];
+        for (const orderId of newIds) {
+          const { data: orderData } = await fetchOrderById(orderId);
+          if (orderData) {
+            subOrders.push(orderData as OrdersSchema);
+          }
+        }
+        return [...leadOrders, ...subOrders];
+      }
+    }
+  } catch (subError) {
+    logger.error(subError, 'orders:getManufacturerOrders:subcontracted');
+  }
+
+  return leadOrders;
 }
 
 export async function getUnclaimedOrders() {

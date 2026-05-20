@@ -83,11 +83,19 @@ const defaultDraft = (): SpecificationDraft => ({
   },
 });
 
+interface ConfiguredPartOption {
+  name: string;
+  storagePath: string;
+  spec: SpecificationDraft;
+  quantity: number;
+}
+
 interface SpecificationWizardProps {
   open: boolean;
   part: PartSummary | null;
   quantity: number;
   defaultValue?: SpecificationDraft | null;
+  configuredParts?: ConfiguredPartOption[];
   onClose: () => void;
   onSubmit: (
     payload: SpecificationDraft & { quantity: number }
@@ -99,6 +107,7 @@ export function SpecificationWizard({
   part,
   quantity,
   defaultValue,
+  configuredParts = [],
   onClose,
   onSubmit,
 }: SpecificationWizardProps) {
@@ -115,7 +124,9 @@ export function SpecificationWizard({
   );
 
   const selectedMaterials =
-    SPECIFICATIONS.MATERIALS[formState.material.category] ?? [];
+    SPECIFICATIONS.MATERIALS[
+      formState.material.category as keyof typeof SPECIFICATIONS.MATERIALS
+    ] ?? [];
 
   const processTypes = useMemo(
     () => Object.keys(SPECIFICATIONS.PROCESS_TYPES ?? {}),
@@ -795,6 +806,39 @@ export function SpecificationWizard({
             Step {step + 1} of {WIZARD_STEPS.length}: {WIZARD_STEPS[step]}
           </DialogDescription>
         </DialogHeader>
+
+        {configuredParts.length > 0 && (
+          <div className="flex items-center gap-2 rounded border border-dashed border-muted-foreground/40 bg-muted/30 px-3 py-2">
+            <span className="shrink-0 text-xs text-muted-foreground">
+              Copy from:
+            </span>
+            <Select
+              onValueChange={(partId) => {
+                const source = configuredParts.find(
+                  (p) => p.storagePath === partId
+                );
+                if (source) {
+                  setFormState(
+                    JSON.parse(JSON.stringify(source.spec)) as SpecificationDraft
+                  );
+                  setQty(source.quantity);
+                  toast.success(`Copied specs from "${source.name}". Review and save.`);
+                }
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Select a part…" />
+              </SelectTrigger>
+              <SelectContent>
+                {configuredParts.map((cp) => (
+                  <SelectItem key={cp.storagePath} value={cp.storagePath}>
+                    {cp.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {renderStep()}
 
