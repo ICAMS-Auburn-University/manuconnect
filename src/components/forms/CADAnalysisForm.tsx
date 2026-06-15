@@ -8,6 +8,7 @@ import { CadSplitViewer } from '@/components/cad/CadSplitViewer';
 import { CADAnalysisResults } from '@/components/cad/CADAnalysisResults';
 import { useSplitAssembly } from '@/hooks/cad/useSplitAssembly';
 import { useAnalyzeCAD } from '@/hooks/cad/useAnalyzeCAD';
+import { submitToRequestQueue } from '@/services/LLM/requestQueue';
 import type { OrdersSchema } from '@/types/schemas';
 
 interface CADAnalysisFormProps {
@@ -19,7 +20,7 @@ export function CADAnalysisForm({ userId, userOrders }: CADAnalysisFormProps) {
   // Quick Analysis state
   const [quickFile, setQuickFile] = useState<File | null>(null);
   const [quickError, setQuickError] = useState<string | null>(null);
-  const { splitAssembly: quickSplitAssembly, data: quickData, error: quickApiError, isLoading: quickLoading } = useSplitAssembly();
+  const { splitAssembly: quickSplitAssembly, error: quickApiError, isLoading: quickLoading } = useSplitAssembly();
   const { analyze: analyzeQuick, data: quickAnalysisData, error: quickAnalysisError, isLoading: quickAnalysisLoading } = useAnalyzeCAD();
 
   // View Order CAD state
@@ -31,15 +32,6 @@ export function CADAnalysisForm({ userId, userOrders }: CADAnalysisFormProps) {
   // Get selected order
   const selectedOrder = userOrders.find((o) => o.id === selectedOrderId);
   const orderCADFiles = selectedOrder?.fileURLs ? selectedOrder.fileURLs.split(',').filter(Boolean) : [];
-
-  // Trigger LLM analysis when quick split data is available
-  useEffect(() => {
-    if (quickData && !quickAnalysisData) {
-      analyzeQuick(quickData).catch((err) => {
-        console.error('Failed to analyze CAD with LLM:', err);
-      });
-    }
-  }, [quickData, quickAnalysisData, analyzeQuick]);
 
   // Trigger LLM analysis when order split data is available
   useEffect(() => {
@@ -72,17 +64,22 @@ export function CADAnalysisForm({ userId, userOrders }: CADAnalysisFormProps) {
       try {
         // Generate a proper UUID for the quick analysis order
         // The backend will recognize it as a quick order based on the database record
-        await quickSplitAssembly({
+        const splitData = await quickSplitAssembly({
           userId,
           orderId: uuidv4(),
           file: quickFile,
+        });
+        const analysis = await analyzeQuick(splitData);
+        await submitToRequestQueue(analysis, {
+          fileName: quickFile.name,
+          fileUrl: splitData.originalPath,
         });
         setQuickFile(null);
       } catch {
         // Error is handled by the hook
       }
     },
-    [quickFile, userId, quickSplitAssembly]
+    [analyzeQuick, quickFile, userId, quickSplitAssembly]
   );
 
   // View Order CAD handler
@@ -172,7 +169,7 @@ export function CADAnalysisForm({ userId, userOrders }: CADAnalysisFormProps) {
           )}
 
           {quickAnalysisData && (
-            <CADAnalysisResults result={quickAnalysisData} />
+            <CADAnalysisResults result={quickAnalysisData} showQueueAction={false} />
           )}
         </form>
       </TabsContent>

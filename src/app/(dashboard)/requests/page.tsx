@@ -131,14 +131,7 @@ export default function RequestsPage() {
                   </div>
 
                   {/* Key Metrics */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md">
-                      <DollarSign className="h-4 w-4 text-brand" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Est. Cost</p>
-                        <p className="font-semibold">${parseFloat(request.analysis.estimatedCost).toFixed(2)}</p>
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md">
                       <Package className="h-4 w-4 text-brand" />
                       <div>

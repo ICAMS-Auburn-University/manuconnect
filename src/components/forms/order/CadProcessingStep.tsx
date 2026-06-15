@@ -22,6 +22,7 @@ interface CadProcessingStepProps {
   onProcessFile: () => Promise<void>;
   onFileSelected: (file: File | null) => void;
   isProcessing: boolean;
+  statusMessage?: string | null;
   errorMessage: string | null;
 }
 
@@ -30,6 +31,7 @@ export function CadProcessingStep({
   onProcessFile,
   onFileSelected,
   isProcessing,
+  statusMessage,
   errorMessage,
 }: CadProcessingStepProps) {
   const form = useFormContext<OrderFormValues>();
@@ -92,7 +94,7 @@ export function CadProcessingStep({
 
       {isProcessing && (
         <p className="text-sm text-muted-foreground">
-          Splitting file into parts...
+          {statusMessage ?? 'Processing assembly...'}
         </p>
       )}
 

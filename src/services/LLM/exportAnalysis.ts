@@ -65,15 +65,8 @@ export function exportAnalysisAsPDF(
 
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
-  
+
   // Wrap each metric in case values are long
-  const costLines = doc.splitTextToSize(`Estimated Cost: ${result.estimatedCost}`, contentWidth);
-  costLines.forEach((line: string) => {
-    checkNewPage();
-    doc.text(line, margin, yPos);
-    yPos += lineHeight;
-  });
-  
   const complexityLines = doc.splitTextToSize(`Manufacturing Complexity: ${result.manufacturingComplexity}`, contentWidth);
   complexityLines.forEach((line: string) => {
     checkNewPage();
@@ -178,7 +171,6 @@ export function exportAnalysisAsCSV(
   // Key Metrics
   rows.push(['Key Metrics']);
   rows.push(['Metric', 'Value']);
-  rows.push(['Estimated Cost', result.estimatedCost]);
   rows.push(['Manufacturing Complexity', result.manufacturingComplexity]);
   rows.push(['Estimated Lead Time', result.estimatedLeadTime]);
   rows.push([]);

@@ -25,17 +25,15 @@ ${partsList}
 Please provide:
 1. A brief summary of the assembly
 2. Key materials needed
-3. Estimated manufacturing cost (rough estimate)
-4. Manufacturing complexity (low/medium/high)
-5. Estimated lead time
-6. Key specifications for manufacturing
-7. Recommendations for optimization
+3. Manufacturing complexity (low/medium/high)
+4. Estimated lead time
+5. Key specifications for manufacturing
+6. Recommendations for optimization
 
 Format your response as JSON with these fields:
 {
   "summary": "...",
   "materials": ["...", "..."],
-  "estimatedCost": "$...",
   "manufacturingComplexity": "medium",
   "estimatedLeadTime": "...",
   "keySpecifications": {"key": "value"},
@@ -60,7 +58,6 @@ function parseAnalysisResponse(response: string): CADAnalysisResult {
     return {
       summary: parsed.summary || 'Assembly analysis complete.',
       materials: Array.isArray(parsed.materials) ? parsed.materials : [],
-      estimatedCost: parsed.estimatedCost || 'Not estimated',
       manufacturingComplexity: parsed.manufacturingComplexity || 'medium',
       estimatedLeadTime: parsed.estimatedLeadTime || 'To be determined',
       keySpecifications: parsed.keySpecifications || {},
@@ -73,7 +70,6 @@ function parseAnalysisResponse(response: string): CADAnalysisResult {
     return {
       summary: 'Analysis complete but could not parse results.',
       materials: [],
-      estimatedCost: 'Unable to estimate',
       manufacturingComplexity: 'medium',
       estimatedLeadTime: 'Unable to estimate',
       keySpecifications: {},

@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { CADAnalysisResult } from '@/services/LLM/types';
-import { CheckCircle2, Package, Zap, Clock, AlertCircle, FileDown, FileText, Send } from 'lucide-react';
+import { CheckCircle2, Zap, Clock, AlertCircle, FileDown, FileText, Send } from 'lucide-react';
 import { exportAnalysisAsPDF, exportAnalysisAsCSV } from '@/services/LLM/exportAnalysis';
 import { useState } from 'react';
 import { submitToRequestQueue } from '@/services/LLM/requestQueue';
@@ -13,12 +13,14 @@ interface CADAnalysisResultsProps {
   result: CADAnalysisResult;
   isLoading?: boolean;
   error?: Error | null;
+  showQueueAction?: boolean;
 }
 
 export function CADAnalysisResults({
   result,
   isLoading = false,
   error = null,
+  showQueueAction = true,
 }: CADAnalysisResultsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -82,18 +84,7 @@ export function CADAnalysisResults({
       </Card>
 
       {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Estimated Cost */}
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Package className="h-4 w-4 text-brand" />
-            <p className="text-xs font-medium text-muted-foreground uppercase">
-              Est. Cost
-            </p>
-          </div>
-          <p className="text-2xl font-bold">${parseFloat(result.estimatedCost).toFixed(2)}</p>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Manufacturing Complexity */}
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -203,6 +194,7 @@ export function CADAnalysisResults({
       </Card>
 
       {/* Send to Manufacturers */}
+      {showQueueAction && (
       <Card className="p-4 bg-gradient-to-br from-brand/5 to-transparent border-brand/50">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -240,6 +232,7 @@ export function CADAnalysisResults({
           </Button>
         </div>
       </Card>
+      )}
     </div>
   );
 }

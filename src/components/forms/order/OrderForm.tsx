@@ -21,9 +21,11 @@ import { SpecificationsOverviewStep } from './SpecificationsOverviewStep';
 import { PartSpecificationsStep } from './PartSpecificationsStep';
 import { OrderFormValues, orderFormSchema } from './schema';
 import { useSplitAssembly } from '@/hooks/cad/useSplitAssembly';
+import { useAnalyzeCAD } from '@/hooks/cad/useAnalyzeCAD';
 import type { PartSummary, SplitAssemblyResult } from '@/domain/cad/types';
 import { createOrder } from '@/domain/orders/service';
 import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
+import { submitToRequestQueue } from '@/services/LLM/requestQueue';
 import type {
   AssemblyClientModel,
   PartSpecificationState,
@@ -80,6 +82,7 @@ export function OrderForm() {
   const [splitErrorMessage, setSplitErrorMessage] = useState<string | null>(
     null
   );
+  const [cadStatusMessage, setCadStatusMessage] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [assemblies, setAssemblies] = useState<AssemblyClientModel[]>([]);
   const [assignedPartIds, setAssignedPartIds] = useState<Set<string>>(
@@ -104,6 +107,11 @@ export function OrderForm() {
     error: cadError,
     isLoading: isProcessingCad,
   } = useSplitAssembly();
+  const {
+    analyze: analyzeCAD,
+    error: analysisError,
+    isLoading: isAnalyzingCad,
+  } = useAnalyzeCAD();
 
   useEffect(() => {
     let isMounted = true;
@@ -362,6 +370,7 @@ export function OrderForm() {
 
   const handleProcessCad = useCallback(async () => {
     setSplitErrorMessage(null);
+    setCadStatusMessage(null);
     const isValid = await form.trigger(['cadFile']);
 
     if (!isValid) {
@@ -383,25 +392,34 @@ export function OrderForm() {
 
     try {
       setFlowError(null);
-      setSplitErrorMessage('Splitting file into parts...');
+      setCadStatusMessage('Splitting file into parts...');
       setAssemblies([]);
       setAssignedPartIds(() => new Set());
       setPartSpecifications({});
       setActiveAssemblyId(null);
       setBuildOrderConfirmed(false);
-      await splitAssembly({
+      const splitData = await splitAssembly({
         userId,
         orderId: draftOrderId,
         file,
       });
+      setCadStatusMessage('Generating manufacturing analysis...');
+      const analysis = await analyzeCAD(splitData);
+      await submitToRequestQueue(analysis, {
+        fileName: file.name,
+        fileUrl: splitData.originalPath,
+      });
+      setCadStatusMessage(null);
+      toast.success('CAD analysis added to the manufacturing request queue.');
     } catch (error) {
+      setCadStatusMessage(null);
       setSplitErrorMessage(
         error instanceof Error
           ? error.message
           : 'Failed to process CAD assembly. Please retry.'
       );
     }
-  }, [draftOrderId, form, splitAssembly, userId]);
+  }, [analyzeCAD, draftOrderId, form, splitAssembly, userId]);
 
   const handleFileSelected = useCallback(
     (file: File | null) => {
@@ -413,6 +431,7 @@ export function OrderForm() {
       setBuildOrderConfirmed(false);
       if (!file) {
         setSplitErrorMessage(null);
+        setCadStatusMessage(null);
         return;
       }
       void handleProcessCad();
@@ -662,6 +681,7 @@ export function OrderForm() {
         form.reset();
         setSplitResult(null);
         setSplitErrorMessage(null);
+        setCadStatusMessage(null);
         setAssemblies([]);
         setAssignedPartIds(() => new Set());
         setPartSpecifications({});
@@ -705,8 +725,14 @@ export function OrderForm() {
                 splitResult={splitResult}
                 onProcessFile={handleProcessCad}
                 onFileSelected={handleFileSelected}
-                isProcessing={isProcessingCad}
-                errorMessage={splitErrorMessage}
+                isProcessing={isProcessingCad || isAnalyzingCad}
+                statusMessage={cadStatusMessage}
+                errorMessage={
+                  splitErrorMessage ??
+                  (analysisError
+                    ? `Analysis failed: ${analysisError.message}`
+                    : null)
+                }
               />
             )}
             {currentStep === 2 && (
