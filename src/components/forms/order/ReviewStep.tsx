@@ -3,15 +3,22 @@
 import { useFormContext } from 'react-hook-form';
 
 import type { SplitAssemblyResult } from '@/domain/cad/types';
+import type { CADAnalysisResult } from '@/services/LLM/types';
+import { CADAnalysisResults } from '@/components/cad/CADAnalysisResults';
 import { OrderFormValues } from './schema';
 import type { AssemblyClientModel } from './types';
 
 interface ReviewStepProps {
   cadResult: SplitAssemblyResult | null;
+  analysisResult: CADAnalysisResult | null;
   assemblies: AssemblyClientModel[];
 }
 
-export function ReviewStep({ cadResult, assemblies }: ReviewStepProps) {
+export function ReviewStep({
+  cadResult,
+  analysisResult,
+  assemblies,
+}: ReviewStepProps) {
   const form = useFormContext<OrderFormValues>();
   const values = form.watch();
   const dueDate = values.dueDate
@@ -131,6 +138,19 @@ export function ReviewStep({ cadResult, assemblies }: ReviewStepProps) {
         ) : (
           <p className="text-sm text-gray-500">
             Upload a CAD assembly in the previous step to review derived parts.
+          </p>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Manufacturing Analysis
+        </h3>
+        {analysisResult ? (
+          <CADAnalysisResults result={analysisResult} showQueueAction={false} />
+        ) : (
+          <p className="text-sm text-gray-500">
+            Process a CAD assembly to generate an analysis before submitting.
           </p>
         )}
       </section>

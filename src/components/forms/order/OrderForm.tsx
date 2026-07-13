@@ -1,7 +1,7 @@
 // Multi-step order creation flow with CAD processing integration.
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,10 +22,12 @@ import { PartSpecificationsStep } from './PartSpecificationsStep';
 import { OrderFormValues, orderFormSchema } from './schema';
 import { useSplitAssembly } from '@/hooks/cad/useSplitAssembly';
 import { useAnalyzeCAD } from '@/hooks/cad/useAnalyzeCAD';
+import { CADAnalysisResults } from '@/components/cad/CADAnalysisResults';
 import type { PartSummary, SplitAssemblyResult } from '@/domain/cad/types';
-import { createOrder } from '@/domain/orders/service';
+import { createOrder, updateOrder } from '@/domain/orders/service';
 import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
 import { submitToRequestQueue } from '@/services/LLM/requestQueue';
+import type { CADAnalysisResult } from '@/services/LLM/types';
 import type {
   AssemblyClientModel,
   PartSpecificationState,
@@ -82,6 +84,8 @@ export function OrderForm() {
   const [splitErrorMessage, setSplitErrorMessage] = useState<string | null>(
     null
   );
+  const [savedAnalysisResult, setSavedAnalysisResult] =
+    useState<CADAnalysisResult | null>(null);
   const [cadStatusMessage, setCadStatusMessage] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [assemblies, setAssemblies] = useState<AssemblyClientModel[]>([]);
@@ -98,6 +102,8 @@ export function OrderForm() {
     useState(false);
   const [isSavingShipping, setIsSavingShipping] = useState(false);
   const [flowError, setFlowError] = useState<string | null>(null);
+  const [isDraftOrderReady, setIsDraftOrderReady] = useState(false);
+  const draftOrderPromiseRef = useRef<Promise<boolean> | null>(null);
 
   const [draftOrderId, setDraftOrderId] = useState(() => crypto.randomUUID());
 
@@ -109,6 +115,7 @@ export function OrderForm() {
   } = useSplitAssembly();
   const {
     analyze: analyzeCAD,
+    data: analysisResult,
     error: analysisError,
     isLoading: isAnalyzingCad,
   } = useAnalyzeCAD();
@@ -141,6 +148,7 @@ export function OrderForm() {
   useEffect(() => {
     let cancelled = false;
     const ensureDraftOrder = async () => {
+      setIsDraftOrderReady(false);
       try {
         const response = await fetch('/api/orders/drafts', {
           method: 'POST',
@@ -157,25 +165,43 @@ export function OrderForm() {
           };
           console.error('Failed to ensure draft order exists', payload?.error);
           if (!cancelled) {
+            setIsDraftOrderReady(false);
             setFlowError(
               'Unable to initialize order. Please refresh and try again.'
             );
           }
+          return false;
         }
+
+        const payload = (await response.json()) as {
+          order?: {
+            cad_analysis?: CADAnalysisResult | null;
+          };
+        };
+
+        if (!cancelled) {
+          setIsDraftOrderReady(true);
+          setFlowError(null);
+          setSavedAnalysisResult(payload.order?.cad_analysis ?? null);
+        }
+        return true;
       } catch (error) {
         console.error('Failed to ensure draft order exists', error);
         if (!cancelled) {
+          setIsDraftOrderReady(false);
           setFlowError(
             'Unable to initialize order. Please refresh and try again.'
           );
         }
+        return false;
       }
     };
 
-    void ensureDraftOrder();
+    draftOrderPromiseRef.current = ensureDraftOrder();
 
     return () => {
       cancelled = true;
+      draftOrderPromiseRef.current = null;
     };
   }, [draftOrderId]);
 
@@ -191,12 +217,6 @@ export function OrderForm() {
       setSplitErrorMessage(cadError.message);
     }
   }, [cadError]);
-
-  useEffect(() => {
-    if (splitResult && currentStep < 2) {
-      setCurrentStep(2);
-    }
-  }, [splitResult, currentStep]);
 
   const stepFieldMap = useMemo<Record<StepIndex, (keyof OrderFormValues)[]>>(
     () => ({
@@ -390,6 +410,17 @@ export function OrderForm() {
       return;
     }
 
+    const draftOrderReady = draftOrderPromiseRef.current
+      ? await draftOrderPromiseRef.current
+      : isDraftOrderReady;
+
+    if (!draftOrderReady) {
+      setSplitErrorMessage(
+        'Your draft order is still being created. Please retry in a moment.'
+      );
+      return;
+    }
+
     try {
       setFlowError(null);
       setCadStatusMessage('Splitting file into parts...');
@@ -398,6 +429,7 @@ export function OrderForm() {
       setPartSpecifications({});
       setActiveAssemblyId(null);
       setBuildOrderConfirmed(false);
+      setSavedAnalysisResult(null);
       const splitData = await splitAssembly({
         userId,
         orderId: draftOrderId,
@@ -405,6 +437,16 @@ export function OrderForm() {
       });
       setCadStatusMessage('Generating manufacturing analysis...');
       const analysis = await analyzeCAD(splitData);
+      setSavedAnalysisResult(analysis);
+
+      const persistResult = await updateOrder({
+        id: draftOrderId,
+        cad_analysis: analysis,
+      });
+      if (persistResult?.error) {
+        toast.error('Analysis was generated, but saving it to the order failed.');
+      }
+
       await submitToRequestQueue(analysis, {
         fileName: file.name,
         fileUrl: splitData.originalPath,
@@ -429,6 +471,7 @@ export function OrderForm() {
       setPartSpecifications({});
       setActiveAssemblyId(null);
       setBuildOrderConfirmed(false);
+      setSavedAnalysisResult(null);
       if (!file) {
         setSplitErrorMessage(null);
         setCadStatusMessage(null);
@@ -664,6 +707,7 @@ export function OrderForm() {
           due_date: dueDate,
           file: splitResult.originalPath,
           tags: values.tags ?? [],
+          cad_analysis: savedAnalysisResult ?? analysisResult ?? null,
           shipping_country: values.shippingCountry,
           shipping_address_1: values.shippingAddress1,
           shipping_address_2: values.shippingAddress2 ?? '',
@@ -687,6 +731,7 @@ export function OrderForm() {
         setPartSpecifications({});
         setActiveAssemblyId(null);
         setBuildOrderConfirmed(false);
+        setSavedAnalysisResult(null);
         setFlowError(null);
         setDraftOrderId(crypto.randomUUID());
         setCurrentStep(0);
@@ -723,6 +768,7 @@ export function OrderForm() {
             {currentStep === 1 && (
               <CadProcessingStep
                 splitResult={splitResult}
+                analysisResult={savedAnalysisResult ?? analysisResult}
                 onProcessFile={handleProcessCad}
                 onFileSelected={handleFileSelected}
                 isProcessing={isProcessingCad || isAnalyzingCad}
@@ -788,7 +834,11 @@ export function OrderForm() {
             )}
             {currentStep === 6 && <ShippingStep isSaving={isSavingShipping} />}
             {currentStep === 7 && (
-              <ReviewStep cadResult={splitResult} assemblies={assemblies} />
+              <ReviewStep
+                cadResult={splitResult}
+                analysisResult={savedAnalysisResult ?? analysisResult}
+                assemblies={assemblies}
+              />
             )}
 
             {errorMessage && (

@@ -113,6 +113,7 @@ export async function createOrder(data: CreateOrderInput): Promise<{
         tracking_number: null,
       },
       livestream_url: '',
+      cad_analysis: data.cad_analysis ?? existingOrder?.cad_analysis ?? null,
     };
 
     let OrderData: OrdersSchema[] | null = null;
@@ -229,6 +230,7 @@ export async function ensureDraftOrder(orderId: string): Promise<OrdersSchema> {
       tracking_number: null,
     },
     livestream_url: '',
+    cad_analysis: null,
   };
 
   const { data: insertedOrder, error: insertError } =

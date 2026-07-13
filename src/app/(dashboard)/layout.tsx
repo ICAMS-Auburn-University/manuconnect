@@ -8,6 +8,7 @@ import Footer from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { getServerSession } from '@/app/_internal/auth/getSession';
+import IdleSignOut from '@/components/auth/IdleSignOut';
 
 export const metadata: Metadata = {
   title: {
@@ -30,6 +31,7 @@ export default async function RootLayout({
 
   return (
     <div>
+      <IdleSignOut />
       <ThemeProvider
         attribute="class"
         defaultTheme="light"

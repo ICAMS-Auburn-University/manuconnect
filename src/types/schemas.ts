@@ -1,3 +1,4 @@
+import type { CADAnalysisResult } from '@/services/LLM/types';
 import { Address } from '@/types/shared';
 
 export interface UsersMapSchema {
@@ -85,6 +86,7 @@ export interface OrdersSchema {
     tracking_number: string | null;
   };
   livestream_url: string;
+  cad_analysis: CADAnalysisResult | null;
 }
 
 export interface AddressesSchema extends Address {

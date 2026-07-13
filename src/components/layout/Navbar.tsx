@@ -38,7 +38,7 @@ const Navbar = async () => {
             <p className="navbarLink hover:underline">Your Orders</p>
           </Link>
           <Link href="/cad-upload">
-            <p className="navbarLink hover:underline">CAD Upload</p>
+            <p className="navbarLink hover:underline">AI Analysis</p>
           </Link>
           {(userType === 'creator' || userType === 'admin') && (
             <>

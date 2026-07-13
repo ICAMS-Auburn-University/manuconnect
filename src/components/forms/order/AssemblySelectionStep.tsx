@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { FolderTree } from 'lucide-react';
+import { FolderTree, Eye } from 'lucide-react';
 
 import { buildPartTree, PartTreeNode } from '@/domain/cad/tree';
 import type { PartSummary } from '@/domain/cad/types';
@@ -21,6 +21,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { PartPreview } from '@/components/cad/STEPViewer/PartPreview';
+import { cn } from '@/lib/utils';
 
 interface AssemblySelectionStepProps {
   parts: PartSummary[];
@@ -37,12 +39,16 @@ const Node = ({
   node,
   selectedPartIds,
   disabledPartIds,
+  previewPartId,
   onToggle,
+  onPreview,
 }: {
   node: PartTreeNode;
   selectedPartIds: Set<string>;
   disabledPartIds: Set<string>;
+  previewPartId: string | null;
   onToggle: (partId: string) => void;
+  onPreview: (partId: string) => void;
 }) => {
   if (!node.part) {
     return (
@@ -58,7 +64,9 @@ const Node = ({
               node={child}
               selectedPartIds={selectedPartIds}
               disabledPartIds={disabledPartIds}
+              previewPartId={previewPartId}
               onToggle={onToggle}
+              onPreview={onPreview}
             />
           ))}
         </div>
@@ -69,9 +77,15 @@ const Node = ({
   const partId = node.part!.storagePath;
   const selected = selectedPartIds.has(partId);
   const disabled = disabledPartIds.has(partId);
+  const isPreviewed = previewPartId === partId;
 
   return (
-    <label className="flex items-center justify-between rounded border border-muted-foreground/40 px-3 py-2 text-sm shadow-sm">
+    <div
+      className={cn(
+        'flex items-center justify-between rounded border px-3 py-2 text-sm shadow-sm transition-colors',
+        isPreviewed ? 'border-blue-500 bg-blue-50' : 'border-muted-foreground/40'
+      )}
+    >
       <div className="flex items-center gap-3">
         <Checkbox
           checked={selected}
@@ -79,18 +93,40 @@ const Node = ({
           onCheckedChange={() => onToggle(partId)}
         />
         <div className="flex flex-col">
-          <span className="font-medium">{node.part.name}</span>
+          <button
+            type="button"
+            onClick={() => onPreview(partId)}
+            className="text-left font-medium text-foreground hover:text-blue-700"
+          >
+            {node.part.name}
+          </button>
+          {node.part.hierarchy.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {node.part.hierarchy.join(' / ')}
+            </span>
+          )}
           <span className="text-xs text-muted-foreground">
             {node.part.storagePath}
           </span>
         </div>
       </div>
-      {disabled && (
-        <Badge variant="secondary" className="text-xs">
-          Assigned
-        </Badge>
-      )}
-    </label>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={isPreviewed ? 'default' : 'outline'}
+          onClick={() => onPreview(partId)}
+        >
+          <Eye className="mr-2 h-4 w-4" />
+          Preview
+        </Button>
+        {disabled && (
+          <Badge variant="secondary" className="text-xs">
+            Assigned
+          </Badge>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -105,6 +141,7 @@ export function AssemblySelectionStep({
   const [selectedPartIds, setSelectedPartIds] = useState<Set<string>>(
     () => new Set()
   );
+  const [previewPartId, setPreviewPartId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [assemblyName, setAssemblyName] = useState('');
   const [dialogError, setDialogError] = useState<string | null>(null);
@@ -117,6 +154,21 @@ export function AssemblySelectionStep({
   const allSelected =
     selectablePartIds.length > 0 &&
     selectablePartIds.every((id) => selectedPartIds.has(id));
+
+  const previewPart = useMemo(
+    () => parts.find((part) => part.storagePath === previewPartId) ?? null,
+    [parts, previewPartId]
+  );
+
+  useEffect(() => {
+    if (previewPart) {
+      return;
+    }
+
+    const nextPreview =
+      parts.find((part) => !assignedPartIds.has(part.storagePath)) ?? parts[0] ?? null;
+    setPreviewPartId(nextPreview?.storagePath ?? null);
+  }, [assignedPartIds, parts, previewPart]);
 
   const toggleAll = () => {
     if (allSelected) {
@@ -194,25 +246,68 @@ export function AssemblySelectionStep({
         )}
       </div>
 
-      <ScrollArea className="h-[360px] rounded border p-4">
-        <div className="space-y-3">
-          {tree.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Upload and split a CAD file to start selecting parts.
-            </p>
-          ) : (
-            tree.map((node) => (
-              <Node
-                key={node.id}
-                node={node}
-                selectedPartIds={selectedPartIds}
-                disabledPartIds={assignedPartIds}
-                onToggle={togglePart}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+        <ScrollArea className="h-[420px] rounded border p-4">
+          <div className="space-y-3">
+            {tree.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Upload and split a CAD file to start selecting parts.
+              </p>
+            ) : (
+              tree.map((node) => (
+                <Node
+                  key={node.id}
+                  node={node}
+                  selectedPartIds={selectedPartIds}
+                  disabledPartIds={assignedPartIds}
+                  previewPartId={previewPartId}
+                  onToggle={togglePart}
+                  onPreview={setPreviewPartId}
+                />
+              ))
+            )}
+          </div>
+        </ScrollArea>
+
+        <div className="space-y-4">
+          {previewPart ? (
+            <>
+              <PartPreview
+                storagePath={previewPart.storagePath}
+                name={previewPart.name}
+                hierarchy={previewPart.hierarchy}
               />
-            ))
+              <div className="rounded border bg-white p-4 text-sm">
+                <h4 className="font-semibold text-gray-900">Previewed part</h4>
+                <dl className="mt-3 space-y-3">
+                  <div>
+                    <dt className="text-xs uppercase text-muted-foreground">Name</dt>
+                    <dd className="font-medium text-gray-900">{previewPart.name}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase text-muted-foreground">Hierarchy</dt>
+                    <dd className="text-gray-900">
+                      {previewPart.hierarchy.length > 0
+                        ? previewPart.hierarchy.join(' / ')
+                        : 'Top level part'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase text-muted-foreground">Storage path</dt>
+                    <dd className="break-all font-mono text-xs text-muted-foreground">
+                      {previewPart.storagePath}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </>
+          ) : (
+            <div className="rounded border bg-white p-4 text-sm text-muted-foreground">
+              Select a part to inspect its 3D model before assigning it to an assembly.
+            </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       <div className="flex flex-wrap items-center justify-end gap-4">
         <Button type="button" onClick={handleOpenDialog}>

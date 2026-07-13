@@ -113,6 +113,8 @@ async function analyzeWithOpenAI(prompt: string): Promise<string> {
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
+  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -120,7 +122,7 @@ async function analyzeWithOpenAI(prompt: string): Promise<string> {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'gpt-4',
+      model,
       messages: [
         {
           role: 'system',

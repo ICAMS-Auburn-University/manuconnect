@@ -89,6 +89,9 @@ async function parseSTEPBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
         'normal',
         new THREE.Float32BufferAttribute(resultMesh.attributes.normal.array, 3)
       );
+      geometry.normalizeNormals();
+    } else {
+      geometry.computeVertexNormals();
     }
 
     // Index
@@ -110,12 +113,14 @@ async function parseSTEPBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
 
     const material = new THREE.MeshStandardMaterial({
       color,
-      metalness: 0.3,
-      roughness: 0.6,
+      metalness: 0.12,
+      roughness: 0.48,
       side: THREE.DoubleSide,
     });
 
     const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
     group.add(mesh);
   }
 

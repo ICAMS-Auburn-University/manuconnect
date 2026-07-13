@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { PartPreview } from '@/components/cad/STEPViewer/PartPreview';
 import { buildPartTree, PartTreeNode } from '@/domain/cad/tree';
 import type { PartSummary, SplitAssemblyResult } from '@/domain/cad/types';
 import { cn } from '@/lib/utils';
@@ -43,13 +45,21 @@ type DrawingUploadState = {
 };
 
 type DrawingStatusMap = Record<string, DrawingUploadState>;
+type PartScope = 'all' | 'assemblies';
 
 interface CadSplitViewerProps {
   splitResult: SplitAssemblyResult;
 }
 
+const partKey = (part: PartSummary) => [...part.hierarchy, part.name].join('/');
+
+const isAncestorPath = (ancestor: string[], descendant: string[]) =>
+  ancestor.length < descendant.length &&
+  ancestor.every((segment, index) => segment === descendant[index]);
+
 export function CadSplitViewer({ splitResult }: CadSplitViewerProps) {
   const [selectedPart, setSelectedPart] = useState<PartSummary | null>(null);
+  const [partScope, setPartScope] = useState<PartScope>('all');
   const [downloadUrls, setDownloadUrls] = useState<Record<string, string>>({});
   const [pendingDownload, setPendingDownload] = useState<string | null>(null);
   const [drawingStatuses, setDrawingStatuses] = useState<DrawingStatusMap>({});
@@ -60,9 +70,36 @@ export function CadSplitViewer({ splitResult }: CadSplitViewerProps) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  const categorizedParts = useMemo(() => {
+    const pathEntries = splitResult.parts.map((part) => ({
+      part,
+      segments: [...part.hierarchy, part.name],
+    }));
+
+    const assemblyParts: PartSummary[] = [];
+
+    pathEntries.forEach((candidate) => {
+      const hasChildren = pathEntries.some((other) =>
+        other.part.storagePath !== candidate.part.storagePath &&
+        isAncestorPath(candidate.segments, other.segments)
+      );
+
+      if (hasChildren) {
+        assemblyParts.push(candidate.part);
+      }
+    });
+
+    return {
+      all: splitResult.parts,
+      assemblies: assemblyParts,
+    } satisfies Record<PartScope, PartSummary[]>;
+  }, [splitResult.parts]);
+
+  const visibleParts = categorizedParts[partScope];
+
   const treeNodes = useMemo(
-    () => buildPartTree(splitResult.parts),
-    [splitResult.parts]
+    () => buildPartTree(visibleParts),
+    [visibleParts]
   );
 
   useEffect(() => {
@@ -75,12 +112,12 @@ export function CadSplitViewer({ splitResult }: CadSplitViewerProps) {
     });
 
     setSelectedPart((prev) => {
-      if (!splitResult.parts.length) {
+      if (!visibleParts.length) {
         return null;
       }
 
       if (prev) {
-        const match = splitResult.parts.find(
+        const match = visibleParts.find(
           (part) => part.storagePath === prev.storagePath
         );
         if (match) {
@@ -88,7 +125,7 @@ export function CadSplitViewer({ splitResult }: CadSplitViewerProps) {
         }
       }
 
-      return splitResult.parts[0];
+      return visibleParts[0];
     });
 
     setDownloadUrls((prev) => {
@@ -100,7 +137,7 @@ export function CadSplitViewer({ splitResult }: CadSplitViewerProps) {
       });
       return next;
     });
-  }, [splitResult]);
+  }, [splitResult, visibleParts]);
 
   const handleDownloadPart = useCallback(
     async (part: PartSummary) => {
@@ -275,56 +312,83 @@ export function CadSplitViewer({ splitResult }: CadSplitViewerProps) {
       </div>
 
       <div className="flex flex-col gap-4">
-        <div className="rounded border border-gray-200 bg-white p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900">
-                Derived parts
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {splitResult.parts.length} generated file
-                {splitResult.parts.length === 1 ? '' : 's'}
-              </p>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+          <div className="rounded border border-gray-200 bg-white p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Split assembly map
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Review generated geometry before continuing. {visibleParts.length}{' '}
+                  visible file{visibleParts.length === 1 ? '' : 's'}
+                </p>
+              </div>
             </div>
+
+            <Tabs
+              value={partScope}
+              onValueChange={(value) => setPartScope(value as PartScope)}
+              className="mt-4"
+            >
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="all">
+                  All ({categorizedParts.all.length})
+                </TabsTrigger>
+                <TabsTrigger value="assemblies">
+                  Whole Parts ({categorizedParts.assemblies.length})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {visibleParts.length === 0 ? (
+              <p className="mt-6 text-sm text-muted-foreground">
+                No items available for this view.
+              </p>
+            ) : (
+              <ScrollArea className="mt-4 h-96 pr-4">
+                <div className="space-y-2">
+                  {treeNodes.map((node) => (
+                    <TreeNode
+                      key={node.id}
+                      node={node}
+                      level={0}
+                      selectedPartId={selectedPart?.storagePath ?? null}
+                      drawingStatuses={drawingStatuses}
+                      downloadUrls={downloadUrls}
+                      pendingDownload={pendingDownload}
+                      onSelectPart={setSelectedPart}
+                      onDownloadPart={handleDownloadPart}
+                      onUploadDrawing={openUploadDialog}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
           </div>
 
-          {splitResult.parts.length === 0 ? (
-            <p className="mt-6 text-sm text-muted-foreground">
-              No parts returned from the CAD service.
-            </p>
-          ) : (
-            <ScrollArea className="mt-4 h-96 pr-4">
-              <div className="space-y-2">
-                {treeNodes.map((node) => (
-                  <TreeNode
-                    key={node.id}
-                    node={node}
-                    level={0}
-                    selectedPartId={selectedPart?.storagePath ?? null}
-                    drawingStatuses={drawingStatuses}
-                    downloadUrls={downloadUrls}
-                    pendingDownload={pendingDownload}
-                    onSelectPart={setSelectedPart}
-                    onDownloadPart={handleDownloadPart}
-                    onUploadDrawing={openUploadDialog}
-                  />
-                ))}
-              </div>
-            </ScrollArea>
-          )}
-        </div>
+          <div className="space-y-4">
+            {selectedPart ? (
+              <PartPreview
+                storagePath={selectedPart.storagePath}
+                name={selectedPart.name}
+                hierarchy={selectedPart.hierarchy}
+              />
+            ) : null}
 
-        <PartDetailsPanel
-          part={selectedPart}
-          drawingStatus={
-            selectedPart ? drawingStatuses[selectedPart.storagePath] : undefined
-          }
-          downloadUrl={
-            selectedPart ? downloadUrls[selectedPart.storagePath] : undefined
-          }
-          pendingDownload={pendingDownload}
-          onDownloadPart={handleDownloadPart}
-        />
+            <PartDetailsPanel
+              part={selectedPart}
+              drawingStatus={
+                selectedPart ? drawingStatuses[selectedPart.storagePath] : undefined
+              }
+              downloadUrl={
+                selectedPart ? downloadUrls[selectedPart.storagePath] : undefined
+              }
+              pendingDownload={pendingDownload}
+              onDownloadPart={handleDownloadPart}
+            />
+          </div>
+        </div>
       </div>
 
       <DrawingUploadDialog
@@ -546,6 +610,10 @@ function PartDetailsPanel({
         <div>
           <dt className="text-xs uppercase text-muted-foreground">Hierarchy</dt>
           <dd className="text-gray-900">{hierarchy}</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase text-muted-foreground">View path</dt>
+          <dd className="font-mono text-xs text-gray-900">{partKey(part)}</dd>
         </div>
         <div>
           <dt className="text-xs uppercase text-muted-foreground">

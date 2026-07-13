@@ -10,7 +10,7 @@ This folder contains LLM integration services for analyzing CAD data.
 ```bash
 # Get API key from https://platform.openai.com/api-keys
 export OPENAI_API_KEY=sk-...
-export OPENAI_MODEL=gpt-4  # or gpt-3.5-turbo
+export OPENAI_MODEL=gpt-4o-mini
 export LLM_PROVIDER=openai
 ```
 
@@ -30,7 +30,7 @@ LLM_PROVIDER=openai
 
 # OpenAI (if using OpenAI)
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4
+OPENAI_MODEL=gpt-4o-mini
 
 # Google Gemini (if using Gemini)
 # GEMINI_API_KEY=...

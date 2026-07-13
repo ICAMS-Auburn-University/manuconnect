@@ -106,7 +106,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 href="/cad-upload"
                 className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
               >
-                CAD Upload
+                AI Analysis
               </Link>
 
               {(userType === 'creator' || userType === 'admin') && (

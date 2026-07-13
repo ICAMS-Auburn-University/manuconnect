@@ -9,6 +9,10 @@ export interface PartTreeNode {
 }
 
 const sortNodes = (nodes: PartTreeNode[]) => {
+  if (!Array.isArray(nodes) || nodes.length === 0) {
+    return;
+  }
+
   nodes.sort((a, b) => {
     const aIsLeaf = Boolean(a.part);
     const bIsLeaf = Boolean(b.part);
@@ -20,10 +24,10 @@ const sortNodes = (nodes: PartTreeNode[]) => {
     return a.label.localeCompare(b.label);
   });
 
-  nodes.forEach((node) => sortNodes(node.children));
+  nodes.forEach((node) => sortNodes(node.children ?? []));
 };
 
-export function buildPartTree(parts: PartSummary[]): PartTreeNode[] {
+export function buildPartTree(parts: PartSummary[] = []): PartTreeNode[] {
   const root: PartTreeNode[] = [];
   const nodeIndex = new Map<string, PartTreeNode>();
 
@@ -49,7 +53,8 @@ export function buildPartTree(parts: PartSummary[]): PartTreeNode[] {
         siblings.push(node);
       }
 
-      siblings = node.children;
+      siblings = node.children ?? [];
+      node.children = siblings;
     });
 
     const partPath = parentPath ? `${parentPath}/${part.name}` : part.name;

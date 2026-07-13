@@ -62,11 +62,27 @@ export function CADAnalysisForm({ userId, userOrders }: CADAnalysisFormProps) {
       setQuickError(null);
 
       try {
-        // Generate a proper UUID for the quick analysis order
-        // The backend will recognize it as a quick order based on the database record
+        const orderId = uuidv4();
+        const draftOrderResponse = await fetch('/api/orders/drafts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ orderId }),
+        });
+
+        if (!draftOrderResponse.ok) {
+          const payload = (await draftOrderResponse.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(
+            payload.error ?? 'Failed to initialize a draft order for CAD analysis.'
+          );
+        }
+
         const splitData = await quickSplitAssembly({
           userId,
-          orderId: uuidv4(),
+          orderId,
           file: quickFile,
         });
         const analysis = await analyzeQuick(splitData);

@@ -1,3 +1,5 @@
+import type { CADAnalysisResult } from '@/services/LLM/types';
+
 export type CreateOrderInput = {
   orderId?: string;
   title: string;
@@ -12,4 +14,5 @@ export type CreateOrderInput = {
   shipping_city: string;
   shipping_state: string;
   shipping_zip: string;
+  cad_analysis?: CADAnalysisResult | null;
 };

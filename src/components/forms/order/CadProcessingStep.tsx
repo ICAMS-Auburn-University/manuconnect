@@ -16,9 +16,12 @@ import { Button } from '@/components/ui/button';
 import { OrderFormValues } from './schema';
 import { SplitAssemblyResult } from '@/domain/cad/types';
 import { CadSplitViewer } from '@/components/cad/CadSplitViewer';
+import { CADAnalysisResults } from '@/components/cad/CADAnalysisResults';
+import type { CADAnalysisResult } from '@/services/LLM/types';
 
 interface CadProcessingStepProps {
   splitResult: SplitAssemblyResult | null;
+  analysisResult: CADAnalysisResult | null;
   onProcessFile: () => Promise<void>;
   onFileSelected: (file: File | null) => void;
   isProcessing: boolean;
@@ -28,6 +31,7 @@ interface CadProcessingStepProps {
 
 export function CadProcessingStep({
   splitResult,
+  analysisResult,
   onProcessFile,
   onFileSelected,
   isProcessing,
@@ -101,6 +105,18 @@ export function CadProcessingStep({
       {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
 
       {splitResult && <CadSplitViewer splitResult={splitResult} />}
+
+      {analysisResult && (
+        <div className="space-y-3">
+          <div>
+            <h3 className="text-base font-semibold">Manufacturing Analysis</h3>
+            <p className="text-sm text-muted-foreground">
+              Generated automatically from the uploaded CAD file.
+            </p>
+          </div>
+          <CADAnalysisResults result={analysisResult} showQueueAction={false} />
+        </div>
+      )}
     </div>
   );
 }

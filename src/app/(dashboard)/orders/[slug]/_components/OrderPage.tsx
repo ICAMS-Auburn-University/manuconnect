@@ -39,6 +39,7 @@ import View3DModel from '@/components/media/ModelViewer';
 import { AssemblyCollaborationTab } from './AssemblyCollaborationTab';
 import type { UserProfile } from '@/domain/users/types';
 import { ChevronRight } from 'lucide-react';
+import { CADAnalysisResults } from '@/components/cad/CADAnalysisResults';
 
 type OrderPageProps = {
   order: OrdersSchema;
@@ -446,6 +447,23 @@ const OrderPage = ({
                         {creatorData?.user_metadata.phone_number || 'Not Found'}
                       </p> */}
                     </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {order.cad_analysis && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Manufacturing Analysis</CardTitle>
+                    <CardDescription>
+                      Saved AI analysis for this order's uploaded CAD model.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <CADAnalysisResults
+                      result={order.cad_analysis}
+                      showQueueAction={false}
+                    />
                   </CardContent>
                 </Card>
               )}
