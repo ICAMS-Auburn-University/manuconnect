@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Inter, Montserrat } from 'next/font/google';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
 const interFont = Inter({
   subsets: ['latin'],
@@ -56,7 +57,10 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           <h5 className="h5">© 2025</h5>
         </div>
       </section>
-      <section className="flex flex-1 flex-col items-center bg-white p-4 py-10 lg:justify-center lg:p-10 lg:py-0">
+      <section className="relative flex flex-1 flex-col items-center bg-background p-4 py-10 text-foreground lg:justify-center lg:p-10 lg:py-0">
+        <div className="absolute right-4 top-4 lg:right-6 lg:top-6">
+          <ThemeToggle />
+        </div>
         {children}
       </section>
     </div>

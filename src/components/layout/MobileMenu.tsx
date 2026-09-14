@@ -14,17 +14,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
 type UserMetadata = {
-  profile_picture?: string;
-  display_name?: string;
-  account_type?: string;
-  company_name?: string;
+  profilePicture?: string;
+  displayName?: string;
+  accountType?: string;
+  companyName?: string;
 };
 
 interface MobileMenuProps {
   userType: string | null;
-  userData: { user_metadata?: UserMetadata } | null;
+  userData: UserMetadata | null;
   initials: string;
 }
 
@@ -38,10 +39,10 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
       <Avatar className="md:hidden">
         <AvatarImage
           src={
-            userData?.user_metadata?.profile_picture
+            userData?.profilePicture
               ? process.env.NEXT_PUBLIC_SUPABASE_URL +
                 '/storage/v1/object/public/' +
-                userData.user_metadata.profile_picture
+                userData.profilePicture
               : ''
           }
         ></AvatarImage>
@@ -71,7 +72,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                     src={
                       process.env.NEXT_PUBLIC_SUPABASE_URL +
                       '/storage/v1/object/public/' +
-                      userData?.user_metadata?.profile_picture
+                      (userData?.profilePicture ?? '')
                     }
                   ></AvatarImage>
                   <AvatarFallback className="bg-brand font-semibold">
@@ -79,17 +80,16 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">
-                    {userData?.user_metadata?.display_name ?? ''}
+                  <p className="font-medium">{userData?.displayName ?? ''}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {userData?.accountType ?? ''}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {userData?.user_metadata?.account_type ?? ''}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {userData?.user_metadata?.company_name}
+                    {userData?.companyName}
                   </p>
                 </div>
               </div>
+              <ThemeToggle compact className="mt-3" />
               <SignOut className="w-full mt-2" />
             </div>
 

@@ -21,6 +21,60 @@ import {
 import { SpecificationWizard } from './SpecificationWizard';
 import { PartCarousel } from './PartCarousel';
 
+interface PartGroup {
+  id: string;
+  parts: PartSummary[];
+  representative: PartSummary;
+  count: number;
+}
+
+const getSimilarityKey = (part: PartSummary): string | null => {
+  const metadata = part.metadata;
+  if (!metadata || typeof metadata !== 'object') {
+    return null;
+  }
+
+  const value = metadata.similarity_key;
+  return typeof value === 'string' && value.trim().length > 0 ? value : null;
+};
+
+const buildPartGroups = (parts: PartSummary[]): PartGroup[] => {
+  const groups = new Map<string, PartGroup>();
+
+  parts.forEach((part) => {
+    const groupId = getSimilarityKey(part) ?? part.storagePath;
+    const existing = groups.get(groupId);
+    if (existing) {
+      existing.parts.push(part);
+      return;
+    }
+
+    groups.set(groupId, {
+      id: groupId,
+      parts: [part],
+      representative: part,
+      count: 1,
+    });
+  });
+
+  return Array.from(groups.values()).map((group) => ({
+    ...group,
+    count: group.parts.length,
+  }));
+};
+
+const totalGroupQuantity = (
+  group: PartGroup,
+  specifications: PartSpecificationState
+) => {
+  const savedTotal = group.parts.reduce(
+    (sum, part) => sum + (specifications[part.storagePath]?.quantity ?? 0),
+    0
+  );
+
+  return savedTotal > 0 ? savedTotal : group.count;
+};
+
 interface PartSpecificationsStepProps {
   assembly: AssemblyClientModel | null;
   parts: PartSummary[];
@@ -59,47 +113,81 @@ export function PartSpecificationsStep({
       .filter((part): part is PartSummary => Boolean(part));
   }, [assembly, parts]);
 
-  const completedPartIds = useMemo(() => {
-    return resolvedParts
-      .filter((part) => Boolean(specifications[part.storagePath]))
-      .map((part) => part.storagePath);
-  }, [resolvedParts, specifications]);
+  const groupedParts = useMemo(
+    () => buildPartGroups(resolvedParts),
+    [resolvedParts]
+  );
+
+  const groupByRepresentativeId = useMemo(
+    () =>
+      new Map(
+        groupedParts.map((group) => [group.representative.storagePath, group])
+      ),
+    [groupedParts]
+  );
+
+  const completedGroupIds = useMemo(() => {
+    return groupedParts
+      .filter((group) =>
+        group.parts.every((part) => Boolean(specifications[part.storagePath]))
+      )
+      .map((group) => group.id);
+  }, [groupedParts, specifications]);
 
   const configuredParts = useMemo(() => {
-    return resolvedParts.filter((p) => Boolean(specifications[p.storagePath]));
-  }, [resolvedParts, specifications]);
+    return groupedParts.filter((group) =>
+      group.parts.every((part) => Boolean(specifications[part.storagePath]))
+    );
+  }, [groupedParts, specifications]);
 
   const unconfiguredParts = useMemo(() => {
-    return resolvedParts.filter((p) => !specifications[p.storagePath]);
-  }, [resolvedParts, specifications]);
+    return groupedParts.filter((group) =>
+      group.parts.some((part) => !specifications[part.storagePath])
+    );
+  }, [groupedParts, specifications]);
 
   const allCompleted =
-    assembly && completedPartIds.length === assembly.partIds.length;
+    assembly && completedGroupIds.length === groupedParts.length;
 
   const currentWizardPart = wizardPartId
-    ? (resolvedParts.find((part) => part.storagePath === wizardPartId) ?? null)
+    ? (groupByRepresentativeId.get(wizardPartId)?.representative ?? null)
+    : null;
+
+  const currentWizardGroup = currentWizardPart
+    ? (groupByRepresentativeId.get(currentWizardPart.storagePath) ?? null)
     : null;
 
   const currentSpecDraft: SpecificationDraft | null = currentWizardPart
-    ? ((specifications[currentWizardPart.storagePath]
-        ?.specifications as SpecificationDraft) ?? null)
+    ? ((currentWizardGroup?.parts
+        .map((part) => specifications[part.storagePath]?.specifications)
+        .find(Boolean) as SpecificationDraft | undefined) ?? null)
     : null;
   const currentQuantity =
-    currentWizardPart && specifications[currentWizardPart.storagePath]
-      ? specifications[currentWizardPart.storagePath].quantity
+    currentWizardGroup
+      ? totalGroupQuantity(currentWizardGroup, specifications)
       : 1;
 
   const handleSave = async (
     payload: SpecificationDraft & { quantity: number }
   ) => {
-    if (!assembly || !currentWizardPart) {
+    if (!assembly || !currentWizardPart || !currentWizardGroup) {
       return;
     }
-    await onSavePartSpecification(
-      currentWizardPart.storagePath,
-      payload,
-      payload.quantity
-    );
+
+    const groupSize = currentWizardGroup.parts.length;
+    const normalizedTotal = Math.max(payload.quantity, groupSize);
+    const baseQuantity = Math.floor(normalizedTotal / groupSize);
+    const remainder = normalizedTotal % groupSize;
+
+    for (const [index, part] of currentWizardGroup.parts.entries()) {
+      const distributedQuantity =
+        baseQuantity + (index < remainder ? 1 : 0);
+      await onSavePartSpecification(
+        part.storagePath,
+        payload,
+        distributedQuantity
+      );
+    }
   };
 
   const openWizard = (partId: string) => {
@@ -114,14 +202,20 @@ export function PartSpecificationsStep({
     setIsApplyingAll(true);
     try {
       const targets = unconfiguredParts;
-      for (const part of targets) {
-        await onSavePartSpecification(
-          part.storagePath,
-          sourceSpec.specifications,
-          sourceSpec.quantity
-        );
+      for (const group of targets) {
+        const totalQuantity = Math.max(sourceSpec.quantity, group.count);
+        const baseQuantity = Math.floor(totalQuantity / group.count);
+        const remainder = totalQuantity % group.count;
+
+        for (const [index, part] of group.parts.entries()) {
+          await onSavePartSpecification(
+            part.storagePath,
+            sourceSpec.specifications,
+            baseQuantity + (index < remainder ? 1 : 0)
+          );
+        }
       }
-      toast.success(`Specifications applied to ${targets.length} parts.`);
+      toast.success(`Specifications applied to ${targets.length} part groups.`);
     } catch (error) {
       const message =
         error instanceof Error
@@ -160,13 +254,19 @@ export function PartSpecificationsStep({
         </Button>
       </div>
 
-      {resolvedParts.length === 0 ? (
+      {groupedParts.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No parts linked to this assembly yet.
         </p>
       ) : (
         <PartCarousel
-          parts={resolvedParts}
+          parts={groupedParts.map((group) => ({
+            ...group.representative,
+            name:
+              group.count > 1
+                ? `${group.representative.name} x ${group.count}`
+                : group.representative.name,
+          }))}
           specifications={specifications}
           onConfigure={openWizard}
         />
@@ -177,16 +277,21 @@ export function PartSpecificationsStep({
           <Copy className="hidden h-5 w-5 shrink-0 text-primary sm:block" />
           <p className="w-full text-sm font-medium sm:w-auto sm:flex-1">
             Apply specifications to all {unconfiguredParts.length} unconfigured
-            part{unconfiguredParts.length === 1 ? '' : 's'}
+            part group{unconfiguredParts.length === 1 ? '' : 's'}
           </p>
           <Select value={applySourceId} onValueChange={setApplySourceId}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Copy from…" />
             </SelectTrigger>
             <SelectContent>
-              {configuredParts.map((part) => (
-                <SelectItem key={part.storagePath} value={part.storagePath}>
-                  {part.name}
+              {configuredParts.map((group) => (
+                <SelectItem
+                  key={group.representative.storagePath}
+                  value={group.representative.storagePath}
+                >
+                  {group.count > 1
+                    ? `${group.representative.name} x ${group.count}`
+                    : group.representative.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -199,14 +304,14 @@ export function PartSpecificationsStep({
           >
             {isApplyingAll
               ? 'Applying…'
-              : `Apply to ${unconfiguredParts.length} parts`}
+              : `Apply to ${unconfiguredParts.length} groups`}
           </Button>
         </div>
       )}
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {completedPartIds.length} of {assembly.partIds.length} parts completed
+          {completedGroupIds.length} of {groupedParts.length} part groups completed
         </p>
         <Button
           type="button"
@@ -229,12 +334,16 @@ export function PartSpecificationsStep({
         quantity={currentQuantity}
         defaultValue={currentSpecDraft}
         configuredParts={configuredParts
-          .filter((p) => p.storagePath !== wizardPartId)
-          .map((p) => ({
-            name: p.name,
-            storagePath: p.storagePath,
-            spec: specifications[p.storagePath]!.specifications,
-            quantity: specifications[p.storagePath]!.quantity,
+          .filter((group) => group.representative.storagePath !== wizardPartId)
+          .map((group) => ({
+            name:
+              group.count > 1
+                ? `${group.representative.name} x ${group.count}`
+                : group.representative.name,
+            storagePath: group.representative.storagePath,
+            spec:
+              specifications[group.representative.storagePath]!.specifications,
+            quantity: totalGroupQuantity(group, specifications),
           }))}
         onClose={() => setWizardOpen(false)}
         onSubmit={handleSave}

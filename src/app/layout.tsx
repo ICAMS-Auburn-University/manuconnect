@@ -21,6 +21,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en" suppressHydrationWarning>
       <body
+        suppressHydrationWarning
         className={`${interFont.className} ${montserratFont.className} antialiased`}
       >
         <ThemeProvider

@@ -28,30 +28,30 @@ export function ReviewStep({
     values.shippingCountry === 'us' ? 'United States' : values.shippingCountry;
 
   return (
-    <div className="space-y-6 rounded border border-gray-200 bg-white p-6">
+    <div className="space-y-6 rounded-xl border border-border bg-card p-6 text-card-foreground">
       <section className="space-y-2">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Order Snapshot
         </h3>
         <div className="space-y-1 text-sm text-gray-700">
           <p>
-            <span className="font-medium text-gray-900">Title:</span>{' '}
+            <span className="font-medium text-card-foreground">Title:</span>{' '}
             {values.title}
           </p>
           <p>
-            <span className="font-medium text-gray-900">Description:</span>{' '}
+            <span className="font-medium text-card-foreground">Description:</span>{' '}
             {values.description}
           </p>
           <p>
-            <span className="font-medium text-gray-900">Units:</span>{' '}
+            <span className="font-medium text-card-foreground">Units:</span>{' '}
             {values.quantity}
           </p>
           <p>
-            <span className="font-medium text-gray-900">Deadline:</span>{' '}
+            <span className="font-medium text-card-foreground">Deadline:</span>{' '}
             {dueDate}
           </p>
           <p>
-            <span className="font-medium text-gray-900">Tags:</span>{' '}
+            <span className="font-medium text-card-foreground">Tags:</span>{' '}
             {values.tags?.length ? values.tags.join(', ') : '—'}
           </p>
         </div>
@@ -62,11 +62,11 @@ export function ReviewStep({
           Shipping
         </h3>
         <address className="not-italic text-sm text-gray-700">
-          <div className="font-medium text-gray-900">
+          <div className="font-medium text-card-foreground">
             {values.shippingRecipient}
           </div>
           {values.shippingCompany && (
-            <div className="text-gray-600">{values.shippingCompany}</div>
+            <div className="text-muted-foreground">{values.shippingCompany}</div>
           )}
           <div>{values.shippingAddress1}</div>
           {values.shippingAddress2 && <div>{values.shippingAddress2}</div>}
@@ -89,22 +89,22 @@ export function ReviewStep({
             {assemblies.map((assembly) => (
               <li
                 key={assembly.id}
-                className="rounded border border-gray-200 bg-gray-50 p-3 text-sm"
+                className="rounded border border-border bg-muted/40 p-3 text-sm"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-gray-900">
+                  <span className="font-semibold text-card-foreground">
                     {assembly.assembly_name}
                   </span>
                   <span className="text-xs uppercase text-gray-500">
                     {assembly.specifications_completed ? 'Complete' : 'Pending'}
                   </span>
                 </div>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-muted-foreground">
                   {assembly.partIds.length} part
                   {assembly.partIds.length === 1 ? '' : 's'}
                 </p>
                 {assembly.build_order && (
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-muted-foreground">
                     Phase #{assembly.build_order}
                   </p>
                 )}
@@ -128,7 +128,7 @@ export function ReviewStep({
               {cadResult.parts.map((part) => (
                 <li
                   key={part.storagePath}
-                  className="rounded border border-gray-200 bg-gray-50 p-3 font-mono text-xs"
+                  className="rounded border border-border bg-muted/40 p-3 font-mono text-xs"
                 >
                   {part.storagePath}
                 </li>

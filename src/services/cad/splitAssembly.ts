@@ -63,6 +63,7 @@ const normalizePart = (entry: SplitPartApiEntry): PartSummary => {
     name,
     hierarchy,
     storagePath,
+    metadata: entry.metadata ?? null,
   };
 };
 

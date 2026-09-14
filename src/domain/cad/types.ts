@@ -2,6 +2,7 @@ export interface SplitPartFile {
   name: string;
   hierarchy: string[];
   storage_path: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 export type SplitPartApiEntry = SplitPartFile | string;
@@ -17,6 +18,7 @@ export interface PartSummary {
   name: string;
   hierarchy: string[];
   storagePath: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface SplitJobResponse {

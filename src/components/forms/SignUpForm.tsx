@@ -77,7 +77,7 @@ const SignUpForm = () => {
         onSubmit={form.handleSubmit(onSubmit)}
         className="auth-form max-w-sm"
       >
-        <h1 className="h1 mb-2 text-[#0c2340]">Sign Up</h1>
+        <h1 className="h1 mb-2 text-foreground">Sign Up</h1>
 
         {/* Personal Information */}
         <FormField
@@ -243,7 +243,7 @@ const SignUpForm = () => {
 
         {/* Success Message */}
         {isSuccess && (
-          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md text-green-800 font-medium text-sm text-center">
+          <div className="mt-3 rounded-md border border-green-200 bg-green-50 p-3 text-center text-sm font-medium text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">
             Success! Please check your email for a confirmation link.
             <br />
             After verification, you&apos;ll complete your account setup.
@@ -251,8 +251,8 @@ const SignUpForm = () => {
         )}
 
         {/* Form Footer */}
-        <div className="mt-4 text-center">
-          <p className="text-sm flex items-center justify-center">
+        <div className="mt-4 text-center text-muted-foreground">
+          <p className="flex items-center justify-center text-sm">
             Already have an account?
             <Link href="/sign-in" className="ml-1 font-medium text-[#e87722]">
               Sign In

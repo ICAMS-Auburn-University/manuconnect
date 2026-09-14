@@ -74,8 +74,8 @@ export function PartCarousel({
 
   if (parts.length === 0) {
     return (
-      <div className="flex h-[360px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
-        <p className="text-center text-sm text-gray-400">
+      <div className="flex h-[360px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/30">
+        <p className="text-center text-sm text-muted-foreground">
           No parts linked to this assembly yet.
         </p>
       </div>
@@ -89,7 +89,7 @@ export function PartCarousel({
         className="w-full animate-in fade-in slide-in-from-top-2 duration-300"
       >
         {expandedPartId && (
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             <PartPreview
               storagePath={expandedPartId}
               name={
@@ -179,10 +179,10 @@ export function PartCarousel({
               <button
                 onClick={scrollPrev}
                 disabled={!canScrollPrev}
-                className="relative -left-3 inline-flex items-center justify-center rounded-full bg-white p-2 shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg z-10"
+                className="relative z-10 -left-3 inline-flex items-center justify-center rounded-full bg-card p-2 shadow-md transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Previous slide"
               >
-                <ChevronLeft className="h-5 w-5 text-gray-700" />
+                <ChevronLeft className="h-5 w-5 text-foreground" />
               </button>
             </div>
           )}
@@ -192,10 +192,10 @@ export function PartCarousel({
               <button
                 onClick={scrollNext}
                 disabled={!canScrollNext}
-                className="relative -right-3 inline-flex items-center justify-center rounded-full bg-white p-2 shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg z-10"
+                className="relative z-10 -right-3 inline-flex items-center justify-center rounded-full bg-card p-2 shadow-md transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Next slide"
               >
-                <ChevronRight className="h-5 w-5 text-gray-700" />
+                <ChevronRight className="h-5 w-5 text-foreground" />
               </button>
             </div>
           )}

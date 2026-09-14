@@ -55,7 +55,7 @@ const SignInForm = () => {
         onSubmit={form.handleSubmit(onSubmit)}
         className="auth-form max-w-sm"
       >
-        <h1 className="h1 mb-2 text-[#0c2340]">Sign In</h1>
+        <h1 className="h1 mb-2 text-foreground">Sign In</h1>
 
         <FormField
           control={form.control}
@@ -118,7 +118,7 @@ const SignInForm = () => {
         {errorMessage && (
           <p className="error-message text-red font-bold">*{errorMessage}</p>
         )}
-        <div className="body-2 flex flex-col justify-center text-center">
+        <div className="body-2 flex flex-col justify-center text-center text-muted-foreground">
           <div className="flex justify-center">
             <p>Don&apos;t have an account?</p>
             <Link href="/sign-up" className="ml-1 font-medium text-[#e87722]">

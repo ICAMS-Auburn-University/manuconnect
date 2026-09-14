@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/popover';
 import MobileMenu from '@/components/layout/MobileMenu';
 import { Mail } from 'lucide-react';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
 const Navbar = async () => {
   const userType = await getAccountType();
@@ -97,7 +98,10 @@ const Navbar = async () => {
                 </AvatarFallback>
               </Avatar>
             </PopoverTrigger>
-            <PopoverContent className="bg-white w-40 p-2" align="end">
+            <PopoverContent
+              className="w-64 border-border/60 bg-card/95 p-3 backdrop-blur"
+              align="end"
+            >
               <p className="h4">{userData?.displayName ?? 'N/A'}</p>
               <p className="text-sm text-muted-foreground">
                 {userData?.accountType ?? 'N/A'}
@@ -105,8 +109,14 @@ const Navbar = async () => {
               <p className="text-sm text-muted-foreground">
                 {userData?.companyName ?? 'N/A'}
               </p>
-              <div className="flex flex-col gap-2">
-                <SignOut className="p-0 text-right w-full bg-black text-white" />
+              <div className="mt-4 space-y-2 border-t border-border/70 pt-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Appearance
+                </p>
+                <ThemeToggle compact />
+              </div>
+              <div className="mt-3 border-t border-border/70 pt-3">
+                <SignOut className="w-full" />
               </div>
             </PopoverContent>
           </Popover>

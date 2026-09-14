@@ -15,7 +15,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { OrderFormValues } from './schema';
 import { SplitAssemblyResult } from '@/domain/cad/types';
-import { CadSplitViewer } from '@/components/cad/CadSplitViewer';
 import { CADAnalysisResults } from '@/components/cad/CADAnalysisResults';
 import type { CADAnalysisResult } from '@/services/LLM/types';
 
@@ -62,9 +61,9 @@ export function CadProcessingStep({
                 individual part files and auto-populate metadata where possible.
               </FormDescription>
               <FormControl>
-                <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded border-2 border-dashed border-gray-300 p-6 text-center hover:border-blue-500">
-                  <UploadCloud className="h-8 w-8 text-blue-500" />
-                  <span className="text-sm text-gray-600">
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-muted/20 p-6 text-center transition-colors hover:border-primary">
+                  <UploadCloud className="h-8 w-8 text-primary" />
+                  <span className="text-sm text-muted-foreground">
                     {field.value instanceof File
                       ? field.value.name
                       : 'Drop your .step or .iges file here, or click to select'}
@@ -91,7 +90,7 @@ export function CadProcessingStep({
         >
           {isProcessing ? 'Processing assembly…' : 'Process assembly'}
         </Button>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           We store the original file and its parts in Supabase for you.
         </p>
       </div>
@@ -103,8 +102,6 @@ export function CadProcessingStep({
       )}
 
       {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
-
-      {splitResult && <CadSplitViewer splitResult={splitResult} />}
 
       {analysisResult && (
         <div className="space-y-3">

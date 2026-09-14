@@ -762,7 +762,7 @@ export function OrderForm() {
 
           <form
             onSubmit={handleSubmit}
-            className="space-y-8 rounded border border-gray-200 bg-white p-6"
+            className="space-y-8 rounded-xl border border-border bg-card p-6 text-card-foreground shadow-sm"
           >
             {currentStep === 0 && <OrderDetailsStep />}
             {currentStep === 1 && (

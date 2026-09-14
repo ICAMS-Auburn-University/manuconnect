@@ -451,23 +451,6 @@ const OrderPage = ({
                 </Card>
               )}
 
-              {order.cad_analysis && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Manufacturing Analysis</CardTitle>
-                    <CardDescription>
-                      Saved AI analysis for this order's uploaded CAD model.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <CADAnalysisResults
-                      result={order.cad_analysis}
-                      showQueueAction={false}
-                    />
-                  </CardContent>
-                </Card>
-              )}
-
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -487,6 +470,23 @@ const OrderPage = ({
               </Card>
             </div>
           </div>
+
+          {order.cad_analysis && (
+            <section className="space-y-4">
+              <div className="space-y-1">
+                <h2 className="text-xl font-semibold tracking-tight">
+                  Manufacturing Analysis
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Saved AI analysis for this order&apos;s uploaded CAD model.
+                </p>
+              </div>
+              <CADAnalysisResults
+                result={order.cad_analysis}
+                showQueueAction={false}
+              />
+            </section>
+          )}
         </TabsContent>
 
         <TabsContent value="model" className="space-y-6">
