@@ -29,11 +29,11 @@ export default async function RootLayout({
   }
 
   return (
-    <div>
+    <div className="relative min-h-screen bg-background text-foreground">
       <IdleSignOut />
       <div className="flex justify-center items-center flex-col max-w-7xl mx-auto sm:px-16 px-6 min-h-screen">
-        {/* Alert Bar Here */}
         <Navbar />
+        {/* Alert Bar Here */}
         {children}
         <Toaster />
         <Footer />

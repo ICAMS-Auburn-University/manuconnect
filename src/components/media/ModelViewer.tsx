@@ -10,6 +10,7 @@ import { OrdersSchema } from '@/types/schemas';
 import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
 import { useSTEPLoader } from '@/components/cad/hooks/useSTEPLoader';
 import { STEPViewer } from '@/components/cad/STEPViewer/STEPViewer';
+import { buildPublicStorageUrl, parseStoragePath } from '@/lib/storage/paths';
 
 const DEFAULT_MODEL_PATH = '/error.glb';
 const STORAGE_BUCKET = 'project-files';
@@ -17,17 +18,88 @@ const STORAGE_BUCKET = 'project-files';
 const STEP_EXTENSIONS = ['.stp', '.step', '.stpz'];
 
 function isStepFile(path: string): boolean {
-  const lower = path.toLowerCase();
+  const lower = getComparablePath(path).toLowerCase();
   return STEP_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
-function normalizeStorageObjectPath(path: string): string {
-  const trimmed = path.trim().replace(/^\/+/, '');
-  const bucketPrefix = `${STORAGE_BUCKET}/`;
-  if (trimmed.startsWith(bucketPrefix)) {
-    return trimmed.slice(bucketPrefix.length);
+function getComparablePath(path: string): string {
+  try {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return new URL(path).pathname;
+    }
+  } catch {
+    // Fall back to the raw path if URL parsing fails.
   }
-  return trimmed;
+
+  return path;
+}
+
+function normalizeStoragePath(path: string): string {
+  const trimmed = path.trim().replace(/^\/+/, '');
+
+  try {
+    const parsed = parseStoragePath(trimmed);
+    return `${parsed.bucket}/${parsed.path}`;
+  } catch {
+    return trimmed;
+  }
+}
+
+function getStorageLocation(path: string): { bucket: string; objectPath: string } {
+  const normalized = normalizeStoragePath(path);
+
+  try {
+    const parsed = parseStoragePath(normalized);
+    return { bucket: parsed.bucket, objectPath: parsed.path };
+  } catch {
+    return { bucket: STORAGE_BUCKET, objectPath: normalized };
+  }
+}
+
+function extractCandidatePaths(value: unknown): string[] {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === 'null' || trimmed === 'undefined') {
+      return [];
+    }
+    return [trimmed];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => extractCandidatePaths(entry));
+  }
+
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return [
+      ...extractCandidatePaths(record.storage_path),
+      ...extractCandidatePaths(record.storagePath),
+      ...extractCandidatePaths(record.path),
+      ...extractCandidatePaths(record.url),
+      ...extractCandidatePaths(record.original),
+      ...extractCandidatePaths(record.file),
+    ];
+  }
+
+  return [];
+}
+
+function choosePreferredModelPath(paths: string[]): string | null {
+  const normalized = paths
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  const preferred =
+    normalized.find((value) => /(^|\/)original\//i.test(value)) ??
+    normalized.find((value) => !/(^|\/)parts\//i.test(value)) ??
+    normalized[0];
+
+  return preferred ?? null;
 }
 
 function Model({
@@ -60,26 +132,23 @@ function resolveFilePath(fileURLs: OrdersSchema['fileURLs']): string | null {
   if (rawValue.startsWith('[') || rawValue.startsWith('{')) {
     try {
       const parsed = JSON.parse(rawValue);
-
-      if (Array.isArray(parsed)) {
-        const candidate = parsed.find(
-          (value) => typeof value === 'string' && value.trim().length > 0
-        );
-
-        if (typeof candidate === 'string') {
-          return candidate.trim();
-        }
-      }
-
-      if (typeof parsed === 'string' && parsed.trim().length > 0) {
-        return parsed.trim();
-      }
+      return choosePreferredModelPath(extractCandidatePaths(parsed));
     } catch (error) {
       console.warn('Unable to parse order file URLs', error);
     }
   }
 
-  return rawValue;
+  if (rawValue.startsWith('{') && rawValue.endsWith('}')) {
+    const entries = rawValue
+      .slice(1, -1)
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    return choosePreferredModelPath(entries);
+  }
+
+  return choosePreferredModelPath([rawValue]);
 }
 
 function STEPModelViewer({ storagePath }: { storagePath: string }) {
@@ -191,20 +260,23 @@ function GLTFModelViewer({ modelPath }: { modelPath: string | null }) {
 
       try {
         const supabase = await createSupabaseBrowserClient();
-        const objectPath = normalizeStorageObjectPath(modelPath);
+        const { bucket, objectPath } = getStorageLocation(modelPath);
 
         const { data, error } = await supabase.storage
-          .from(STORAGE_BUCKET)
+          .from(bucket)
           .createSignedUrl(objectPath, 60 * 60);
 
         let resolvedUrl = data?.signedUrl ?? null;
 
         if (!resolvedUrl) {
           const publicUrlResult = supabase.storage
-            .from(STORAGE_BUCKET)
+            .from(bucket)
             .getPublicUrl(objectPath);
 
-          resolvedUrl = publicUrlResult.data?.publicUrl ?? null;
+          resolvedUrl =
+            publicUrlResult.data?.publicUrl ??
+            buildPublicStorageUrl(`${bucket}/${objectPath}`) ??
+            null;
         }
 
         if (!resolvedUrl) {
@@ -363,9 +435,7 @@ export default function View3DModel({ order }: { order: OrdersSchema }) {
   if (isStep) {
     const storagePath = modelPath.startsWith('http')
       ? modelPath
-      : modelPath.startsWith(`${STORAGE_BUCKET}/`)
-        ? modelPath
-        : `${STORAGE_BUCKET}/${normalizeStorageObjectPath(modelPath)}`;
+      : normalizeStoragePath(modelPath);
 
     return (
       <div className="space-y-4">
@@ -392,9 +462,9 @@ function DownloadButton({ modelPath }: { modelPath: string }) {
 
       try {
         const supabase = await createSupabaseBrowserClient();
-        const objectPath = normalizeStorageObjectPath(modelPath);
+        const { bucket, objectPath } = getStorageLocation(modelPath);
         const { data } = await supabase.storage
-          .from(STORAGE_BUCKET)
+          .from(bucket)
           .createSignedUrl(objectPath, 60 * 60);
 
         if (isMounted && data?.signedUrl) {

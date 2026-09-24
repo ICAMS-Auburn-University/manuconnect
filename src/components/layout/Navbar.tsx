@@ -14,7 +14,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import MobileMenu from '@/components/layout/MobileMenu';
-import { Mail } from 'lucide-react';
+import { Mail, Settings } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
 const Navbar = async () => {
@@ -24,7 +24,7 @@ const Navbar = async () => {
 
   console.log('userData in Navbar:', userData);
   return (
-    <div className="w-full mt-2 rounded-md border-zinc-200 border text-black shadow-sm">
+    <div className="mt-2 w-full rounded-md border border-border/70 bg-card/95 text-foreground shadow-sm backdrop-blur">
       <div className="flex content-between items-center p-2 px-4">
         <div className="flex-1 flex items-center">
           <Link href="/" className="flex items-center">
@@ -34,12 +34,16 @@ const Navbar = async () => {
         </div>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex gap-[16px] justify-center items-center">
+        <div className="hidden md:flex gap-3 justify-center items-center">
           <Link href="/orders">
-            <p className="navbarLink hover:underline">Your Orders</p>
+            <p className="navbarLink text-foreground hover:text-brand hover:underline">
+              Your Orders
+            </p>
           </Link>
           <Link href="/cad-upload">
-            <p className="navbarLink hover:underline">AI Analysis</p>
+            <p className="navbarLink text-foreground hover:text-brand hover:underline">
+              AI Analysis
+            </p>
           </Link>
           {(userType === 'creator' || userType === 'admin') && (
             <>
@@ -70,18 +74,21 @@ const Navbar = async () => {
                   <p className="navbarLink text-white">Browse Orders</p>
                 </Button>
               </Link>
-              <Link href="/profile">
-                <p className="navbarLink hover:underline">Shop Profile</p>
-              </Link>
             </>
           )}
 
           <Link href="/messages">
-            <Button className="bg-brand px-2 py-1 h-fit hover:bg-brand-100 transition">
-              <Mail className="h-4 w-4 mr-2" />
-              <p className="navbarLink text-white">Messages</p>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 border-border/70 bg-background/80 hover:bg-muted"
+              aria-label="Messages"
+            >
+              <Mail className="h-4 w-4" />
             </Button>
           </Link>
+
+          <ThemeToggle iconOnly />
 
           <Popover>
             <PopoverTrigger>
@@ -109,12 +116,15 @@ const Navbar = async () => {
               <p className="text-sm text-muted-foreground">
                 {userData?.companyName ?? 'N/A'}
               </p>
-              <div className="mt-4 space-y-2 border-t border-border/70 pt-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Appearance
-                </p>
-                <ThemeToggle compact />
-              </div>
+              {(userType === 'manufacturer' || userType === 'admin') && (
+                <Link
+                  href="/profile"
+                  className="mt-4 flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+                >
+                  <Settings className="h-4 w-4" />
+                  Shop Profile
+                </Link>
+              )}
               <div className="mt-3 border-t border-border/70 pt-3">
                 <SignOut className="w-full" />
               </div>

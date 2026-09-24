@@ -14,7 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { Settings } from 'lucide-react';
 
 type UserMetadata = {
   profilePicture?: string;
@@ -89,7 +89,15 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                   </p>
                 </div>
               </div>
-              <ThemeToggle compact className="mt-3" />
+              {(userType === 'manufacturer' || userType === 'admin') && (
+                <Link
+                  href="/profile"
+                  className="mb-2 flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+                >
+                  <Settings className="h-4 w-4" />
+                  Shop Profile
+                </Link>
+              )}
               <SignOut className="w-full mt-2" />
             </div>
 
@@ -141,12 +149,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                     className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
                   >
                     Browse Orders
-                  </Link>
-                  <Link
-                    href="/profile"
-                    className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
-                  >
-                    Shop Profile
                   </Link>
                 </>
               )}

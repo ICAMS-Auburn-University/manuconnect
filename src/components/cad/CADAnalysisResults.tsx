@@ -41,7 +41,7 @@ export function CADAnalysisResults({
 
   if (isLoading) {
     return (
-      <Card className="p-6 bg-muted/50">
+      <Card className="bg-muted/50 p-6 sm:p-7">
         <div className="flex items-center gap-2">
           <div className="animate-spin">⚙️</div>
           <p className="text-sm text-muted-foreground">
@@ -54,7 +54,7 @@ export function CADAnalysisResults({
 
   if (error) {
     return (
-      <Card className="p-4 border-red-200 bg-red-50/50">
+      <Card className="border-red-200 bg-red-50/50 p-5 sm:p-6 dark:border-red-900/60 dark:bg-red-950/20">
         <div className="flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
           <div>
@@ -69,14 +69,14 @@ export function CADAnalysisResults({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Summary Card */}
-      <Card className="p-6 border-brand/50 bg-gradient-to-br from-brand/5 to-transparent">
-        <div className="flex items-start gap-3">
+      <Card className="border-brand/40 bg-gradient-to-br from-brand/5 to-transparent p-6 sm:p-7">
+        <div className="flex items-start gap-4">
           <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h3 className="font-semibold mb-2">Analysis Summary</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+          <div className="flex-1 space-y-2">
+            <h3 className="text-base font-semibold">Analysis Summary</h3>
+            <p className="text-sm leading-7 text-muted-foreground">
               {result.summary}
             </p>
           </div>
@@ -84,10 +84,10 @@ export function CADAnalysisResults({
       </Card>
 
       {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Manufacturing Complexity */}
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
+        <Card className="p-5 sm:p-6">
+          <div className="mb-3 flex items-center gap-2">
             <Zap className="h-4 w-4 text-orange-500" />
             <p className="text-xs font-medium text-muted-foreground uppercase">
               Complexity
@@ -101,8 +101,8 @@ export function CADAnalysisResults({
         </Card>
 
         {/* Lead Time */}
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
+        <Card className="p-5 sm:p-6">
+          <div className="mb-3 flex items-center gap-2">
             <Clock className="h-4 w-4 text-blue-500" />
             <p className="text-xs font-medium text-muted-foreground uppercase">
               Lead Time
@@ -114,12 +114,15 @@ export function CADAnalysisResults({
 
       {/* Materials */}
       {result.materials && result.materials.length > 0 && (
-        <Card className="p-4">
-          <h4 className="font-semibold mb-3 text-sm">Materials Required</h4>
-          <div className="space-y-2">
+        <Card className="p-5 sm:p-6">
+          <h4 className="mb-4 text-sm font-semibold">Materials Required</h4>
+          <div className="space-y-3">
             {result.materials.map((material, idx) => (
-              <div key={idx} className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                <span className="text-sm">{material}</span>
+              <div
+                key={idx}
+                className="rounded-lg bg-muted/50 px-3 py-3 text-sm leading-6"
+              >
+                <span>{material}</span>
               </div>
             ))}
           </div>
@@ -129,16 +132,22 @@ export function CADAnalysisResults({
       {/* Key Specifications */}
       {result.keySpecifications &&
         Object.keys(result.keySpecifications).length > 0 && (
-          <Card className="p-4">
-            <h4 className="font-semibold mb-3 text-sm">Key Specifications</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card className="p-5 sm:p-6">
+            <h4 className="mb-4 text-sm font-semibold">Key Specifications</h4>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {Object.entries(result.keySpecifications).map(([key, value]) => (
                 <div
                   key={key}
-                  className="p-2 bg-muted/50 rounded text-sm flex justify-between"
+                  className="rounded-lg bg-muted/50 px-3 py-3 text-sm"
                 >
-                  <span className="font-medium text-muted-foreground">{key}:</span>
-                  <span className="font-semibold">{value}</span>
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {key}
+                    </p>
+                    <p className="font-semibold leading-6 text-foreground">
+                      {value}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -147,12 +156,12 @@ export function CADAnalysisResults({
 
       {/* Recommendations */}
       {result.recommendations && result.recommendations.length > 0 && (
-        <Card className="p-4 border-blue-200 bg-blue-50/50">
-          <h4 className="font-semibold mb-3 text-sm">Recommendations</h4>
-          <ul className="space-y-2">
+        <Card className="border-blue-200 bg-blue-50/50 p-5 sm:p-6 dark:border-blue-900/60 dark:bg-blue-950/20">
+          <h4 className="mb-4 text-sm font-semibold">Recommendations</h4>
+          <ul className="space-y-3">
             {result.recommendations.map((rec, idx) => (
-              <li key={idx} className="flex gap-2 text-sm">
-                <span className="text-blue-600 font-bold">•</span>
+              <li key={idx} className="flex gap-3 text-sm leading-6">
+                <span className="pt-0.5 font-bold text-blue-600">•</span>
                 <span>{rec}</span>
               </li>
             ))}
@@ -161,21 +170,23 @@ export function CADAnalysisResults({
       )}
 
       {/* Download Options */}
-      <Card className="p-4 bg-gradient-to-br from-muted/50 to-transparent">
+      <Card className="bg-gradient-to-br from-muted/50 to-transparent p-5 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <FileDown className="h-5 w-5 text-muted-foreground" />
             <div>
               <h4 className="font-semibold text-sm">Export Analysis</h4>
-              <p className="text-xs text-muted-foreground">Download report for documentation</p>
+              <p className="text-xs leading-5 text-muted-foreground">
+                Download report for documentation
+              </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button
               variant="outline"
               size="sm"
               onClick={() => exportAnalysisAsPDF(result)}
-              className="gap-2"
+              className="gap-2 sm:min-w-[140px]"
             >
               <FileText className="h-4 w-4" />
               Download PDF
@@ -184,7 +195,7 @@ export function CADAnalysisResults({
               variant="outline"
               size="sm"
               onClick={() => exportAnalysisAsCSV(result)}
-              className="gap-2"
+              className="gap-2 sm:min-w-[140px]"
             >
               <FileText className="h-4 w-4" />
               Download CSV
@@ -195,43 +206,50 @@ export function CADAnalysisResults({
 
       {/* Send to Manufacturers */}
       {showQueueAction && (
-      <Card className="p-4 bg-gradient-to-br from-brand/5 to-transparent border-brand/50">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Send className="h-5 w-5 text-brand" />
-            <div>
-              <h4 className="font-semibold text-sm">Request Manufacturing Quote</h4>
-              <p className="text-xs text-muted-foreground">
-                Send this analysis to manufacturers for pricing and availability
-              </p>
+        <Card className="border-brand/50 bg-gradient-to-br from-brand/5 to-transparent p-5 sm:p-6">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <Send className="mt-0.5 h-5 w-5 text-brand" />
+              <div className="space-y-1.5">
+                <h4 className="text-sm font-semibold">
+                  Request Manufacturing Quote
+                </h4>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Send this analysis to manufacturers for pricing and
+                  availability.
+                </p>
+              </div>
             </div>
+            <Button
+              variant={submitSuccess ? 'default' : 'outline'}
+              size="sm"
+              onClick={handleSendToManufacturers}
+              disabled={isSubmitting || submitSuccess}
+              className={
+                submitSuccess
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : 'border-brand text-brand hover:bg-brand hover:text-white'
+              }
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="mr-2 animate-spin">⚙️</div>
+                  Sending...
+                </>
+              ) : submitSuccess ? (
+                <>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Sent to Queue
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send to Manufacturers
+                </>
+              )}
+            </Button>
           </div>
-          <Button
-            variant={submitSuccess ? "default" : "outline"}
-            size="sm"
-            onClick={handleSendToManufacturers}
-            disabled={isSubmitting || submitSuccess}
-            className={submitSuccess ? "bg-green-600 hover:bg-green-700" : "border-brand text-brand hover:bg-brand hover:text-white"}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin mr-2">⚙️</div>
-                Sending...
-              </>
-            ) : submitSuccess ? (
-              <>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Sent to Queue
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4 mr-2" />
-                Send to Manufacturers
-              </>
-            )}
-          </Button>
-        </div>
-      </Card>
+        </Card>
       )}
     </div>
   );
