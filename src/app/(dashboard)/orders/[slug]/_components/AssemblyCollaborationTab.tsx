@@ -2,26 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ReactFlow,
-  Background,
-  Controls,
-  MiniMap,
-  Panel,
-  type Node,
-  type Edge,
-  type NodeTypes,
-  useNodesState,
-  useEdgesState,
-  Handle,
-  Position,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import dagre from 'dagre';
-import {
   Box,
   Building2,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
+  FolderTree,
   Loader2,
   Package,
   UserPlus,
@@ -31,10 +17,8 @@ import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -42,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { OrdersSchema, SplitPartsSchema } from '@/types/schemas';
@@ -49,84 +34,41 @@ import type { UserProfile } from '@/domain/users/types';
 import type { PartAssignmentWithPart } from '@/domain/collaboration/service';
 import { SubcontractorAssignDialog } from './SubcontractorAssignDialog';
 
-/* ── Types ─────────────────────────────────────────────────────────── */
-
-/* ── Status colours ────────────────────────────────────────────────── */
-
 const STATUS_COLORS: Record<
   string,
   { border: string; bg: string; text: string; dot: string }
 > = {
   'Not Started': {
     border: 'border-gray-300',
-    bg: 'bg-gray-50',
-    text: 'text-gray-600',
+    bg: 'bg-gray-50 dark:bg-gray-950/40',
+    text: 'text-gray-600 dark:text-gray-300',
     dot: 'bg-gray-400',
   },
   'In Progress': {
     border: 'border-blue-400',
-    bg: 'bg-blue-50',
-    text: 'text-blue-700',
+    bg: 'bg-blue-50 dark:bg-blue-950/30',
+    text: 'text-blue-700 dark:text-blue-300',
     dot: 'bg-blue-500',
   },
   Completed: {
     border: 'border-green-400',
-    bg: 'bg-green-50',
-    text: 'text-green-700',
+    bg: 'bg-green-50 dark:bg-green-950/30',
+    text: 'text-green-700 dark:text-green-300',
     dot: 'bg-green-500',
   },
   Shipped: {
     border: 'border-[#e87722]',
-    bg: 'bg-orange-50',
-    text: 'text-[#e87722]',
+    bg: 'bg-orange-50 dark:bg-orange-950/30',
+    text: 'text-[#e87722] dark:text-orange-300',
     dot: 'bg-[#e87722]',
   },
   Delivered: {
     border: 'border-purple-400',
-    bg: 'bg-purple-50',
-    text: 'text-purple-700',
+    bg: 'bg-purple-50 dark:bg-purple-950/30',
+    text: 'text-purple-700 dark:text-purple-300',
     dot: 'bg-purple-500',
   },
 };
-
-const MANUFACTURER_PALETTE = [
-  {
-    border: 'border-blue-400',
-    bg: 'bg-blue-50',
-    dot: 'bg-blue-500',
-    label: 'text-blue-800',
-  },
-  {
-    border: 'border-purple-400',
-    bg: 'bg-purple-50',
-    dot: 'bg-purple-500',
-    label: 'text-purple-800',
-  },
-  {
-    border: 'border-teal-400',
-    bg: 'bg-teal-50',
-    dot: 'bg-teal-500',
-    label: 'text-teal-800',
-  },
-  {
-    border: 'border-pink-400',
-    bg: 'bg-pink-50',
-    dot: 'bg-pink-500',
-    label: 'text-pink-800',
-  },
-  {
-    border: 'border-amber-400',
-    bg: 'bg-amber-50',
-    dot: 'bg-amber-500',
-    label: 'text-amber-800',
-  },
-  {
-    border: 'border-cyan-400',
-    bg: 'bg-cyan-50',
-    dot: 'bg-cyan-500',
-    label: 'text-cyan-800',
-  },
-];
 
 const PART_STATUSES = [
   'Not Started',
@@ -142,8 +84,6 @@ function getNextPartStatus(current: string): string | null {
     : null;
 }
 
-/* ── Node data types ─────────────────────────────────────────────── */
-
 interface PartNodeData {
   label: string;
   status: string;
@@ -151,29 +91,7 @@ interface PartNodeData {
   hierarchy: string[];
   partId: string;
   assignmentId?: string;
-  [key: string]: unknown;
-}
-
-interface RootNodeData {
-  label: string;
-  manufacturerName: string;
-  totalParts: number;
-  assignedParts: number;
-  [key: string]: unknown;
-}
-
-interface ManufacturerNodeData {
-  label: string;
-  partCount: number;
-  completedCount: number;
-  colorIndex: number;
-  [key: string]: unknown;
-}
-
-interface UnassignedGroupData {
-  label: string;
-  count: number;
-  [key: string]: unknown;
+  storagePath?: string;
 }
 
 interface Collaborator {
@@ -191,172 +109,235 @@ interface CollaborationResponse {
   currentUserId: string;
 }
 
-/* ── Custom Nodes ──────────────────────────────────────────────────── */
-
-function RootNode({ data }: { data: RootNodeData }) {
-  return (
-    <div className="rounded-xl border-2 border-[#e87722] bg-gradient-to-b from-orange-50 to-white px-6 py-4 shadow-lg min-w-[200px] text-center">
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!bg-[#e87722] !w-3 !h-3"
-      />
-      <Building2 className="h-6 w-6 text-[#e87722] mx-auto mb-1" />
-      <p className="font-bold text-sm text-[#0c2340]">
-        {data.manufacturerName}
-      </p>
-      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mt-0.5">
-        Lead · Final Assembly
-      </p>
-      <p className="text-xs text-muted-foreground mt-1">
-        {data.assignedParts}/{data.totalParts} parts assigned
-      </p>
-    </div>
-  );
+interface ManufacturerGroup {
+  id: string;
+  label: string;
+  manufacturerId: string | null;
+  parts: Array<{
+    part: SplitPartsSchema;
+    assignment?: PartAssignmentWithPart;
+  }>;
+  isUnassigned: boolean;
 }
 
-function ManufacturerNode({ data }: { data: ManufacturerNodeData }) {
-  const palette =
-    MANUFACTURER_PALETTE[data.colorIndex % MANUFACTURER_PALETTE.length];
-  return (
-    <div
-      className={cn(
-        'rounded-lg border-2 px-5 py-3 shadow-md min-w-[160px] text-center',
-        palette.border,
-        palette.bg
-      )}
-    >
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="!bg-gray-400 !w-2.5 !h-2.5"
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!bg-gray-400 !w-2.5 !h-2.5"
-      />
-      <p className={cn('font-semibold text-sm', palette.label)}>
-        {data.label}
-      </p>
-      <p className="text-[10px] text-muted-foreground mt-0.5">
-        {data.completedCount}/{data.partCount} done
-      </p>
-    </div>
-  );
+interface TreeBranchNode {
+  type: 'branch';
+  id: string;
+  label: string;
+  kind: 'manufacturer' | 'folder';
+  children: CollaborationTreeNode[];
+  descendantPartIds: string[];
+  totalCount: number;
+  completedCount: number;
+  assignedCount: number;
+  manufacturerName?: string;
+  isUnassigned?: boolean;
 }
 
-function UnassignedGroupNode({ data }: { data: UnassignedGroupData }) {
-  return (
-    <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50/80 px-5 py-3 shadow-sm min-w-[140px] text-center">
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="!bg-gray-300 !w-2.5 !h-2.5"
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!bg-gray-300 !w-2.5 !h-2.5"
-      />
-      <p className="font-semibold text-sm text-gray-500">Unassigned</p>
-      <p className="text-[10px] text-muted-foreground mt-0.5">
-        {data.count} parts
-      </p>
-    </div>
-  );
+interface TreeLeafNode {
+  type: 'leaf';
+  id: string;
+  part: SplitPartsSchema;
+  assignment?: PartAssignmentWithPart;
+  data: PartNodeData;
 }
 
-function PartNode({ data }: { data: PartNodeData }) {
-  const statusStyle =
-    STATUS_COLORS[data.status] ?? STATUS_COLORS['Not Started'];
-  return (
-    <div
-      className={cn(
-        'rounded-lg border-2 px-4 py-2.5 shadow-sm min-w-[130px] cursor-pointer transition-shadow hover:shadow-md',
-        statusStyle.border,
-        statusStyle.bg
-      )}
-    >
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="!bg-gray-400 !w-2 !h-2"
-      />
-      <div className="flex items-center gap-2">
-        <div
-          className={cn('h-2.5 w-2.5 rounded-full shrink-0', statusStyle.dot)}
-        />
-        <p
-          className={cn(
-            'text-xs font-semibold truncate max-w-[120px]',
-            statusStyle.text
-          )}
-        >
-          {data.label}
-        </p>
-      </div>
-      {data.manufacturerName && (
-        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-          {data.manufacturerName}
-        </p>
-      )}
-    </div>
-  );
-}
+type CollaborationTreeNode = TreeBranchNode | TreeLeafNode;
 
-const nodeTypes: NodeTypes = {
-  rootNode: RootNode,
-  manufacturerNode: ManufacturerNode,
-  unassignedGroup: UnassignedGroupNode,
-  partNode: PartNode,
-};
-
-/* ── Dagre layout ──────────────────────────────────────────────────── */
-
-function layoutTree(nodes: Node[], edges: Edge[]): Node[] {
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'TB', ranksep: 80, nodesep: 40 });
-
-  nodes.forEach((node) => {
-    const width =
-      node.type === 'rootNode' ? 220 : node.type === 'partNode' ? 160 : 180;
-    const height =
-      node.type === 'rootNode' ? 100 : node.type === 'partNode' ? 60 : 70;
-    g.setNode(node.id, { width, height });
+function buildManufacturerGroups(
+  splitParts: SplitPartsSchema[],
+  assignments: PartAssignmentWithPart[]
+): ManufacturerGroup[] {
+  const assignmentByPartId = new Map<string, PartAssignmentWithPart>();
+  assignments.forEach((assignment) => {
+    assignmentByPartId.set(assignment.part_id, assignment);
   });
 
-  edges.forEach((edge) => {
-    g.setEdge(edge.source, edge.target);
+  const groups = new Map<string, ManufacturerGroup>();
+
+  splitParts.forEach((part) => {
+    const assignment = assignmentByPartId.get(part.id);
+    const key = assignment?.assigned_manufacturer ?? 'unassigned';
+    const label = assignment?.manufacturer_name?.trim() || 'Unassigned';
+    const isUnassigned = !assignment?.assigned_manufacturer;
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        id: key,
+        label,
+        manufacturerId: assignment?.assigned_manufacturer ?? null,
+        parts: [],
+        isUnassigned,
+      });
+    }
+
+    groups.get(key)?.parts.push({ part, assignment });
   });
 
-  dagre.layout(g);
+  return Array.from(groups.values()).sort((left, right) => {
+    if (left.isUnassigned !== right.isUnassigned) {
+      return left.isUnassigned ? 1 : -1;
+    }
+    return left.label.localeCompare(right.label);
+  });
+}
 
-  return nodes.map((node) => {
-    const nodeWithPosition = g.node(node.id);
-    const width =
-      node.type === 'rootNode' ? 220 : node.type === 'partNode' ? 160 : 180;
-    const height =
-      node.type === 'rootNode' ? 100 : node.type === 'partNode' ? 60 : 70;
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - width / 2,
-        y: nodeWithPosition.y - height / 2,
-      },
+function finalizeBranch(branch: TreeBranchNode): TreeBranchNode {
+  const nextChildren = branch.children.map((child) =>
+    child.type === 'branch' ? finalizeBranch(child) : child
+  );
+
+  const descendantPartIds = nextChildren.flatMap((child) =>
+    child.type === 'branch' ? child.descendantPartIds : [child.part.id]
+  );
+  const completedCount = nextChildren.reduce((total, child) => {
+    if (child.type === 'branch') {
+      return total + child.completedCount;
+    }
+
+    return child.data.status === 'Completed' || child.data.status === 'Shipped'
+      ? total + 1
+      : total;
+  }, 0);
+  const assignedCount = nextChildren.reduce((total, child) => {
+    if (child.type === 'branch') {
+      return total + child.assignedCount;
+    }
+
+    return child.assignment ? total + 1 : total;
+  }, 0);
+
+  return {
+    ...branch,
+    children: nextChildren,
+    descendantPartIds,
+    totalCount: descendantPartIds.length,
+    completedCount,
+    assignedCount,
+  };
+}
+
+function buildCollaborationTree(groups: ManufacturerGroup[]): TreeBranchNode[] {
+  return groups.map((group) => {
+    const root: TreeBranchNode = {
+      type: 'branch',
+      id: `manufacturer:${group.id}`,
+      label: group.label,
+      kind: 'manufacturer',
+      children: [],
+      descendantPartIds: [],
+      totalCount: 0,
+      completedCount: 0,
+      assignedCount: 0,
+      manufacturerName: group.label,
+      isUnassigned: group.isUnassigned,
     };
+
+    group.parts.forEach(({ part, assignment }) => {
+      const hierarchy = Array.isArray(part.hierarchy) ? part.hierarchy : [];
+      let currentBranch = root;
+      let path = root.id;
+
+      hierarchy.forEach((segment) => {
+        path = `${path}/${segment}`;
+        let childBranch = currentBranch.children.find(
+          (child): child is TreeBranchNode =>
+            child.type === 'branch' && child.id === path
+        );
+
+        if (!childBranch) {
+          childBranch = {
+            type: 'branch',
+            id: path,
+            label: segment,
+            kind: 'folder',
+            children: [],
+            descendantPartIds: [],
+            totalCount: 0,
+            completedCount: 0,
+            assignedCount: 0,
+            manufacturerName: group.label,
+            isUnassigned: group.isUnassigned,
+          };
+          currentBranch.children.push(childBranch);
+        }
+
+        currentBranch = childBranch;
+      });
+
+      currentBranch.children.push({
+        type: 'leaf',
+        id: part.id,
+        part,
+        assignment,
+        data: {
+          label: part.name,
+          status: assignment?.status ?? 'Not Started',
+          manufacturerName: assignment?.manufacturer_name ?? undefined,
+          hierarchy,
+          partId: part.id,
+          assignmentId: assignment?.id,
+          storagePath: part.storage_path,
+        },
+      });
+    });
+
+    root.children.sort((left, right) => {
+      if (left.type !== right.type) {
+        return left.type === 'branch' ? -1 : 1;
+      }
+      const leftLabel = left.type === 'branch' ? left.label : left.part.name;
+      const rightLabel = right.type === 'branch' ? right.label : right.part.name;
+      return leftLabel.localeCompare(rightLabel);
+    });
+
+    return finalizeBranch(root);
   });
 }
 
-/* ── Props ─────────────────────────────────────────────────────────── */
+function collectExpandedIds(branches: TreeBranchNode[]): string[] {
+  const ids: string[] = [];
+
+  const visit = (node: TreeBranchNode, depth: number) => {
+    if (depth <= 1) {
+      ids.push(node.id);
+    }
+
+    node.children.forEach((child) => {
+      if (child.type === 'branch') {
+        visit(child, depth + 1);
+      }
+    });
+  };
+
+  branches.forEach((branch) => visit(branch, 0));
+  return ids;
+}
+
+function collectAllBranchIds(branches: TreeBranchNode[]): Set<string> {
+  const ids = new Set<string>();
+
+  const visit = (node: TreeBranchNode) => {
+    ids.add(node.id);
+    node.children.forEach((child) => {
+      if (child.type === 'branch') {
+        visit(child);
+      }
+    });
+  };
+
+  branches.forEach((branch) => visit(branch));
+  return ids;
+}
+
+function countSelected(partIds: string[], selectedPartIds: Set<string>): number {
+  return partIds.filter((partId) => selectedPartIds.has(partId)).length;
+}
 
 interface AssemblyCollaborationTabProps {
   order: OrdersSchema;
   userData: UserProfile | null;
 }
-
-/* ── Main Component ────────────────────────────────────────────────── */
 
 export function AssemblyCollaborationTab({
   order,
@@ -371,8 +352,7 @@ export function AssemblyCollaborationTab({
   const [inspectedPart, setInspectedPart] = useState<PartNodeData | null>(
     null
   );
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const isLeadManufacturer = userData?.id === order.manufacturer;
   const isAdmin = userData?.accountType === 'admin';
@@ -391,10 +371,11 @@ export function AssemblyCollaborationTab({
 
   const selectedAssignments = useMemo(() => {
     if (!data) return [] as PartAssignmentWithPart[];
+
     return Array.from(selectedPartIds)
       .map((partId) => assignmentByPartId.get(partId))
       .filter((assignment): assignment is PartAssignmentWithPart => Boolean(assignment));
-  }, [data, selectedPartIds, assignmentByPartId]);
+  }, [assignmentByPartId, data, selectedPartIds]);
 
   const bulkAdvanceTargets = useMemo(() => {
     if (!data) return [] as Array<{ assignmentId: string; nextStatus: string }>;
@@ -409,9 +390,21 @@ export function AssemblyCollaborationTab({
         assignmentId: assignment.id,
         nextStatus: getNextPartStatus(assignment.status) as string,
       }));
-  }, [data, selectedAssignments, canAssign]);
+  }, [canAssign, data, selectedAssignments]);
 
-  /* ── Fetch collaboration data ──────────────────────────────────── */
+  const collaborationTree = useMemo(() => {
+    if (!data) {
+      return [] as TreeBranchNode[];
+    }
+
+    return buildCollaborationTree(
+      buildManufacturerGroups(data.splitParts, data.assignments)
+    );
+  }, [data]);
+
+  const totalPartCount = data?.splitParts.length ?? 0;
+  const assignedPartCount = data?.assignments.length ?? 0;
+  const unassignedPartCount = totalPartCount - assignedPartCount;
 
   const fetchData = useCallback(async (silent = false) => {
     try {
@@ -440,186 +433,36 @@ export function AssemblyCollaborationTab({
     return () => clearInterval(timer);
   }, [fetchData]);
 
-  /* ── Build React Flow graph ──────────────────────────────────── */
+  useEffect(() => {
+    const availableBranchIds = collectAllBranchIds(collaborationTree);
+    const defaultExpandedIds = new Set(collectExpandedIds(collaborationTree));
+
+    setExpandedIds((prev) => {
+      if (prev.size === 0) {
+        return defaultExpandedIds;
+      }
+
+      const next = new Set(
+        Array.from(prev).filter((id) => availableBranchIds.has(id))
+      );
+
+      return next.size > 0 ? next : defaultExpandedIds;
+    });
+  }, [collaborationTree]);
 
   useEffect(() => {
-    if (!data) return;
-
-    const newNodes: Node[] = [];
-    const newEdges: Edge[] = [];
-
-    // Lookup: partId → assignment
-    const assignmentByPartId = new Map<string, PartAssignmentWithPart>();
-    data.assignments.forEach((a) => assignmentByPartId.set(a.part_id, a));
-
-    // Root node
-    const rootId = 'root';
-    newNodes.push({
-      id: rootId,
-      type: 'rootNode',
-      position: { x: 0, y: 0 },
-      data: {
-        label: order.manufacturer_name ?? 'Lead Manufacturer',
-        manufacturerName: order.manufacturer_name ?? 'Lead Manufacturer',
-        totalParts: data.splitParts.length,
-        assignedParts: data.assignments.length,
-      } satisfies RootNodeData,
-    });
-
-    // Group parts by manufacturer
-    const mfgGroups = new Map<
-      string,
-      {
-        name: string;
-        parts: SplitPartsSchema[];
-        assignments: PartAssignmentWithPart[];
-      }
-    >();
-    const unassigned: SplitPartsSchema[] = [];
-
-    data.splitParts.forEach((part) => {
-      const assignment = assignmentByPartId.get(part.id);
-      if (assignment?.assigned_manufacturer) {
-        const key = assignment.assigned_manufacturer;
-        if (!mfgGroups.has(key)) {
-          mfgGroups.set(key, {
-            name: assignment.manufacturer_name ?? 'Unknown',
-            parts: [],
-            assignments: [],
-          });
-        }
-        mfgGroups.get(key)!.parts.push(part);
-        mfgGroups.get(key)!.assignments.push(assignment);
-      } else {
-        unassigned.push(part);
-      }
-    });
-
-    // Manufacturer group nodes + their part children
-    let colorIdx = 0;
-    mfgGroups.forEach((group, mfgId) => {
-      const groupNodeId = `mfg-${mfgId}`;
-      const completedCount = group.assignments.filter(
-        (a) => a.status === 'Completed' || a.status === 'Shipped'
-      ).length;
-
-      newNodes.push({
-        id: groupNodeId,
-        type: 'manufacturerNode',
-        position: { x: 0, y: 0 },
-        data: {
-          label: group.name,
-          partCount: group.parts.length,
-          completedCount,
-          colorIndex: colorIdx,
-        } satisfies ManufacturerNodeData,
-      });
-
-      newEdges.push({
-        id: `e-root-${groupNodeId}`,
-        source: rootId,
-        target: groupNodeId,
-        style: { stroke: '#94a3b8', strokeWidth: 2 },
-        type: 'smoothstep',
-      });
-
-      group.parts.forEach((part) => {
-        const assignment = assignmentByPartId.get(part.id);
-        const partNodeId = `part-${part.id}`;
-        newNodes.push({
-          id: partNodeId,
-          type: 'partNode',
-          position: { x: 0, y: 0 },
-          data: {
-            label: part.name,
-            status: assignment?.status ?? 'Not Started',
-            manufacturerName: group.name,
-            hierarchy: part.hierarchy ?? [],
-            partId: part.id,
-            assignmentId: assignment?.id,
-          } satisfies PartNodeData,
-        });
-
-        newEdges.push({
-          id: `e-${groupNodeId}-${partNodeId}`,
-          source: groupNodeId,
-          target: partNodeId,
-          style: { stroke: '#cbd5e1', strokeWidth: 1.5 },
-          type: 'smoothstep',
-        });
-      });
-
-      colorIdx++;
-    });
-
-    // Unassigned group
-    if (unassigned.length > 0) {
-      const unassignedId = 'unassigned';
-      newNodes.push({
-        id: unassignedId,
-        type: 'unassignedGroup',
-        position: { x: 0, y: 0 },
-        data: {
-          label: 'Unassigned',
-          count: unassigned.length,
-        } satisfies UnassignedGroupData,
-      });
-
-      newEdges.push({
-        id: `e-root-${unassignedId}`,
-        source: rootId,
-        target: unassignedId,
-        style: {
-          stroke: '#d1d5db',
-          strokeWidth: 2,
-          strokeDasharray: '6 3',
-        },
-        type: 'smoothstep',
-      });
-
-      unassigned.forEach((part) => {
-        const partNodeId = `part-${part.id}`;
-        newNodes.push({
-          id: partNodeId,
-          type: 'partNode',
-          position: { x: 0, y: 0 },
-          data: {
-            label: part.name,
-            status: 'Not Started',
-            hierarchy: part.hierarchy ?? [],
-            partId: part.id,
-          } satisfies PartNodeData,
-        });
-
-        newEdges.push({
-          id: `e-${unassignedId}-${partNodeId}`,
-          source: unassignedId,
-          target: partNodeId,
-          style: {
-            stroke: '#e5e7eb',
-            strokeWidth: 1.5,
-            strokeDasharray: '4 2',
-          },
-          type: 'smoothstep',
-        });
-      });
+    if (!data) {
+      return;
     }
 
-    const laidOut = layoutTree(newNodes, newEdges);
-    setNodes(laidOut);
-    setEdges(newEdges);
-  }, [data, order.manufacturer_name, setNodes, setEdges]);
-
-  /* ── Handlers ────────────────────────────────────────────────── */
-
-  const handleNodeClick = useCallback(
-    (_: React.MouseEvent, node: Node) => {
-      if (node.type === 'partNode') {
-        setInspectedPart(node.data as PartNodeData);
-      }
-    },
-    []
-  );
+    const availablePartIds = new Set(data.splitParts.map((part) => part.id));
+    setSelectedPartIds((prev) => {
+      const next = new Set(
+        Array.from(prev).filter((partId) => availablePartIds.has(partId))
+      );
+      return next.size === prev.size ? prev : next;
+    });
+  }, [data]);
 
   const handleStatusChange = async (
     assignmentId: string,
@@ -661,7 +504,7 @@ export function AssemblyCollaborationTab({
   const handleAssigned = () => {
     setSelectedPartIds(new Set());
     setAssignDialogOpen(false);
-    fetchData();
+    void fetchData();
   };
 
   const handleBulkAdvanceSelected = async () => {
@@ -747,13 +590,51 @@ export function AssemblyCollaborationTab({
   const togglePartSelection = (partId: string) => {
     setSelectedPartIds((prev) => {
       const next = new Set(prev);
-      if (next.has(partId)) next.delete(partId);
-      else next.add(partId);
+      if (next.has(partId)) {
+        next.delete(partId);
+      } else {
+        next.add(partId);
+      }
       return next;
     });
   };
 
-  /* ── Loading state ──────────────────────────────────────────── */
+  const toggleManyPartSelections = (partIds: string[]) => {
+    setSelectedPartIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = partIds.every((partId) => next.has(partId));
+
+      partIds.forEach((partId) => {
+        if (allSelected) {
+          next.delete(partId);
+        } else {
+          next.add(partId);
+        }
+      });
+
+      return next;
+    });
+  };
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedIds(new Set(collectExpandedIds(collaborationTree)));
+  };
+
+  const collapseAll = () => {
+    setExpandedIds(new Set(collaborationTree.map((branch) => branch.id)));
+  };
 
   if (loading) {
     return (
@@ -780,23 +661,189 @@ export function AssemblyCollaborationTab({
     );
   }
 
-  /* ── Render ──────────────────────────────────────────────────── */
+  const renderTreeNode = (node: CollaborationTreeNode, depth = 0) => {
+    if (node.type === 'leaf') {
+      const isSelected = selectedPartIds.has(node.part.id);
+      const statusStyle =
+        STATUS_COLORS[node.data.status] ?? STATUS_COLORS['Not Started'];
+      const assignment = node.assignment;
+
+      return (
+        <div key={node.id} className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setInspectedPart(node.data)}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors hover:bg-muted/40',
+              isSelected
+                ? 'border-[#e87722]/50 bg-[#e87722]/10'
+                : 'border-border bg-background'
+            )}
+            style={{ marginLeft: `${depth * 20}px` }}
+          >
+            {(canAssign || canUpdateStatus) && (
+              <div
+                className="shrink-0"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={() => togglePartSelection(node.part.id)}
+                />
+              </div>
+            )}
+
+            <div
+              className={cn('h-2.5 w-2.5 rounded-full shrink-0', statusStyle.dot)}
+            />
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="truncate font-medium text-foreground">
+                  {node.part.name}
+                </span>
+                <Badge
+                  variant="outline"
+                  className={cn(statusStyle.border, statusStyle.bg, statusStyle.text)}
+                >
+                  {node.data.status}
+                </Badge>
+                {assignment?.manufacturer_name && (
+                  <Badge variant="secondary">{assignment.manufacturer_name}</Badge>
+                )}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {node.data.hierarchy.length > 0
+                  ? node.data.hierarchy.join(' / ')
+                  : 'Top-level part'}
+              </div>
+            </div>
+
+            <div className="shrink-0 text-xs text-muted-foreground">
+              Inspect
+            </div>
+          </button>
+        </div>
+      );
+    }
+
+    const isExpanded = expandedIds.has(node.id);
+    const selectedCount = countSelected(node.descendantPartIds, selectedPartIds);
+    const allSelected =
+      node.descendantPartIds.length > 0 &&
+      selectedCount === node.descendantPartIds.length;
+    const isPartiallySelected =
+      selectedCount > 0 && selectedCount < node.descendantPartIds.length;
+    const branchIcon =
+      node.kind === 'manufacturer' ? (
+        <Building2 className="h-4 w-4 text-[#e87722]" />
+      ) : (
+        <FolderTree className="h-4 w-4 text-muted-foreground" />
+      );
+
+    return (
+      <div key={node.id} className="space-y-2">
+        <div
+          className={cn(
+            'rounded-xl border bg-card px-3 py-3 shadow-sm',
+            node.kind === 'manufacturer'
+              ? 'border-border/80'
+              : 'border-border/60'
+          )}
+          style={{ marginLeft: `${depth * 20}px` }}
+        >
+          <div className="flex items-start gap-3">
+            <button
+              type="button"
+              onClick={() => toggleExpanded(node.id)}
+              className="mt-0.5 flex shrink-0 items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-muted"
+              aria-label={isExpanded ? 'Collapse section' : 'Expand section'}
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </button>
+
+            {(canAssign || canUpdateStatus) && (
+              <div onClick={(event) => event.stopPropagation()}>
+                <Checkbox
+                  checked={
+                    allSelected
+                      ? true
+                      : isPartiallySelected
+                        ? 'indeterminate'
+                        : false
+                  }
+                  onCheckedChange={() =>
+                    toggleManyPartSelections(node.descendantPartIds)
+                  }
+                />
+              </div>
+            )}
+
+            <div className="mt-0.5 shrink-0">{branchIcon}</div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleExpanded(node.id)}
+                  className="truncate text-left font-semibold text-foreground hover:text-primary"
+                >
+                  {node.label}
+                </button>
+                <Badge variant="outline">{node.totalCount} parts</Badge>
+                {node.kind === 'manufacturer' && (
+                  <Badge variant={node.isUnassigned ? 'outline' : 'secondary'}>
+                    {node.isUnassigned ? 'Needs assignment' : 'Assigned group'}
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span>{node.completedCount} completed or shipped</span>
+                <span>{node.assignedCount} assigned</span>
+                {(canAssign || canUpdateStatus) && (
+                  <span>
+                    {selectedCount} selected
+                    {isPartiallySelected && !allSelected ? ' in this branch' : ''}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {isExpanded && node.children.length > 0 && (
+          <div className="space-y-2">
+            {node.children.map((child) => renderTreeNode(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Action bar */}
+    <div className="space-y-6">
       {(canAssign || canUpdateStatus) && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-muted/20 p-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">
-              Select parts to run bulk actions.
+            <p className="text-sm font-medium text-foreground">
+              Collaboration actions
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-1">
               {selectedPartIds.size} selected · {selectedAssignments.length} assigned ·{' '}
               {bulkAdvanceTargets.length} can advance
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={expandAll}>
+              Expand all
+            </Button>
+            <Button size="sm" variant="outline" onClick={collapseAll}>
+              Collapse to groups
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -832,134 +879,86 @@ export function AssemblyCollaborationTab({
         </div>
       )}
 
-      {/* React Flow tree diagram */}
-      <div className="h-[600px] rounded-xl border bg-white shadow-sm overflow-hidden">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onNodeClick={handleNodeClick}
-          nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.3 }}
-          minZoom={0.3}
-          maxZoom={1.5}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background gap={20} size={1} color="#f1f5f9" />
-          <Controls position="bottom-left" />
-          <MiniMap
-            nodeStrokeWidth={3}
-            pannable
-            zoomable
-            position="bottom-right"
-            style={{ border: '1px solid #e2e8f0', borderRadius: 8 }}
-          />
-
-          {/* Legend */}
-          <Panel position="top-right">
-            <div className="bg-white/95 backdrop-blur-sm rounded-lg border shadow-sm p-3 text-xs space-y-2 max-w-[180px]">
-              <p className="font-semibold text-[11px] uppercase tracking-wide text-muted-foreground">
-                Status
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_320px]">
+        <Card className="border-border/70 bg-card/95 shadow-sm">
+          <CardContent className="p-0">
+            <div className="border-b border-border/70 px-5 py-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <h3 className="text-lg font-semibold text-card-foreground">
+                  Assembly Collaboration Tree
+                </h3>
+                <Badge variant="outline">{totalPartCount} total parts</Badge>
+                <Badge variant="secondary">{data.collaborators.length} collaborators</Badge>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Browse by manufacturer and CAD hierarchy, then expand folders to inspect or act on individual parts.
               </p>
-              {Object.entries(STATUS_COLORS).map(([label, style]) => (
-                <div key={label} className="flex items-center gap-2">
-                  <div
-                    className={cn('h-2.5 w-2.5 rounded-full', style.dot)}
-                  />
-                  <span className="text-muted-foreground">{label}</span>
-                </div>
-              ))}
-              {data.collaborators.length > 0 && (
-                <>
-                  <Separator className="my-1" />
-                  <p className="font-semibold text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Manufacturers
-                  </p>
-                  {data.collaborators.map((c, i) => (
-                    <div
-                      key={c.manufacturerId}
-                      className="flex items-center gap-2"
-                    >
-                      <div
-                        className={cn(
-                          'h-2.5 w-2.5 rounded-full',
-                          MANUFACTURER_PALETTE[
-                            i % MANUFACTURER_PALETTE.length
-                          ].dot
-                        )}
-                      />
-                      <span className="text-muted-foreground truncate">
-                        {c.manufacturerName}
-                      </span>
-                    </div>
-                  ))}
-                </>
-              )}
             </div>
-          </Panel>
-        </ReactFlow>
-      </div>
 
-      {/* Part selection list for bulk actions */}
-      {(canAssign || canUpdateStatus) && (
-        <Card>
-          <CardContent className="py-4">
-            <p className="text-sm font-medium mb-3">
-              Select parts for bulk actions
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {data.splitParts.map((part) => {
-                const assignment = data.assignments.find(
-                  (a) => a.part_id === part.id
-                );
-                const isSelected = selectedPartIds.has(part.id);
-                const statusStyle =
-                  STATUS_COLORS[assignment?.status ?? 'Not Started'] ??
-                  STATUS_COLORS['Not Started'];
-                return (
-                  <button
-                    key={part.id}
-                    type="button"
-                    onClick={() => togglePartSelection(part.id)}
-                    className={cn(
-                      'flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-all',
-                      isSelected
-                        ? 'border-[#e87722] bg-[#e87722]/10 ring-1 ring-[#e87722]/30'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      readOnly
-                      className="accent-[#e87722] shrink-0"
-                    />
-                    <div
-                      className={cn(
-                        'h-2 w-2 rounded-full shrink-0',
-                        statusStyle.dot
-                      )}
-                    />
-                    <span className="truncate flex-1">{part.name}</span>
-                    {assignment && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] px-1.5 py-0 shrink-0"
-                      >
-                        {assignment.manufacturer_name}
-                      </Badge>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            <ScrollArea className="h-[720px] px-5 py-5">
+              <div className="space-y-3">
+                {collaborationTree.map((branch) => renderTreeNode(branch))}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
-      )}
 
-      {/* Part inspector dialog */}
+        <div className="space-y-4">
+          <Card className="border-border/70 bg-card/95 shadow-sm">
+            <CardContent className="space-y-4 p-5">
+              <div>
+                <p className="text-sm font-semibold text-card-foreground">
+                  Order collaboration summary
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  High-level progress across assignments and assembly handoff.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="rounded-lg border border-border/70 bg-background px-4 py-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Assigned
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold text-foreground">
+                    {assignedPartCount}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/70 bg-background px-4 py-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Unassigned
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold text-foreground">
+                    {unassignedPartCount}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/70 bg-background px-4 py-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Selected
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold text-foreground">
+                    {selectedPartIds.size}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/70 bg-card/95 shadow-sm">
+            <CardContent className="space-y-3 p-5">
+              <p className="text-sm font-semibold text-card-foreground">
+                How this tree works
+              </p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Manufacturer groups are the top level.</p>
+                <p>Folder branches follow the original CAD hierarchy.</p>
+                <p>Leaf rows are individual parts with status and assignee.</p>
+                <p>Use checkboxes on groups or folders to bulk-select descendants.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       <PartInspectorDialog
         part={inspectedPart}
         onClose={() => setInspectedPart(null)}
@@ -973,7 +972,6 @@ export function AssemblyCollaborationTab({
         selectedPartIds={selectedPartIds}
       />
 
-      {/* Assign dialog */}
       {assignDialogOpen && (
         <SubcontractorAssignDialog
           open={assignDialogOpen}
@@ -987,8 +985,6 @@ export function AssemblyCollaborationTab({
     </div>
   );
 }
-
-/* ── Part Inspector Dialog ─────────────────────────────────────────── */
 
 interface PartInspectorDialogProps {
   part: PartNodeData | null;
@@ -1022,17 +1018,7 @@ function PartInspectorDialog({
     STATUS_COLORS[part.status] ?? STATUS_COLORS['Not Started'];
   const isMyAssignment = assignment?.assigned_manufacturer === currentUserId;
   const isSelected = selectedPartIds.has(part.partId);
-
-  const getNextStatus = (current: string): string | null => {
-    const idx = PART_STATUSES.indexOf(
-      current as (typeof PART_STATUSES)[number]
-    );
-    return idx >= 0 && idx < PART_STATUSES.length - 1
-      ? PART_STATUSES[idx + 1]
-      : null;
-  };
-
-  const nextStatus = getNextStatus(part.status);
+  const nextStatus = getNextPartStatus(part.status);
 
   return (
     <Dialog open={!!part} onOpenChange={(open) => !open && onClose()}>
@@ -1050,8 +1036,7 @@ function PartInspectorDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Status */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <span className="text-sm text-muted-foreground">Status</span>
             <Badge
               variant="outline"
@@ -1062,28 +1047,21 @@ function PartInspectorDialog({
                 statusStyle.border
               )}
             >
-              <div
-                className={cn('h-2 w-2 rounded-full', statusStyle.dot)}
-              />
+              <div className={cn('h-2 w-2 rounded-full', statusStyle.dot)} />
               {part.status}
             </Badge>
           </div>
 
-          {/* Assigned to */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">
-              Assigned to
-            </span>
-            <span className="text-sm font-medium">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">Assigned to</span>
+            <span className="text-sm font-medium text-right">
               {part.manufacturerName ?? 'Unassigned'}
             </span>
           </div>
 
           <Separator />
 
-          {/* Actions */}
           <div className="flex flex-col gap-2">
-            {/* Advance status */}
             {assignment &&
               canUpdateStatus &&
               (isMyAssignment || canAssign) &&
@@ -1099,7 +1077,6 @@ function PartInspectorDialog({
                 </Button>
               )}
 
-            {/* Select for assignment */}
             {canAssign && (
               <Button
                 size="sm"
@@ -1124,7 +1101,6 @@ function PartInspectorDialog({
               </Button>
             )}
 
-            {/* Unassign */}
             {canAssign && assignment && (
               <Button
                 size="sm"

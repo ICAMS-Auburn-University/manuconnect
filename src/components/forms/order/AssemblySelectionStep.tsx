@@ -361,6 +361,8 @@ export function AssemblySelectionStep({
     [selectableGroups, selectedPartIds]
   );
 
+  const remainingPartCount = selectablePartIds.length;
+
   const allSelected =
     selectablePartIds.length > 0 &&
     selectablePartIds.every((id) => selectedPartIds.has(id));
@@ -476,6 +478,11 @@ export function AssemblySelectionStep({
             {selectedGroupCount === 1 ? '' : 's'} fully selected across{' '}
             {selectableGroups.length} similar-part group
             {selectableGroups.length === 1 ? '' : 's'}.
+          </div>
+          <div className="text-xs font-medium text-foreground">
+            {remainingPartCount === 0
+              ? 'All parts have been assigned to assemblies. You can continue.'
+              : `${remainingPartCount} part${remainingPartCount === 1 ? '' : 's'} remaining to assign before the next step.`}
           </div>
         </div>
 

@@ -18,8 +18,11 @@ const BrowsePage = async () => {
 
   return (
     <div className="min-w-full h-full">
-      <div className="mt-12">
+      <div className="mt-12 mb-1">
         <h1 className="h1">Browse Orders</h1>
+        <p className="text-muted-foreground">
+          Find open orders that fit your shop&apos;s processes and prepare offers.
+        </p>
       </div>
       <BrowseOrdersCard />
     </div>

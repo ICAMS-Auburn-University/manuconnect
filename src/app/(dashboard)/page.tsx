@@ -30,7 +30,10 @@ export default async function Home() {
 
   if (isManufacturer) {
     const { data: profile } = await getManufacturerProfile();
-    profileIncomplete = !profile || profile.processes.length === 0;
+    profileIncomplete =
+      !profile ||
+      profile.processes.length === 0 ||
+      profile.materialCategories.length === 0;
   }
 
   return (

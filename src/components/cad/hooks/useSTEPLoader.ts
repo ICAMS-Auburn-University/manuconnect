@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { createSupabaseBrowserClient } from '@/app/_internal/supabase/browser-client';
 import { parseStoragePath, buildPublicStorageUrl } from '@/lib/storage/paths';
+import { parseStepBufferInWorker } from '@/components/cad/workers/stepWorkerClient';
 
 export interface STEPLoadResult {
   mesh: THREE.Group | null;
@@ -58,23 +59,21 @@ async function fetchSignedUrl(storagePath: string): Promise<string> {
 }
 
 /**
- * Loads a STEP file from an ArrayBuffer using occt-import-js
- * and returns a THREE.Group with the parsed geometry.
+ * Parses a STEP file's raw bytes off the main thread (via a Web Worker running
+ * occt-import-js) and builds a THREE.Group from the resulting mesh data.
+ * Running OCCT's native parsing on the main thread would freeze the whole
+ * page for the duration of the parse, which can take a long time for large
+ * assemblies.
  */
-async function parseSTEPBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
-  // Dynamic import to avoid SSR issues with WASM
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const occtImportJs = (await import('occt-import-js')) as any;
-  const occt = await occtImportJs.default({
-    locateFile: () => '/occt-import-js.wasm',
-  });
-
-  const fileBuffer = new Uint8Array(buffer);
-  const result = occt.ReadStepFile(fileBuffer, null);
+async function parseSTEPBuffer(
+  buffer: ArrayBuffer,
+  signal?: AbortSignal
+): Promise<THREE.Group> {
+  const meshes = await parseStepBufferInWorker(buffer, signal);
 
   const group = new THREE.Group();
 
-  for (const resultMesh of result.meshes) {
+  for (const resultMesh of meshes) {
     const geometry = new THREE.BufferGeometry();
 
     // Vertices
@@ -226,7 +225,7 @@ export function useSTEPLoader(storagePath: string | null): STEPLoadResult {
       const buffer = await response.arrayBuffer();
       if (controller.signal.aborted) return;
 
-      const group = await parseSTEPBuffer(buffer);
+      const group = await parseSTEPBuffer(buffer, controller.signal);
       if (controller.signal.aborted) return;
 
       // Compute bounding box and dimensions

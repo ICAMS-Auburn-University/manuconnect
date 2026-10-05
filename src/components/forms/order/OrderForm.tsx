@@ -247,6 +247,14 @@ export function OrderForm() {
     [assemblies, activeAssemblyId]
   );
 
+  const unassignedPartCount = useMemo(
+    () =>
+      availableParts.filter(
+        (part) => !assignedPartIds.has(part.storagePath)
+      ).length,
+    [assignedPartIds, availableParts]
+  );
+
   const assembliesComplete =
     assemblies.length > 0 &&
     assemblies.every((assembly) => assembly.specifications_completed);
@@ -317,9 +325,20 @@ export function OrderForm() {
           return;
         }
 
-        if (currentStep === 2 && assemblies.length === 0) {
-          setFlowError('Create at least one assembly to continue.');
-          return;
+        if (currentStep === 2) {
+          if (assemblies.length === 0) {
+            setFlowError('Create at least one assembly to continue.');
+            return;
+          }
+
+          if (unassignedPartCount > 0) {
+            setFlowError(
+              `Assign all parts to an assembly before continuing. ${unassignedPartCount} part${
+                unassignedPartCount === 1 ? '' : 's'
+              } remaining.`
+            );
+            return;
+          }
         }
 
         if (currentStep === 3 && !buildOrderConfirmed) {
@@ -349,6 +368,7 @@ export function OrderForm() {
       form,
       splitResult,
       assemblies.length,
+      unassignedPartCount,
       buildOrderConfirmed,
       assembliesComplete,
       saveShippingDetails,
@@ -864,6 +884,7 @@ export function OrderForm() {
                     <Button
                       type="button"
                       onClick={handleNext}
+                      disabled={currentStep === 2 && unassignedPartCount > 0}
                       className="flex items-center gap-2"
                     >
                       Next
