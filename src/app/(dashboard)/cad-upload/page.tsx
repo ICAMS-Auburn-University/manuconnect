@@ -29,7 +29,7 @@ const CadUploadPage = async () => {
   return (
     <main className="flex flex-col items-center justify-start p-8 pb-20 gap-8 sm:p-20 w-full">
       <div className="w-full max-w-4xl">
-        <h1 className="h1 mb-2 text-[#0c2340]">CAD File Upload & Analysis</h1>
+        <h1 className="h1 mb-2 text-foreground">CAD File Upload & Analysis</h1>
         <p className="text-muted-foreground mb-8">
           Upload your CAD assembly files (STEP/IGES) to analyze parts and view specifications.
         </p>

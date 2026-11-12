@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +15,7 @@ import OfferForm from '@/components/forms/OfferForm';
 import { OrdersSchema } from '@/types/schemas';
 import { getTagLabel } from '@/types/tags';
 import { abbreviateUUID } from '@/lib/utils/transforms';
+import { TONE } from '@/lib/utils/tones';
 import type { BrowseOrderData } from '@/domain/orders/browse';
 import {
   CalendarIcon,
@@ -33,6 +33,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import OrderPartsPreview from '@/components/orders/OrderPartsPreview';
+import type { OrderPartsBreakdown } from '@/domain/manufacturing/browse';
 
 import { startDirectChat } from '@/lib/api/chats';
 
@@ -48,10 +49,12 @@ const OrderDetails = ({
   const router = useRouter();
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [selectedPartIds, setSelectedPartIds] = useState<string[]>([]);
+  const [breakdown, setBreakdown] = useState<OrderPartsBreakdown | null>(null);
 
   // Reset selection when switching orders
   useEffect(() => {
     setSelectedPartIds([]);
+    setBreakdown(null);
   }, [order?.id]);
 
   if (!order) {
@@ -104,13 +107,13 @@ const OrderDetails = ({
         {browseEntry && (
           <div className="flex flex-wrap items-center gap-2">
             {browseEntry.tagMatchesProfile && (
-              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50">
+              <Badge variant="outline" className={TONE.emerald}>
                 <Wrench className="h-3 w-3 mr-1" />
-                Matches your shop
+                Matching shop tag
               </Badge>
             )}
             {browseEntry.userHasOffered ? (
-              <Badge className="bg-orange-50 text-[#e87722] border-orange-200 hover:bg-orange-50">
+              <Badge variant="outline" className={TONE.orange}>
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 Offer submitted
               </Badge>
@@ -119,11 +122,8 @@ const OrderDetails = ({
             )}
             {browseEntry.offerCount > 0 && (
               <Badge
-                className={
-                  browseEntry.offerCount <= 3
-                    ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50'
-                    : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-50'
-                }
+                variant="outline"
+                className={browseEntry.offerCount <= 3 ? TONE.amber : TONE.red}
               >
                 <Flame className="h-3 w-3 mr-1" />
                 {browseEntry.offerCount} competing offer
@@ -230,6 +230,7 @@ const OrderDetails = ({
               orderId={order.id}
               selectedPartIds={selectedPartIds}
               onSelectionChange={setSelectedPartIds}
+              onBreakdownChange={setBreakdown}
             />
           </div>
 
@@ -239,12 +240,13 @@ const OrderDetails = ({
                 <Button
                   className="w-full bg-brand text-white hover:bg-brand-100"
                   size="default"
+                  disabled={!breakdown}
                 >
                   <PlusCircle className="h-4 w-4 mr-2" />
                   Create Offer
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-background sm:max-w-2xl">
+              <DialogContent className="max-h-[90vh] overflow-y-auto bg-background sm:max-w-4xl">
                 <DialogHeader>
                   <DialogTitle>
                     <span className="h1">Create Offer</span>
@@ -259,6 +261,7 @@ const OrderDetails = ({
                 <OfferForm
                   order={order}
                   selectedPartIds={selectedPartIds}
+                  breakdown={breakdown}
                   onOfferCreated={onOfferCreated}
                 />
               </DialogContent>

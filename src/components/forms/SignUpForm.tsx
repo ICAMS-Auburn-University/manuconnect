@@ -65,7 +65,11 @@ const SignUpForm = () => {
         throw error;
       }
       console.error('Signup error:', error);
-      setErrorMessage('Something went wrong. Please try again.');
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong. Please try again.';
+      setErrorMessage(message);
     } finally {
       setIsLoading(false);
     }

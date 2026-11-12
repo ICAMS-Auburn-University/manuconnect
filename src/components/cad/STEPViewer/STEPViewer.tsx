@@ -90,7 +90,7 @@ export function STEPViewer({
   return (
     <div
       className={cn(
-        'w-full overflow-hidden rounded-lg border border-gray-200 bg-[radial-gradient(circle_at_top,_#ffffff,_#eef3f8_55%,_#dde6f0)]',
+        'w-full overflow-hidden rounded-lg border border-border bg-[radial-gradient(circle_at_top,_#ffffff,_#eef3f8_55%,_#dde6f0)]',
         className
       )}
       style={{ height }}

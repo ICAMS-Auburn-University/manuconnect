@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import Image from 'next/image';
+import type { OrderPartsBreakdown } from '@/domain/manufacturing/browse';
 
 // Updated schema to match actual data types
 const OfferSchema = z.object({
@@ -45,11 +46,15 @@ const OfferSchema = z.object({
 interface OfferFormProps {
   order: OrdersSchema;
   selectedPartIds?: string[];
+  breakdown?: OrderPartsBreakdown | null;
   onOfferCreated?: () => void;
 }
 
-const OfferForm: React.FC<OfferFormProps> = ({ order, selectedPartIds = [], onOfferCreated }) => {
+const OfferForm: React.FC<OfferFormProps> = ({ order, selectedPartIds = [], breakdown, onOfferCreated }) => {
   const [loading, setLoading] = useState(false);
+  const scopedParts = breakdown?.parts.filter((part) =>
+    selectedPartIds.length === 0 || selectedPartIds.includes(part.partId)
+  ) ?? [];
 
   // Define your form with updated types
   const form = useForm<z.infer<typeof OfferSchema>>({
@@ -85,12 +90,8 @@ const OfferForm: React.FC<OfferFormProps> = ({ order, selectedPartIds = [], onOf
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log('Form submission triggered');
-
     form.handleSubmit(async (values) => {
       setLoading(true);
-
-      console.log('Form values validated:', values);
 
       try {
         // Simplified form data submission
@@ -124,17 +125,20 @@ const OfferForm: React.FC<OfferFormProps> = ({ order, selectedPartIds = [], onOf
     <>
       <Form {...form}>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {selectedPartIds.length > 0 && (
-            <div className="rounded-md bg-blue-50 border border-blue-200 p-3">
-              <p className="text-sm text-blue-800 font-medium">
-                Offering on {selectedPartIds.length} selected part
-                {selectedPartIds.length !== 1 ? 's' : ''}
-              </p>
-              <p className="text-xs text-blue-600 mt-1">
-                Your offer covers only the selected parts, not the full order.
-              </p>
+          <section className="space-y-3 border-b pb-4" aria-label="Quote scope">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-semibold">{selectedPartIds.length ? 'Selected parts only' : 'Entire order'}</p>
+              <p className="text-sm text-muted-foreground">Order quantity: {order.quantity} · Due: {new Date(order.due_date).toLocaleDateString()}</p>
             </div>
-          )}
+            {breakdown ? (
+              scopedParts.length ? <div className="max-h-48 overflow-auto rounded-md border divide-y">
+                {scopedParts.map((part) => <div key={part.partId} className="px-3 py-2 text-sm">
+                  <div className="font-medium">{part.name}{part.assemblyName ? ` · ${part.assemblyName}` : ''}</div>
+                  <div className="text-muted-foreground">Qty: {part.quantity ?? 'Not specified'} · Material: {part.material || part.materialCategory || 'Not specified'} · Process: {part.processType || 'Not specified'} · General tolerance: {part.generalTolerance || 'Not specified'}</div>
+                </div>)}
+              </div> : <p className="text-sm text-muted-foreground">No part requirements are available.</p>
+            ) : <p className="text-sm text-muted-foreground">Part requirements are not available. Return to the parts breakdown to load them.</p>}
+          </section>
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}

@@ -163,7 +163,7 @@ export default function ManufacturerOnboarding() {
                     : ['company', 'capabilities', 'agreement'].indexOf(step) >
                         index
                       ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-500'
+                      : 'bg-muted text-muted-foreground'
                 }`}
               >
                 {['company', 'capabilities', 'agreement'].indexOf(step) >
@@ -177,7 +177,7 @@ export default function ManufacturerOnboarding() {
                     ['company', 'capabilities', 'agreement'].indexOf(step) >
                     index
                       ? 'bg-green-500'
-                      : 'bg-gray-200'
+                      : 'bg-muted'
                   }`}
                 />
               )}
@@ -187,10 +187,10 @@ export default function ManufacturerOnboarding() {
       </div>
 
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-[#0c2340] mb-2">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           {stepTitles[step]}
         </h1>
-        <p className="text-gray-600">{stepDescriptions[step]}</p>
+        <p className="text-muted-foreground">{stepDescriptions[step]}</p>
       </div>
 
       {step === 'company' ? (
@@ -434,7 +434,7 @@ export default function ManufacturerOnboarding() {
             <div className="flex gap-4">
               <Button
                 type="button"
-                className="bg-gray-200 text-gray-800 w-1/2 rounded-full"
+                className="bg-muted text-foreground hover:bg-muted/80 w-1/2 rounded-full"
                 onClick={handleBack}
               >
                 Back
@@ -452,7 +452,7 @@ export default function ManufacturerOnboarding() {
       ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <div className="bg-muted/40 border border-border rounded-lg p-6">
               <ManufacturerAgreement />
             </div>
 
@@ -477,12 +477,12 @@ export default function ManufacturerOnboarding() {
               )}
             />
 
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && <p className="text-destructive text-sm">{error}</p>}
 
             <div className="flex gap-4">
               <Button
                 type="button"
-                className="bg-gray-200 text-gray-800 w-1/2 rounded-full"
+                className="bg-muted text-foreground hover:bg-muted/80 w-1/2 rounded-full"
                 onClick={handleBack}
               >
                 Back

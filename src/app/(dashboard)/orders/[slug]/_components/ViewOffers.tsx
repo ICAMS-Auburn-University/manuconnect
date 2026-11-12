@@ -1,7 +1,7 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import {
   Check,
   X,
@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Search,
   Loader2,
+  Store,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,6 +33,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { OffersSchema, OrdersSchema } from '@/types/schemas';
 import { acceptOffer, declineOffer, getOffers } from '@/domain/offers/service';
+import { getShopCardsForOrder } from '@/domain/manufacturing/profile';
+import type { ShopCardData } from '@/domain/manufacturing/profile';
+import { ShopCard } from '@/components/manufacturing/ShopCard';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { abbreviateUUID } from '@/lib/utils/transforms';
@@ -51,6 +55,8 @@ export default function ViewOffers({ order }: ViewOffersProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [contactingUserId, setContactingUserId] = useState<string | null>(null);
+  const [shopCards, setShopCards] = useState<Record<string, ShopCardData>>({});
+  const [expandedShopId, setExpandedShopId] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -65,6 +71,13 @@ export default function ViewOffers({ order }: ViewOffersProps) {
         console.error('Error fetching offers:', error);
       }
       setIsLoading(false);
+
+      // Shop details are a nice-to-have; never block the offers list on them.
+      try {
+        setShopCards(await getShopCardsForOrder(order.id));
+      } catch (error) {
+        console.error('Error fetching shop details:', error);
+      }
     }
 
     fetchOffers();
@@ -113,21 +126,14 @@ export default function ViewOffers({ order }: ViewOffersProps) {
     setOffers(sortedOffers);
   };
 
-  // Handle search
+  // Handle search (filter is derived so clearing the box restores every offer)
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const term = e.target.value;
-    setSearchTerm(term);
-
-    if (term === '') {
-      setOffers(offers);
-      return;
-    }
-
-    const filteredOffers = offers.filter((offer) =>
-      offer.manufacturer_name.toLowerCase().includes(term.toLowerCase())
-    );
-    setOffers(filteredOffers);
+    setSearchTerm(e.target.value);
   };
+
+  const visibleOffers = offers.filter((offer) =>
+    offer.manufacturer_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Handle accept
   const handleAccept = (offerId: string) => {
@@ -219,7 +225,7 @@ export default function ViewOffers({ order }: ViewOffersProps) {
               />
             </div>
             <Badge variant="outline" className="ml-auto">
-              {offers.length} offers available
+              {visibleOffers.length} of {offers.length} offers
             </Badge>
           </div>
 
@@ -260,8 +266,9 @@ export default function ViewOffers({ order }: ViewOffersProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {offers.map((offer) => (
-                  <TableRow key={offer.id}>
+                {visibleOffers.map((offer) => (
+                  <Fragment key={offer.id}>
+                  <TableRow>
                     <TableCell>
                       <div>
                         <div className="font-medium">
@@ -269,7 +276,26 @@ export default function ViewOffers({ order }: ViewOffersProps) {
                         </div>
                         <div className="text-sm text-muted-foreground">
                           Delivery: {offer.lead_time} months
+                          {offer.part_ids?.length
+                            ? ` · ${offer.part_ids.length} part${offer.part_ids.length === 1 ? '' : 's'} only`
+                            : ''}
                         </div>
+                        {shopCards[offer.offerer] && (
+                          <button
+                            type="button"
+                            className="mt-1 inline-flex items-center gap-1 text-xs text-brand hover:underline"
+                            onClick={() =>
+                              setExpandedShopId((current) =>
+                                current === offer.id ? null : offer.id
+                              )
+                            }
+                          >
+                            <Store className="h-3 w-3" />
+                            {expandedShopId === offer.id
+                              ? 'Hide shop info'
+                              : 'About this shop'}
+                          </button>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-medium">
@@ -333,8 +359,19 @@ export default function ViewOffers({ order }: ViewOffersProps) {
                       </div>
                     </TableCell>
                   </TableRow>
+                  {expandedShopId === offer.id && shopCards[offer.offerer] && (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={6} className="bg-muted/30">
+                        <ShopCard
+                          name={offer.manufacturer_name || 'Manufacturer'}
+                          data={shopCards[offer.offerer]}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
                 ))}
-                {offers.length === 0 && (
+                {visibleOffers.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={6}

@@ -7,6 +7,8 @@ import { OrdersSchema } from '@/types/schemas';
 import type { TagOption } from '@/types/tags';
 import { getTagLabel } from '@/types/tags';
 import { abbreviateUUID } from '@/lib/utils/transforms';
+import { cn } from '@/lib/utils';
+import { TONE } from '@/lib/utils/tones';
 import type { BrowseOrderData } from '@/domain/orders/browse';
 import type { SortOption, QuickFilter } from '@/components/dashboard/BrowseOrdersCard';
 import {
@@ -45,21 +47,27 @@ function formatDueDate(dueDate: string, daysUntilDue: number): string {
 function OfferCountBadge({ count }: { count: number }) {
   if (count === 0) {
     return (
-      <Badge className="bg-green-50 text-green-700 border-green-200 hover:bg-green-50 text-xs font-medium">
+      <Badge
+        variant="outline"
+        className={cn(TONE.green, 'text-xs font-medium')}
+      >
         No offers yet
       </Badge>
     );
   }
   if (count <= 3) {
     return (
-      <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50 text-xs font-medium">
+      <Badge
+        variant="outline"
+        className={cn(TONE.amber, 'text-xs font-medium')}
+      >
         <Flame className="h-3 w-3 mr-1" />
         {count} offer{count > 1 ? 's' : ''}
       </Badge>
     );
   }
   return (
-    <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-50 text-xs font-medium">
+    <Badge variant="outline" className={cn(TONE.red, 'text-xs font-medium')}>
       <Flame className="h-3 w-3 mr-1" />
       {count} offers
     </Badge>
@@ -78,7 +86,7 @@ function DueBadge({
   const text = formatDueDate(dueDate, daysUntilDue);
   if (urgency === 'urgent') {
     return (
-      <span className="inline-flex items-center text-xs text-red-600 font-medium">
+      <span className="inline-flex items-center text-xs text-red-600 dark:text-red-400 font-medium">
         <AlertTriangle className="h-3 w-3 mr-1" />
         {text}
       </span>
@@ -86,7 +94,7 @@ function DueBadge({
   }
   if (urgency === 'soon') {
     return (
-      <span className="inline-flex items-center text-xs text-amber-600 font-medium">
+      <span className="inline-flex items-center text-xs text-amber-600 dark:text-amber-400 font-medium">
         <Clock className="h-3 w-3 mr-1" />
         {text}
       </span>
@@ -189,8 +197,8 @@ const OrdersList = ({
                     onClick={() => onOrderSelect(order)}
                     className={`cursor-pointer border-b transition-colors p-4 ${
                       isSelected
-                        ? 'bg-slate-50 border-l-2 border-l-[#e87722]'
-                        : 'hover:bg-slate-50/50 border-l-2 border-l-transparent'
+                        ? 'bg-muted/70 border-l-2 border-l-[#e87722]'
+                        : 'hover:bg-muted/40 border-l-2 border-l-transparent'
                     }`}
                   >
                     {/* Row 1: Title + Offer count */}
@@ -227,26 +235,38 @@ const OrdersList = ({
                     {/* Row 3: Status pills + Tags */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {isNew && (
-                        <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50 text-[10px] font-medium px-1.5 py-0">
+                        <Badge
+                          variant="outline"
+                          className={cn(TONE.blue, 'text-[10px] font-medium px-1.5 py-0')}
+                        >
                           <Sparkles className="h-2.5 w-2.5 mr-0.5" />
                           NEW
                         </Badge>
                       )}
                       {dueUrgency === 'urgent' && offerCount < 3 && (
-                        <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-50 text-[10px] font-medium px-1.5 py-0">
+                        <Badge
+                          variant="outline"
+                          className={cn(TONE.red, 'text-[10px] font-medium px-1.5 py-0')}
+                        >
                           URGENT
                         </Badge>
                       )}
                       {userHasOffered && (
-                        <Badge className="bg-orange-50 text-[#e87722] border-orange-200 hover:bg-orange-50 text-[10px] font-medium px-1.5 py-0">
+                        <Badge
+                          variant="outline"
+                          className={cn(TONE.orange, 'text-[10px] font-medium px-1.5 py-0')}
+                        >
                           <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
                           YOU OFFERED
                         </Badge>
                       )}
                       {tagMatchesProfile && !userHasOffered && (
-                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-[10px] font-medium px-1.5 py-0">
+                        <Badge
+                          variant="outline"
+                          className={cn(TONE.emerald, 'text-[10px] font-medium px-1.5 py-0')}
+                        >
                           <Wrench className="h-2.5 w-2.5 mr-0.5" />
-                          MATCHES SHOP
+                          MATCHING TAG
                         </Badge>
                       )}
                       {order.tags?.slice(0, 3).map((tagId) => (

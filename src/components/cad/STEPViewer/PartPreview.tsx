@@ -38,33 +38,33 @@ export function PartPreview({
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4',
+        'flex flex-col gap-3 rounded-lg border border-border bg-card p-4',
         className
       )}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="min-w-0">
-          <h4 className="truncate text-sm font-semibold text-gray-900">
+          <h4 className="truncate text-sm font-semibold text-foreground">
             {name}
           </h4>
           {hierarchy && hierarchy.length > 0 && (
-            <p className="truncate text-xs text-gray-400">
+            <p className="truncate text-xs text-muted-foreground">
               {hierarchy.join(' / ')}
             </p>
           )}
         </div>
 
         {/* 3D / 2D toggle */}
-        <div className="flex shrink-0 items-center rounded-md border border-gray-200 bg-gray-50 p-0.5">
+        <div className="flex shrink-0 items-center rounded-md border border-border bg-muted p-0.5">
           <button
             type="button"
             onClick={() => setViewMode('3d')}
             className={cn(
               'flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors',
               viewMode === '3d'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             <Box className="h-3.5 w-3.5" />
@@ -76,8 +76,8 @@ export function PartPreview({
             className={cn(
               'flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors',
               viewMode === '2d'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             <Eye className="h-3.5 w-3.5" />
@@ -89,16 +89,16 @@ export function PartPreview({
       {/* Viewer area */}
       <div className="relative min-h-[400px]">
         {isLoading && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-gray-50">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-            <p className="mt-2 text-xs text-gray-400">Loading part…</p>
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-muted">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="mt-2 text-xs text-muted-foreground">Loading part…</p>
           </div>
         )}
 
         {error && !isLoading && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-red-50">
-            <TriangleAlert className="h-6 w-6 text-red-400" />
-            <p className="mt-2 max-w-[200px] text-center text-xs text-red-500">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-destructive/10">
+            <TriangleAlert className="h-6 w-6 text-destructive" />
+            <p className="mt-2 max-w-[200px] text-center text-xs text-destructive">
               {error}
             </p>
           </div>
@@ -111,7 +111,7 @@ export function PartPreview({
             )}
 
             {viewMode === '2d' && snapshotUrl && (
-              <div className="flex h-[400px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
+              <div className="flex h-[400px] items-center justify-center rounded-lg border border-border bg-muted">
                 <Image
                   src={snapshotUrl}
                   alt={`2D preview of ${name}`}
@@ -124,8 +124,8 @@ export function PartPreview({
             )}
 
             {viewMode === '2d' && !snapshotUrl && (
-              <div className="flex h-[400px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
-                <p className="text-xs text-gray-400">
+              <div className="flex h-[400px] items-center justify-center rounded-lg border border-border bg-muted">
+                <p className="text-xs text-muted-foreground">
                   2D snapshot not available
                 </p>
               </div>
@@ -136,8 +136,8 @@ export function PartPreview({
 
       {/* Dimensions info */}
       {dimensions && !isLoading && (
-        <div className="flex items-center gap-3 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600">
-          <span className="font-medium text-gray-700">Dimensions:</span>
+        <div className="flex items-center gap-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Dimensions:</span>
           <span>{dimensions.x} × {dimensions.y} × {dimensions.z}</span>
         </div>
       )}

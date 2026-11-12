@@ -15,16 +15,23 @@ import { EventType } from '@/types/enums';
 import { randomUUID } from 'crypto';
 import { OfferAcceptanceEmail } from '@/components/emails/offer-acceptance';
 import { abbreviateUUID } from '@/lib/utils/transforms';
-import { CreateOfferInput } from '@/domain/offers/types';
+import { CreateOfferInput, MyOfferEntry, MyOfferStatus } from '@/domain/offers/types';
 import {
   fetchOffersByOrder,
   insertOffer,
   fetchOrderOffers,
   acceptOfferById,
   declineOfferById,
+  fetchOffersByOfferer,
+  fetchOfferById,
+  deleteOfferById,
   getCurrentUser,
 } from '@/lib/supabase/offers';
-import { fetchOrderById } from '@/lib/supabase/orders';
+import {
+  fetchOrderById,
+  fetchOrdersByIds,
+  updateOrderById,
+} from '@/lib/supabase/orders';
 
 const createResendClient = () => {
   if (!env.RESEND_API_KEY) {
@@ -146,6 +153,128 @@ export async function getOffers(orderId: string): Promise<OffersSchema[]> {
       error instanceof Error ? error.message : 'Unknown error occurred';
     logger.error('Error getting offers', message);
     throw new Error('Error getting offers: ' + message);
+  }
+}
+
+export async function getMyOffers(): Promise<MyOfferEntry[]> {
+  try {
+    const { user } = await getCurrentUser();
+    if (!user) {
+      return [];
+    }
+
+    const offers = await fetchOffersByOfferer(user.id);
+    const orderIds = Array.from(new Set(offers.map((offer) => offer.order_id)));
+    const { data: orders, error } = await fetchOrdersByIds(orderIds);
+
+    if (error) {
+      logger.error(error, 'offers:getMyOffers:orders');
+    }
+
+    const orderById = new Map(orders.map((order) => [order.id, order]));
+
+    return offers.map((offer) => {
+      const order = orderById.get(offer.order_id) ?? null;
+
+      let status: MyOfferStatus = 'pending';
+      if (offer.is_accepted) {
+        status = 'accepted';
+      } else if (offer.is_declined) {
+        status = 'declined';
+      } else if (!order || order.isArchived) {
+        status = 'order_closed';
+      } else if (order.manufacturer && order.manufacturer !== user.id) {
+        status = 'not_selected';
+      }
+
+      return {
+        offer,
+        status,
+        order: order
+          ? {
+              id: order.id,
+              title: order.title,
+              status: order.status,
+              due_date: order.due_date,
+              quantity: order.quantity,
+              creator_name: order.creator_name,
+              manufacturer: order.manufacturer,
+              isArchived: order.isArchived,
+            }
+          : null,
+      };
+    });
+  } catch (error: unknown) {
+    logger.error(error, 'offers:getMyOffers');
+    return [];
+  }
+}
+
+/**
+ * Deletes a pending offer owned by the current manufacturer and keeps the
+ * order's offer list/status consistent. Bypasses updateOrder so the creator
+ * does not receive a misleading "order update" email.
+ */
+export async function withdrawOffer(
+  offerId: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const { user } = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const offer = await fetchOfferById(offerId);
+    if (!offer || offer.offerer !== user.id) {
+      return { success: false, error: 'Offer not found' };
+    }
+    if (offer.is_accepted) {
+      return {
+        success: false,
+        error: 'Accepted offers cannot be withdrawn. Contact the creator.',
+      };
+    }
+
+    await deleteOfferById(offerId);
+
+    const [{ offers: listedOffers }, pendingOffers, { data: order }] =
+      await Promise.all([
+        fetchOrderOffers(offer.order_id),
+        fetchOffersByOrder(offer.order_id),
+        fetchOrderById(offer.order_id),
+      ]);
+
+    const patch: Parameters<typeof updateOrderById>[1] = {
+      offers: listedOffers.filter((id) => id !== offerId),
+      last_update: new Date().toISOString(),
+    };
+
+    if (
+      order &&
+      !order.manufacturer &&
+      pendingOffers.length === 0 &&
+      order.status === OrderStatus.ManufacturerOffer
+    ) {
+      patch.status = OrderStatus.OrderCreated;
+    }
+
+    const { error: updateError } = await updateOrderById(offer.order_id, patch);
+    if (updateError) {
+      logger.error(updateError, 'offers:withdrawOffer:updateOrder');
+    }
+
+    await createEvent({
+      eventType: EventType.OFFER,
+      description: `Offer withdrawn for order #${abbreviateUUID(offer.order_id)}`,
+      userId: user.id,
+      orderId: offer.order_id,
+    });
+
+    logger.info(`Offer #${abbreviateUUID(offerId)} withdrawn by ${user.id}`);
+    return { success: true, error: null };
+  } catch (error: unknown) {
+    logger.error(error, 'offers:withdrawOffer');
+    return { success: false, error: 'Failed to withdraw offer' };
   }
 }
 

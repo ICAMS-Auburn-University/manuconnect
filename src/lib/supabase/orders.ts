@@ -106,6 +106,22 @@ export async function fetchUnclaimedOrders() {
   return { data: filteredData, error };
 }
 
+export async function fetchOrdersByIds(orderIds: string[]) {
+  if (orderIds.length === 0) {
+    return { data: [] as OrdersSchema[], error: null };
+  }
+
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('Orders')
+    .select(
+      'id, title, status, due_date, quantity, creator_name, manufacturer, isArchived'
+    )
+    .in('id', orderIds);
+
+  return { data: (data ?? []) as unknown as OrdersSchema[], error };
+}
+
 export async function fetchOrderById(orderId: string) {
   const supabase = await createSupabaseServiceRoleClient();
   console.log('Fetching order by ID:', orderId);

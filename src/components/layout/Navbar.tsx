@@ -14,15 +14,15 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import MobileMenu from '@/components/layout/MobileMenu';
-import { Mail, Settings } from 'lucide-react';
+import { Mail, Search, Settings } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
 const Navbar = async () => {
   const userType = await getAccountType();
   const userData = await getUserData();
   const initials = await getInitials();
+  const isManufacturer = userType === 'manufacturer';
 
-  console.log('userData in Navbar:', userData);
   return (
     <div className="mt-2 w-full rounded-md border border-border/70 bg-card/95 text-foreground shadow-sm backdrop-blur">
       <div className="flex content-between items-center p-2 px-4">
@@ -37,14 +37,23 @@ const Navbar = async () => {
         <div className="hidden md:flex gap-3 justify-center items-center">
           <Link href="/orders">
             <p className="navbarLink text-foreground hover:text-brand hover:underline">
-              Your Orders
+              {isManufacturer ? 'Active Jobs' : 'Your Orders'}
             </p>
           </Link>
-          <Link href="/cad-upload">
-            <p className="navbarLink text-foreground hover:text-brand hover:underline">
-              AI Analysis
-            </p>
-          </Link>
+          {isManufacturer && (
+            <Link href="/orders?tab=offers">
+              <p className="navbarLink text-foreground hover:text-brand hover:underline">
+                My Offers
+              </p>
+            </Link>
+          )}
+          {!isManufacturer && (
+            <Link href="/cad-upload">
+              <p className="navbarLink text-foreground hover:text-brand hover:underline">
+                AI Analysis
+              </p>
+            </Link>
+          )}
           {(userType === 'creator' || userType === 'admin') && (
             <>
               <Link href="/orders/new">
@@ -65,13 +74,8 @@ const Navbar = async () => {
             <>
               <Link href="/orders/browse">
                 <Button className="bg-brand px-2 py-1 h-fit hover:bg-brand-100 transition">
-                  <Image
-                    src="/plus.svg"
-                    width="18"
-                    height="18"
-                    alt="plus icon"
-                  />
-                  <p className="navbarLink text-white">Browse Orders</p>
+                  <Search className="h-4 w-4 text-white" />
+                  <p className="navbarLink text-white ml-1">Browse Orders</p>
                 </Button>
               </Link>
             </>

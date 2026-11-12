@@ -53,3 +53,42 @@ export async function fetchManufacturerProfile(userId: string) {
     error,
   };
 }
+
+interface ManufacturerShopDetailsPayload {
+  description: string | null;
+  website: string | null;
+  location: string | null;
+  typical_lead_time_weeks: number | null;
+  min_order_quantity: number | null;
+}
+
+// Separate from upsertManufacturerProfile so a missing migration-005 column can
+// never break saving capabilities.
+export async function upsertManufacturerShopDetails(
+  userId: string,
+  details: ManufacturerShopDetailsPayload
+) {
+  const supabase = await createSupabaseServiceRoleClient();
+  const { error } = await supabase
+    .from('manufacturer_profiles')
+    .upsert(
+      { user_id: userId, ...details, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
+
+  return { error };
+}
+
+export async function fetchManufacturerProfilesByUserIds(userIds: string[]) {
+  if (userIds.length === 0) {
+    return { data: [] as ManufacturerProfilesSchema[], error: null };
+  }
+
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('manufacturer_profiles')
+    .select('*')
+    .in('user_id', userIds);
+
+  return { data: (data ?? []) as ManufacturerProfilesSchema[], error };
+}

@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+import { TONE } from '@/lib/utils/tones';
 import { getOrderPartsBreakdown } from '@/domain/manufacturing/browse';
 import type {
   OrderPartSummary,
@@ -18,20 +19,26 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { CapabilityMatchLabels } from './CapabilityMatchLabels';
 
 interface OrderPartsPreviewProps {
   orderId: string;
   selectedPartIds: string[];
   onSelectionChange: (partIds: string[]) => void;
+  onBreakdownChange?: (breakdown: OrderPartsBreakdown | null) => void;
 }
 
 export default function OrderPartsPreview({
   orderId,
   selectedPartIds,
   onSelectionChange,
+  onBreakdownChange,
 }: OrderPartsPreviewProps) {
   const [breakdown, setBreakdown] = useState<OrderPartsBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [expandedAssemblies, setExpandedAssemblies] = useState<Set<string>>(
     new Set()
   );
@@ -39,9 +46,13 @@ export default function OrderPartsPreview({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(false);
+    setBreakdown(null);
+    onBreakdownChange?.(null);
     getOrderPartsBreakdown(orderId).then((data) => {
       if (!cancelled) {
         setBreakdown(data);
+        onBreakdownChange?.(data);
         setLoading(false);
         // Expand all assemblies by default
         const assemblyIds = new Set(
@@ -51,11 +62,16 @@ export default function OrderPartsPreview({
         );
         setExpandedAssemblies(assemblyIds);
       }
+    }).catch(() => {
+      if (!cancelled) {
+        setError(true);
+        setLoading(false);
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [orderId]);
+  }, [orderId, onBreakdownChange, retry]);
 
   if (loading) {
     return (
@@ -64,6 +80,13 @@ export default function OrderPartsPreview({
         <span className="text-sm">Loading parts...</span>
       </div>
     );
+  }
+
+  if (error) {
+    return <div role="alert" className="flex items-center gap-3 text-sm text-destructive">
+      Could not load part requirements.
+      <Button type="button" size="sm" variant="outline" onClick={() => setRetry((value) => value + 1)}>Retry</Button>
+    </div>;
   }
 
   if (!breakdown || breakdown.totalParts === 0) {
@@ -128,11 +151,8 @@ export default function OrderPartsPreview({
             {breakdown.totalParts !== 1 ? 's' : ''}
           </span>
           {breakdown.hasProfile && breakdown.matchingParts > 0 && (
-            <Badge
-              variant="secondary"
-              className="bg-green-50 text-green-700 border-green-200"
-            >
-              {breakdown.matchingParts} match your capabilities
+            <Badge variant="outline" className={cn('ml-1', TONE.green)}>
+              {breakdown.matchingParts} match process and material
             </Badge>
           )}
         </div>
@@ -160,9 +180,14 @@ export default function OrderPartsPreview({
       </div>
 
       {!breakdown.hasProfile && (
-        <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 p-2.5">
-          <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-700">
+        <div
+          className={cn(
+            'flex items-start gap-2 rounded-md border p-2.5',
+            TONE.amber
+          )}
+        >
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <p className="text-xs">
             <Link href="/profile" className="font-medium hover:underline">
               Complete your Shop Profile
             </Link>{' '}
@@ -184,7 +209,7 @@ export default function OrderPartsPreview({
           <div key={assemblyId} className="border rounded-md overflow-hidden">
             <button
               onClick={() => toggleAssembly(assemblyId)}
-              className="flex items-center justify-between w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between w-full px-3 py-2 bg-muted/50 hover:bg-muted transition-colors"
             >
               <div className="flex items-center gap-2">
                 {isExpanded ? (
@@ -205,8 +230,8 @@ export default function OrderPartsPreview({
                 )}
                 {breakdown.hasProfile && matchCount > 0 && (
                   <Badge
-                    variant="secondary"
-                    className="bg-green-50 text-green-700 border-green-200 text-xs"
+                    variant="outline"
+                    className={cn('text-xs', TONE.green)}
                   >
                     {matchCount} match
                   </Badge>
@@ -234,7 +259,7 @@ export default function OrderPartsPreview({
       {unassigned.length > 0 && (
         <div className="border rounded-md overflow-hidden">
           {assemblyGroups.size > 0 && (
-            <div className="px-3 py-2 bg-gray-50">
+            <div className="px-3 py-2 bg-muted/50">
               <span className="text-sm font-medium text-muted-foreground">
                 Individual Parts
               </span>
@@ -279,14 +304,16 @@ function PartRow({
     <div
       className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
         isSelected
-          ? 'bg-blue-50'
+          ? 'bg-blue-50 dark:bg-blue-950/30'
           : part.matchesCapabilities && showMatch
-            ? 'bg-green-50/50'
-            : 'hover:bg-gray-50'
+            ? 'bg-green-50/50 dark:bg-green-950/20'
+            : 'hover:bg-muted/50'
       }`}
       onClick={onToggle}
     >
-      <Checkbox checked={isSelected} onCheckedChange={onToggle} />
+      <div onClick={(event) => event.stopPropagation()}>
+        <Checkbox checked={isSelected} onCheckedChange={onToggle} aria-label={`Select ${part.name}`} />
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <Wrench className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -319,14 +346,7 @@ function PartRow({
           )}
         </div>
       </div>
-      {showMatch && part.matchesCapabilities && (
-        <Badge
-          variant="secondary"
-          className="bg-green-100 text-green-700 text-[10px] shrink-0"
-        >
-          Match
-        </Badge>
-      )}
+      {showMatch && <CapabilityMatchLabels process={part.processMatch} material={part.materialMatch} />}
     </div>
   );
 }

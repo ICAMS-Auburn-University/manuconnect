@@ -159,6 +159,49 @@ export async function fetchOfferOrderIdsByOfferer(
   return (data || []).map((row) => row.order_id);
 }
 
+export async function fetchOffersByOfferer(
+  userId: string
+): Promise<OffersSchema[]> {
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('Offers')
+    .select('*')
+    .eq('offerer', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+}
+
+export async function fetchOfferById(
+  offerId: string
+): Promise<OffersSchema | null> {
+  const supabase = await createSupabaseServiceRoleClient();
+  const { data, error } = await supabase
+    .from('Offers')
+    .select('*')
+    .eq('id', offerId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function deleteOfferById(offerId: string): Promise<void> {
+  const supabase = await createSupabaseServiceRoleClient();
+  const { error } = await supabase.from('Offers').delete().eq('id', offerId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function fetchOfferCountsByOrderIds(
   orderIds: string[]
 ): Promise<Record<string, number>> {

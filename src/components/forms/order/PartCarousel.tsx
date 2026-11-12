@@ -215,7 +215,7 @@ export function PartCarousel({
                 className={`h-2 rounded-full transition-all ${
                   index === selectedIndex
                     ? 'bg-primary w-6'
-                    : 'bg-gray-300 w-2 hover:bg-gray-400'
+                    : 'bg-muted-foreground/30 w-2 hover:bg-muted-foreground/50'
                 }`}
                 aria-label={`Go to slide ${index + 1}`}
               />

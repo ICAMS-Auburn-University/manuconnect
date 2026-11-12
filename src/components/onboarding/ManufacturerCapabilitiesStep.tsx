@@ -44,7 +44,7 @@ export default function ManufacturerCapabilitiesStep({
           <h3 className="font-medium text-base">
             Manufacturing Processes <span className="text-red-500">*</span>
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Select all processes your shop can perform.
           </p>
         </div>
@@ -52,7 +52,7 @@ export default function ManufacturerCapabilitiesStep({
           {PROCESS_OPTIONS.map((process) => (
             <label
               key={process}
-              className="flex items-center space-x-3 rounded-md border p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+              className="flex items-center space-x-3 rounded-md border p-3 cursor-pointer hover:bg-muted transition-colors"
             >
               <Checkbox
                 checked={processes.includes(process)}
@@ -75,7 +75,7 @@ export default function ManufacturerCapabilitiesStep({
           <h3 className="font-medium text-base">
             Material Categories <span className="text-red-500">*</span>
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Select the material categories you work with.
           </p>
         </div>
@@ -83,7 +83,7 @@ export default function ManufacturerCapabilitiesStep({
           {MATERIAL_CATEGORY_OPTIONS.map((category) => (
             <label
               key={category}
-              className="flex items-center space-x-3 rounded-md border p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+              className="flex items-center space-x-3 rounded-md border p-3 cursor-pointer hover:bg-muted transition-colors"
             >
               <Checkbox
                 checked={materialCategories.includes(category)}
@@ -106,7 +106,7 @@ export default function ManufacturerCapabilitiesStep({
       <div className="border rounded-lg p-4 space-y-4">
         <div>
           <h3 className="font-medium text-base">Certifications</h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Select any quality certifications your shop holds. (Optional)
           </p>
         </div>
@@ -114,7 +114,7 @@ export default function ManufacturerCapabilitiesStep({
           {CERTIFICATION_OPTIONS.map((cert) => (
             <label
               key={cert}
-              className="flex items-center space-x-3 rounded-md border p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+              className="flex items-center space-x-3 rounded-md border p-3 cursor-pointer hover:bg-muted transition-colors"
             >
               <Checkbox
                 checked={certifications.includes(cert)}

@@ -1,7 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Loader } from 'lucide-react';
+import Link from 'next/link';
+import { Loader, ShieldAlert } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { getOrderById } from '@/domain/orders/service';
 import { getUserData } from '@/domain/users/service';
 import { OrdersSchema } from '@/types/schemas';
@@ -30,8 +33,6 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
         try {
           const orderData = await getOrderById(orderId);
           const userData = await getUserData();
-
-          console.log('Fetched user data for order:', userData);
 
           // Check authorization
           if (
@@ -125,7 +126,38 @@ const OrderPageWrapper = ({ orderId }: OrderPageProps) => {
   }
 
   if (!order || !isAuthorized) {
-    return <div>Order not found or you&#39;re not authorized to view it</div>;
+    const isManufacturer = userData?.accountType === 'manufacturer';
+    return (
+      <div className="mx-auto mt-24 max-w-md">
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <ShieldAlert className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <p className="font-semibold">Order unavailable</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                This order doesn&apos;t exist, or your account doesn&apos;t have
+                access to it.
+              </p>
+            </div>
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
+              <Button asChild variant="outline">
+                <Link href="/orders">
+                  {isManufacturer ? 'Back to jobs' : 'Back to orders'}
+                </Link>
+              </Button>
+              {isManufacturer && (
+                <Button
+                  asChild
+                  className="bg-brand text-white hover:bg-brand-100"
+                >
+                  <Link href="/orders/browse">Browse orders</Link>
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

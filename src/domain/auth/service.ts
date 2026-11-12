@@ -40,6 +40,19 @@ export async function signup(data: SignUpData) {
     throw new Error(error.message);
   }
 
+  // Supabase silently no-ops signUp for an already-registered email (to avoid
+  // leaking which emails exist) by returning a user with an empty identities
+  // array instead of an error. Detect that case and surface it explicitly so
+  // the same email can't end up attached to a different account type.
+  if (signupResult?.user && signupResult.user.identities?.length === 0) {
+    logger.info('Auth service: signup attempted with existing email', {
+      email: data.email,
+    });
+    throw new Error(
+      'An account with this email already exists. Please sign in instead.'
+    );
+  }
+
   if (signupResult && signupResult.user) {
     await createUserPfp(signupResult.user.id);
   }

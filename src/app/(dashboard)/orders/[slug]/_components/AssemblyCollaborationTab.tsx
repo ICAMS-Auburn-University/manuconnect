@@ -661,7 +661,7 @@ export function AssemblyCollaborationTab({
     );
   }
 
-  const renderTreeNode = (node: CollaborationTreeNode, depth = 0) => {
+  const renderTreeNode = (node: CollaborationTreeNode) => {
     if (node.type === 'leaf') {
       const isSelected = selectedPartIds.has(node.part.id);
       const statusStyle =
@@ -679,7 +679,6 @@ export function AssemblyCollaborationTab({
                 ? 'border-[#e87722]/50 bg-[#e87722]/10'
                 : 'border-border bg-background'
             )}
-            style={{ marginLeft: `${depth * 20}px` }}
           >
             {(canAssign || canUpdateStatus) && (
               <div
@@ -750,7 +749,6 @@ export function AssemblyCollaborationTab({
               ? 'border-border/80'
               : 'border-border/60'
           )}
-          style={{ marginLeft: `${depth * 20}px` }}
         >
           <div className="flex items-start gap-3">
             <button
@@ -816,8 +814,15 @@ export function AssemblyCollaborationTab({
         </div>
 
         {isExpanded && node.children.length > 0 && (
-          <div className="space-y-2">
-            {node.children.map((child) => renderTreeNode(child, depth + 1))}
+          <div className="space-y-2 pl-6">
+            {node.children.map((child) => (
+              <div
+                key={child.id}
+                className="relative before:absolute before:-left-3 before:-top-2 before:h-8 before:w-3 before:border-b-2 before:border-l-2 before:border-muted-foreground/50 before:content-[''] after:absolute after:-bottom-2 after:-left-3 after:top-6 after:border-l-2 after:border-muted-foreground/50 after:content-[''] last:after:hidden"
+              >
+                {renderTreeNode(child)}
+              </div>
+            ))}
           </div>
         )}
       </div>

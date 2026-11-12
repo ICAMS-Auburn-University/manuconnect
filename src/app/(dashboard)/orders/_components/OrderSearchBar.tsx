@@ -124,7 +124,7 @@ const OrderSearchBar = ({
             const labels: Record<QuickFilter, string> = {
               all: 'All',
               'no-offers': 'No offers',
-              matching: 'Matches shop',
+              matching: 'Matching tags',
               'not-offered': "Haven't offered",
             };
             return (
@@ -134,7 +134,7 @@ const OrderSearchBar = ({
                 size="sm"
                 className={`h-7 text-xs ${
                   quickFilter === filter
-                    ? 'bg-[#0c2340] hover:bg-[#0c2340]/90 text-white'
+                    ? 'bg-[#0c2340] hover:bg-[#0c2340]/90 text-white dark:bg-brand dark:hover:bg-brand-100'
                     : ''
                 }`}
                 onClick={() => onQuickFilterChange(filter)}
@@ -172,7 +172,7 @@ const OrderSearchBar = ({
               Tags
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="min-w-96 p-0 bg-white" align="start">
+          <PopoverContent className="min-w-96 p-0 bg-popover text-popover-foreground" align="start">
             <Tabs defaultValue="process">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="process">Process</TabsTrigger>

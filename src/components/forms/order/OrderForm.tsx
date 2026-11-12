@@ -326,17 +326,17 @@ export function OrderForm() {
         }
 
         if (currentStep === 2) {
-          if (assemblies.length === 0) {
-            setFlowError('Create at least one assembly to continue.');
-            return;
-          }
-
           if (unassignedPartCount > 0) {
             setFlowError(
               `Assign all parts to an assembly before continuing. ${unassignedPartCount} part${
                 unassignedPartCount === 1 ? '' : 's'
               } remaining.`
             );
+            return;
+          }
+
+          if (assemblies.length === 0) {
+            setFlowError('Create at least one assembly to continue.');
             return;
           }
         }
@@ -864,7 +864,7 @@ export function OrderForm() {
             {errorMessage && (
               <p className="text-sm text-red-600">*{errorMessage}</p>
             )}
-            {flowError && <p className="text-sm text-red-600">*{flowError}</p>}
+            {flowError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">*{flowError}</p>}
 
             <div className="flex flex-col gap-3 pt-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
@@ -884,7 +884,6 @@ export function OrderForm() {
                     <Button
                       type="button"
                       onClick={handleNext}
-                      disabled={currentStep === 2 && unassignedPartCount > 0}
                       className="flex items-center gap-2"
                     >
                       Next

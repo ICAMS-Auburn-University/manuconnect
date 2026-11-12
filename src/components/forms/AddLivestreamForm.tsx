@@ -20,13 +20,18 @@ import { Input } from '@/components/ui/input';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { parseYouTubeId } from '@/lib/utils/youtube';
 
 const formSchema = z.object({
   livestreamUrl: z
     .string({
       required_error: 'Please enter a livestream URL.',
     })
-    .url({ message: 'Please enter a valid URL.' }),
+    .url({ message: 'Please enter a valid URL.' })
+    .refine((value) => parseYouTubeId(value) !== null, {
+      message:
+        'Use a YouTube link such as youtube.com/watch?v=… or youtu.be/…',
+    }),
 });
 
 interface AddLivestreamFormProps {
@@ -77,7 +82,7 @@ const AddLivestreamForm = ({
                   <FormLabel>Livestream URL*</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="https://youtube.com/watch?v="
+                      placeholder="https://youtube.com/watch?v=…"
                       {...field}
                     />
                   </FormControl>

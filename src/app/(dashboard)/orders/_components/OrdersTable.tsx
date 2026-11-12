@@ -12,14 +12,9 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { OrdersSchema } from '@/types/schemas';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import ArchiveButton from '@/components/feedback/ArchiveButton';
 import { abbreviateUUID } from '@/lib/utils/transforms';
+import { formatFullDate, formatRelativeDate } from '@/lib/utils/dates';
 
 interface OrdersTableProps {
   Orders: OrdersSchema[];
@@ -42,7 +37,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ Orders }) => {
     <Table className="body-1 mb-16">
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[100px]">OrdersSchema Number</TableHead>
+          <TableHead className="w-[100px]">Order Number</TableHead>
           <TableHead className="w-[100px]">Status</TableHead>
           <TableHead className="w-[100px]">Title</TableHead>
           <TableHead>Last Updated</TableHead>
@@ -61,13 +56,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ Orders }) => {
                 {order.status}
               </TableCell>
               <TableCell>{order.title}</TableCell>
-              <TableCell>
-                {new Date(order.last_update).toLocaleString('en-us')}
+              <TableCell title={formatFullDate(order.last_update)}>
+                {formatRelativeDate(order.last_update)}
               </TableCell>
-              <TableCell>
-                {new Date(order.created_at).toLocaleString('en-us', {
-                  timeZone: 'America/Chicago',
-                })}
+              <TableCell title={formatFullDate(order.created_at)}>
+                {formatRelativeDate(order.created_at)}
               </TableCell>
               <TableCell>{order.manufacturer_name || 'Unassigned'}</TableCell>
               <TableCell className="flex flex-row gap-2">
@@ -76,24 +69,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ Orders }) => {
                     className="bg-brand hover:bg-brand-100 transition text-white "
                     size={'sm'}
                   >
-                    View OrdersSchema
+                    View Order
                   </Button>
                 </Link>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <ArchiveButton
-                          order={order}
-                          onArchive={handleArchive}
-                        />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent className="font-medium">
-                      Archive. This cannot be undone.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <ArchiveButton order={order} onArchive={handleArchive} />
               </TableCell>
             </TableRow>
           ))}

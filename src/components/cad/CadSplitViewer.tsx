@@ -313,10 +313,10 @@ export function CadSplitViewer({ splitResult }: CadSplitViewerProps) {
 
       <div className="flex flex-col gap-4">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
-          <div className="rounded border border-gray-200 bg-white p-4">
+          <div className="rounded border border-border bg-card p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-foreground">
                   Split assembly map
                 </h3>
                 <p className="text-xs text-muted-foreground">
@@ -428,7 +428,7 @@ function TreeNode({ node, level, ...rest }: TreeNodeProps) {
     >
       <AccordionItem value={node.id} className="border-none">
         <AccordionTrigger
-          className="justify-start gap-2 text-sm font-semibold text-gray-900"
+          className="justify-start gap-2 text-sm font-semibold text-foreground"
           style={{ marginLeft: level * 16 }}
         >
           <FolderIcon className="h-4 w-4 text-blue-600" />
@@ -479,7 +479,7 @@ function PartLeaf({
     <div
       className={cn(
         'rounded border p-3 text-sm transition-colors',
-        isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
+        isSelected ? 'border-primary bg-primary/10' : 'border-border bg-background'
       )}
       style={{ marginLeft: level * 16 }}
       onClick={() => onSelectPart(part)}
@@ -493,8 +493,8 @@ function PartLeaf({
       }}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <FileText className="h-4 w-4 text-slate-600" />
-        <span className="font-medium text-gray-900">{part.name}</span>
+        <FileText className="h-4 w-4 text-muted-foreground" />
+        <span className="font-medium text-foreground">{part.name}</span>
         {!hasDrawing && (
           <>
             <Info
@@ -584,7 +584,7 @@ function PartDetailsPanel({
 }: PartDetailsPanelProps) {
   if (!part) {
     return (
-      <div className="rounded border border-gray-200 bg-white p-4 text-sm text-muted-foreground">
+      <div className="rounded border border-border bg-card p-4 text-sm text-muted-foreground">
         Select a part to view its metadata.
       </div>
     );
@@ -594,12 +594,12 @@ function PartDetailsPanel({
     part.hierarchy.length > 0 ? part.hierarchy.join(' / ') : '—';
 
   return (
-    <div className="rounded border border-gray-200 bg-white p-4">
-      <h3 className="text-sm font-semibold text-gray-900">Part details</h3>
+    <div className="rounded border border-border bg-card p-4">
+      <h3 className="text-sm font-semibold text-foreground">Part details</h3>
       <dl className="mt-4 space-y-3 text-sm">
         <div>
           <dt className="text-xs uppercase text-muted-foreground">Name</dt>
-          <dd className="font-medium text-gray-900">{part.name}</dd>
+          <dd className="font-medium text-foreground">{part.name}</dd>
         </div>
         <div>
           <dt className="text-xs uppercase text-muted-foreground">
@@ -609,18 +609,18 @@ function PartDetailsPanel({
         </div>
         <div>
           <dt className="text-xs uppercase text-muted-foreground">Hierarchy</dt>
-          <dd className="text-gray-900">{hierarchy}</dd>
+          <dd className="text-foreground">{hierarchy}</dd>
         </div>
         <div>
           <dt className="text-xs uppercase text-muted-foreground">View path</dt>
-          <dd className="font-mono text-xs text-gray-900">{partKey(part)}</dd>
+          <dd className="font-mono text-xs text-foreground">{partKey(part)}</dd>
         </div>
         <div>
           <dt className="text-xs uppercase text-muted-foreground">
             Drawing status
           </dt>
           <dd className="flex flex-col gap-1">
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-foreground">
               {drawingStatus?.status === 'uploaded'
                 ? 'Uploaded'
                 : drawingStatus?.status === 'uploading'

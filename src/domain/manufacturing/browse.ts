@@ -10,6 +10,10 @@ import { fetchManufacturerProfile } from '@/lib/supabase/manufacturers';
 import { getCurrentUser } from '@/lib/supabase/users';
 import { SPECIFICATIONS } from '@/lib/specifications';
 import type { PartSpecificationContent } from '@/domain/manufacturing/types';
+import { matchCapability } from './capability-match';
+import type { CapabilityMatch } from './capability-match';
+
+export type { CapabilityMatch } from './capability-match';
 
 export interface OrderPartSummary {
   partId: string;
@@ -20,6 +24,10 @@ export interface OrderPartSummary {
   materialCategory: string | null;
   processType: string | null;
   operations: string[];
+  generalTolerance: string | null;
+  quantity: number | null;
+  processMatch: CapabilityMatch;
+  materialMatch: CapabilityMatch;
   matchesCapabilities: boolean;
   matchReasons: string[];
 }
@@ -48,6 +56,11 @@ export async function getOrderPartsBreakdown(
       fetchManufacturerProfile(user.id),
     ]);
 
+  if (partsResult.error || specsResult.error || assembliesResult.error ||
+      (profileResult.error && profileResult.error.code !== 'PGRST116')) {
+    throw new Error('Unable to load part requirements. Please try again.');
+  }
+
   const parts = partsResult.data;
   const specs = specsResult.data;
   const assemblies = assembliesResult.data;
@@ -55,11 +68,12 @@ export async function getOrderPartsBreakdown(
 
   // Build assembly parts mapping
   const assemblyIds = assemblies.map((a) => a.id);
-  let assemblyPartsMap = new Map<string, string>();
-  let assemblyNameMap = new Map<string, string>();
+  const assemblyPartsMap = new Map<string, string>();
+  const assemblyNameMap = new Map<string, string>();
 
   if (assemblyIds.length > 0) {
-    const { data: assemblyParts } = await fetchAssemblyParts(assemblyIds);
+    const { data: assemblyParts, error } = await fetchAssemblyParts(assemblyIds);
+    if (error) throw new Error('Unable to load assembly parts. Please try again.');
     for (const ap of assemblyParts) {
       assemblyPartsMap.set(ap.part_id, ap.assembly_id);
     }
@@ -70,11 +84,13 @@ export async function getOrderPartsBreakdown(
 
   // Map specs by part_id
   const specsByPart = new Map<string, PartSpecificationContent>();
+  const quantitiesByPart = new Map<string, number>();
   for (const spec of specs) {
     specsByPart.set(
       spec.part_id,
       spec.specifications as unknown as PartSpecificationContent
     );
+    quantitiesByPart.set(spec.part_id, spec.quantity);
   }
 
   const hasProfile =
@@ -91,9 +107,11 @@ export async function getOrderPartsBreakdown(
   // Build a set of process types the manufacturer can handle
   // by reverse-mapping their specific processes to high-level types
   const profileProcessTypes = new Set<string>();
+  const knownProcessTypes = new Set<string>();
   for (const [processType, specificProcesses] of Object.entries(
     SPECIFICATIONS.PROCESS_TYPE_TO_PROCESSES
   )) {
+    knownProcessTypes.add(processType.toLowerCase());
     const hasAny = specificProcesses.some((sp) =>
       profileProcessesLower.has(sp.toLowerCase())
     );
@@ -114,45 +132,13 @@ export async function getOrderPartsBreakdown(
     const processType = spec?.process?.type ?? null;
     const operations = spec?.process?.operations ?? [];
 
-    // Match capabilities
-    const matchReasons: string[] = [];
-    let matchesProcess = false;
-    let matchesMaterial = false;
-
-    if (!hasProfile) {
-      // Can't match without a profile
-      return {
-        partId: part.id,
-        name: part.name,
-        assemblyName,
-        assemblyId,
-        material,
-        materialCategory,
-        processType,
-        operations,
-        matchesCapabilities: false,
-        matchReasons: [],
-      };
-    }
-
-    // Check process match via process type mapping
-    if (processType) {
-      matchesProcess = profileProcessTypes.has(processType.toLowerCase());
-    }
-
-    // Check material match (direct category comparison)
-    if (materialCategory) {
-      matchesMaterial = profileMaterials.has(materialCategory.toLowerCase());
-    }
-
-    if (matchesProcess) matchReasons.push('Process match');
-    if (matchesMaterial) matchReasons.push('Material match');
-
-    // If no specs defined, we can't determine match
-    const hasSpecs = processType || materialCategory;
-    const matchesCapabilities = hasSpecs
-      ? matchesProcess || matchesMaterial
-      : false;
+    const processMatch: CapabilityMatch = matchCapability(
+      processType, profileProcessTypes,
+      !!processType && knownProcessTypes.has(processType.trim().toLowerCase()) && profileProcessesLower.size > 0
+    );
+    const materialMatch: CapabilityMatch = matchCapability(materialCategory, profileMaterials);
+    const matchesCapabilities = processMatch === 'match' && materialMatch === 'match';
+    const matchReasons = [`Process: ${processMatch}`, `Material: ${materialMatch}`];
 
     return {
       partId: part.id,
@@ -163,6 +149,10 @@ export async function getOrderPartsBreakdown(
       materialCategory,
       processType,
       operations,
+      generalTolerance: spec?.tolerances?.general || null,
+      quantity: quantitiesByPart.get(part.id) ?? null,
+      processMatch,
+      materialMatch,
       matchesCapabilities,
       matchReasons,
     };

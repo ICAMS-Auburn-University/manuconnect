@@ -13,41 +13,29 @@ import {
 import { OrdersSchema } from '@/types/schemas';
 import { AccountType, OrderStatus } from '@/types/enums';
 import { abbreviateUUID } from '@/lib/utils/transforms';
+import { TONE } from '@/lib/utils/tones';
 
 const STATUS_STYLE: Record<string, { dot: string; badge: string }> = {
-  [OrderStatus.OrderCreated]: {
-    dot: 'bg-gray-400',
-    badge: 'bg-gray-100 text-gray-700 border-gray-200',
-  },
-  [OrderStatus.ManufacturerOffer]: {
-    dot: 'bg-yellow-400',
-    badge: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  },
-  [OrderStatus.OrderAccepted]: {
-    dot: 'bg-blue-400',
-    badge: 'bg-blue-50 text-blue-700 border-blue-200',
-  },
-  [OrderStatus.MachineSetup]: {
-    dot: 'bg-indigo-400',
-    badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  },
+  [OrderStatus.OrderCreated]: { dot: 'bg-gray-400', badge: TONE.neutral },
+  [OrderStatus.ManufacturerOffer]: { dot: 'bg-yellow-400', badge: TONE.yellow },
+  [OrderStatus.OrderAccepted]: { dot: 'bg-blue-400', badge: TONE.blue },
+  [OrderStatus.MachineSetup]: { dot: 'bg-indigo-400', badge: TONE.indigo },
   [OrderStatus.StartedManufacturing]: {
     dot: 'bg-[#e87722]',
-    badge: 'bg-orange-50 text-[#e87722] border-orange-200',
+    badge: TONE.orange,
   },
-  [OrderStatus.QualityCheck]: {
-    dot: 'bg-purple-400',
-    badge: 'bg-purple-50 text-purple-700 border-purple-200',
-  },
-  [OrderStatus.Shipped]: {
-    dot: 'bg-teal-400',
-    badge: 'bg-teal-50 text-teal-700 border-teal-200',
-  },
-  [OrderStatus.Completed]: {
-    dot: 'bg-green-400',
-    badge: 'bg-green-50 text-green-700 border-green-200',
-  },
+  [OrderStatus.QualityCheck]: { dot: 'bg-purple-400', badge: TONE.purple },
+  [OrderStatus.Shipped]: { dot: 'bg-teal-400', badge: TONE.teal },
+  [OrderStatus.Completed]: { dot: 'bg-green-400', badge: TONE.green },
 };
+
+// Statuses where the lead manufacturer is the one who must move the order forward.
+const MANUFACTURER_ACTION_STATUSES = new Set<string>([
+  OrderStatus.OrderAccepted,
+  OrderStatus.MachineSetup,
+  OrderStatus.StartedManufacturing,
+  OrderStatus.QualityCheck,
+]);
 
 function formatDueDate(dateStr: string) {
   const date = new Date(dateStr);
@@ -69,36 +57,41 @@ function formatDueDate(dateStr: string) {
 
 type ActiveOrdersProps = {
   accountType: AccountType | string;
+  currentUserId?: string;
 };
 
-const ActiveOrders = ({ accountType }: ActiveOrdersProps) => {
+const ActiveOrders = ({ accountType, currentUserId }: ActiveOrdersProps) => {
   const [orders, setOrders] = useState<OrdersSchema[]>([]);
   const [loading, setLoading] = useState(true);
+  const isManufacturer = accountType === AccountType.Manufacturer;
 
   useEffect(() => {
     const loadOrders = async () => {
-      const fetchOrders =
-        accountType === AccountType.Manufacturer
-          ? getManufacturerOrders
-          : getCreatorOrders;
+      const fetchOrders = isManufacturer
+        ? getManufacturerOrders
+        : getCreatorOrders;
 
       const data = await fetchOrders();
       const active = (data ?? []).filter(
         (order) => !order.isArchived && order.status !== OrderStatus.Completed
       );
+      if (isManufacturer) {
+        active.sort(
+          (a, b) =>
+            new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+        );
+      }
       setOrders(active);
       setLoading(false);
     };
 
     void loadOrders();
-  }, [accountType]);
+  }, [isManufacturer]);
 
-  const emptyHref =
-    accountType === AccountType.Manufacturer ? '/orders/browse' : '/orders/new';
-  const emptyLabel =
-    accountType === AccountType.Manufacturer
-      ? 'Browse available orders'
-      : 'Create a new order';
+  const emptyHref = isManufacturer ? '/orders/browse' : '/orders/new';
+  const emptyLabel = isManufacturer
+    ? 'Browse available orders'
+    : 'Create a new order';
 
   if (loading) {
     return (
@@ -113,12 +106,14 @@ const ActiveOrders = ({ accountType }: ActiveOrdersProps) => {
     return (
       <div className="flex flex-col items-center gap-2 py-8 text-center">
         <Package className="h-8 w-8 text-muted-foreground/40" />
-        <p className="text-sm text-muted-foreground">No active orders</p>
+        <p className="text-sm text-muted-foreground">
+          {isManufacturer ? 'No active jobs' : 'No active orders'}
+        </p>
         <Link href={emptyHref}>
           <Button
             size="sm"
             variant="outline"
-            className="mt-1 text-[#e87722] border-[#e87722]/40 hover:bg-orange-50"
+            className="mt-1 text-[#e87722] border-[#e87722]/40 hover:bg-orange-50 dark:hover:bg-orange-950/30"
           >
             {emptyLabel}
           </Button>
@@ -132,6 +127,10 @@ const ActiveOrders = ({ accountType }: ActiveOrdersProps) => {
       {orders.map((order) => {
         const style = STATUS_STYLE[order.status] ?? STATUS_STYLE[OrderStatus.OrderCreated];
         const due = formatDueDate(order.due_date);
+        const isLead = !!currentUserId && order.manufacturer === currentUserId;
+        const needsAction =
+          isManufacturer && isLead && MANUFACTURER_ACTION_STATUSES.has(order.status);
+        const isSubcontract = isManufacturer && !!currentUserId && !isLead;
         return (
           <Link
             key={order.id}
@@ -148,6 +147,22 @@ const ActiveOrders = ({ accountType }: ActiveOrdersProps) => {
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {needsAction && (
+                <Badge
+                  variant="outline"
+                  className={cn('text-[11px] px-2 py-0 h-5', TONE.amber)}
+                >
+                  Action needed
+                </Badge>
+              )}
+              {isSubcontract && (
+                <Badge
+                  variant="outline"
+                  className={cn('text-[11px] px-2 py-0 h-5', TONE.neutral)}
+                >
+                  Subcontract
+                </Badge>
+              )}
               <Badge
                 variant="outline"
                 className={cn('text-[11px] px-2 py-0 h-5', style.badge)}
@@ -157,7 +172,7 @@ const ActiveOrders = ({ accountType }: ActiveOrdersProps) => {
               <div
                 className={cn(
                   'flex items-center gap-1 text-[11px]',
-                  due.overdue ? 'text-red-500' : 'text-muted-foreground'
+                  due.overdue ? 'text-red-500 dark:text-red-400' : 'text-muted-foreground'
                 )}
               >
                 <CalendarClock className="h-3 w-3" />
@@ -171,7 +186,7 @@ const ActiveOrders = ({ accountType }: ActiveOrdersProps) => {
       <div className="pt-1">
         <Link href="/orders">
           <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
-            View all orders →
+            View all {isManufacturer ? 'jobs' : 'orders'} →
           </Button>
         </Link>
       </div>

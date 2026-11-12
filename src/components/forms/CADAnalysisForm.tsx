@@ -215,7 +215,7 @@ export function CADAnalysisForm({ userId, userOrders }: CADAnalysisFormProps) {
                 id="orderSelect"
                 value={selectedOrderId}
                 onChange={(e) => setSelectedOrderId(e.target.value)}
-                className="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                className="rounded border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand"
               >
                 {userOrders.map((order) => (
                   <option key={order.id} value={order.id}>

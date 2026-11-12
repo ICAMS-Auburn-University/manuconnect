@@ -174,6 +174,12 @@ export interface ManufacturerProfilesSchema {
   processes: string[];
   material_categories: string[];
   certifications: string[];
+  // Shop details (migration 005); null/undefined until the manufacturer fills them in.
+  description?: string | null;
+  website?: string | null;
+  location?: string | null;
+  typical_lead_time_weeks?: number | null;
+  min_order_quantity?: number | null;
   created_at: string;
   updated_at: string;
 }

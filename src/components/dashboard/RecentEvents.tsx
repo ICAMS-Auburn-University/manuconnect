@@ -113,7 +113,7 @@ export function RecentEvents({
               {events.map((event) => (
                 <Link
                   key={event.id}
-                  className="flex items-start space-x-4 border p-2 hover:bg-slate-50 transition-colors duration-200 rounded-md"
+                  className="flex items-start space-x-4 border p-2 hover:bg-muted/60 transition-colors duration-200 rounded-md"
                   href={`/orders/${event.order_id}`}
                 >
                   <div className="mt-1 bg-muted rounded-full p-2">

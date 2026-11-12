@@ -17,6 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { TONE } from '@/lib/utils/tones';
 
 interface ManufacturerOption {
   id: string;
@@ -171,8 +172,8 @@ export function SubcontractorAssignDialog({
                   className={cn(
                     'w-full rounded-lg border p-3 text-left transition-colors',
                     selectedId === m.id
-                      ? 'border-[#e87722] bg-orange-50/50 ring-1 ring-[#e87722]/40'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-muted/40'
+                      ? 'border-[#e87722] bg-orange-50/50 ring-1 ring-[#e87722]/40 dark:bg-orange-950/20'
+                      : 'border-border hover:border-muted-foreground/40 hover:bg-muted/40'
                   )}
                   onClick={() => setSelectedId(m.id)}
                 >
@@ -198,7 +199,7 @@ export function SubcontractorAssignDialog({
                           <Badge
                             key={proc}
                             variant="outline"
-                            className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200"
+                            className={cn('text-[10px] px-1.5 py-0', TONE.blue)}
                           >
                             {proc}
                           </Badge>
@@ -207,7 +208,7 @@ export function SubcontractorAssignDialog({
                           <Badge
                             key={mat}
                             variant="outline"
-                            className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-200"
+                            className={cn('text-[10px] px-1.5 py-0', TONE.green)}
                           >
                             {mat}
                           </Badge>

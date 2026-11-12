@@ -14,7 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Settings } from 'lucide-react';
+import { Search, Settings } from 'lucide-react';
 
 type UserMetadata = {
   profilePicture?: string;
@@ -111,46 +111,57 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               </Link>
 
               <Link
-                href="/cad-upload"
+                href="/orders"
                 className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
               >
-                AI Analysis
+                {userType === 'manufacturer' ? 'Active Jobs' : 'Your Orders'}
               </Link>
 
+              {userType === 'manufacturer' && (
+                <Link
+                  href="/orders?tab=offers"
+                  className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
+                >
+                  My Offers
+                </Link>
+              )}
+
+              {userType !== 'manufacturer' && (
+                <Link
+                  href="/cad-upload"
+                  className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
+                >
+                  AI Analysis
+                </Link>
+              )}
+
               {(userType === 'creator' || userType === 'admin') && (
-                <>
-                  <Link
-                    href="/orders"
-                    className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
-                  >
-                    View Orders
-                  </Link>
-                  <Link
-                    href="/orders/new"
-                    className="py-2 px-3 bg-brand text-white rounded-md hover:bg-brand-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src="/plus.svg"
-                        width="18"
-                        height="18"
-                        alt="plus icon"
-                      />
-                      <span>Request</span>
-                    </div>
-                  </Link>
-                </>
+                <Link
+                  href="/orders/new"
+                  className="py-2 px-3 bg-brand text-white rounded-md hover:bg-brand-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src="/plus.svg"
+                      width="18"
+                      height="18"
+                      alt="plus icon"
+                    />
+                    <span>Request</span>
+                  </div>
+                </Link>
               )}
 
               {(userType === 'manufacturer' || userType === 'admin') && (
-                <>
-                  <Link
-                    href="/orders/browse"
-                    className="py-2 px-3 hover:bg-muted rounded-md transition-colors"
-                  >
-                    Browse Orders
-                  </Link>
-                </>
+                <Link
+                  href="/orders/browse"
+                  className="py-2 px-3 bg-brand text-white rounded-md hover:bg-brand-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    <span>Browse Orders</span>
+                  </div>
+                </Link>
               )}
 
               <Link

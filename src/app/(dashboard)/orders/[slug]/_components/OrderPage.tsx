@@ -20,12 +20,6 @@ import {
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import { OrdersSchema } from '@/types/schemas';
 import { OrderStatus } from '@/types/enums';
 import OrderProgressBar from '@/components/feedback/CustomerOrderProgressBar';
@@ -40,6 +34,33 @@ import { AssemblyCollaborationTab } from './AssemblyCollaborationTab';
 import type { UserProfile } from '@/domain/users/types';
 import { ChevronRight } from 'lucide-react';
 import { CADAnalysisResults } from '@/components/cad/CADAnalysisResults';
+import OrderPartsOverview from '@/components/orders/OrderPartsOverview';
+import { cn } from '@/lib/utils';
+import { TONE } from '@/lib/utils/tones';
+import { parseYouTubeId } from '@/lib/utils/youtube';
+
+const ORDER_TABS = [
+  'details',
+  'model',
+  'livestream',
+  'timeline',
+  'collaboration',
+] as const;
+type OrderTab = (typeof ORDER_TABS)[number];
+
+// What the lead manufacturer should do before moving to the next status.
+const MANUFACTURER_NEXT_STEP_HINT: Partial<Record<OrderStatus, string>> = {
+  [OrderStatus.OrderAccepted]:
+    'Confirm materials and scheduling with the customer, then move to Machine Setup.',
+  [OrderStatus.MachineSetup]:
+    'Finish tooling and programming. Advance once production starts.',
+  [OrderStatus.StartedManufacturing]:
+    'Advance to Quality Check when parts come off the machine. Subcontracted parts must be shipped to you first.',
+  [OrderStatus.QualityCheck]:
+    'Inspect against the specifications. Advancing to Shipping asks for a carrier and tracking number.',
+  [OrderStatus.Shipped]:
+    'Mark the order Completed once the customer confirms delivery.',
+};
 
 type OrderPageProps = {
   order: OrdersSchema;
@@ -68,6 +89,15 @@ const OrderPage = ({
   const [isShippingDialogOpen, setIsShippingDialogOpen] = useState(false);
   const [isLivestreamDialogOpen, setIsLivestreamDialogOpen] = useState(false);
   const [waitingOnPartsCount, setWaitingOnPartsCount] = useState(0);
+  const [livestreamUrl, setLivestreamUrl] = useState(order.livestream_url);
+  // OrderPage only mounts after the client-side load, so reading the URL here is safe.
+  const [tab, setTab] = useState<OrderTab>(() => {
+    if (typeof window === 'undefined') return 'details';
+    const requested = new URLSearchParams(window.location.search).get('tab');
+    return (ORDER_TABS as readonly string[]).includes(requested ?? '')
+      ? (requested as OrderTab)
+      : 'details';
+  });
   const UserType = userData?.accountType;
 
   useEffect(() => {
@@ -105,14 +135,14 @@ const OrderPage = ({
   const statusReason = (() => {
     if (!order.manufacturer) {
       return {
-        tone: 'text-blue-700 border-blue-200 bg-blue-50',
+        tone: TONE.blue,
         label: 'Waiting on manufacturer selection',
       };
     }
 
     if (waitingOnPartsCount > 0) {
       return {
-        tone: 'text-amber-800 border-amber-300 bg-amber-50',
+        tone: TONE.amber,
         label: `Waiting on ${waitingOnPartsCount} shipped part${
           waitingOnPartsCount === 1 ? '' : 's'
         } before assembly start`,
@@ -121,7 +151,7 @@ const OrderPage = ({
 
     if (currentStatus === OrderStatus.Shipped) {
       return {
-        tone: 'text-teal-700 border-teal-200 bg-teal-50',
+        tone: TONE.teal,
         label: 'Waiting on delivery confirmation',
       };
     }
@@ -156,7 +186,7 @@ const OrderPage = ({
         throw new Error(String(result.error));
       }
       setCurrentStatus(nextStatus);
-      toast.success('OrdersSchema status updated successfully');
+      toast.success('Order status updated');
     } catch (error) {
       console.error('Failed to update order status:', error);
       toast.error(
@@ -188,7 +218,7 @@ const OrderPage = ({
       }
       setCurrentStatus(OrderStatus.Shipped);
       setIsShippingDialogOpen(false);
-      toast.success('OrdersSchema status updated to Shipped');
+      toast.success('Order marked as shipped');
     } catch (error) {
       console.error('Failed to update order status:', error);
       toast.error(
@@ -205,12 +235,21 @@ const OrderPage = ({
       return;
     }
 
+    if (!parseYouTubeId(formValues.livestreamUrl)) {
+      toast.error('Please enter a valid YouTube link');
+      return;
+    }
+
     try {
-      await updateOrder({
+      const result = await updateOrder({
         id: order.id,
         livestream_url: formValues.livestreamUrl,
       });
+      if (result?.error) {
+        throw new Error(String(result.error));
+      }
 
+      setLivestreamUrl(formValues.livestreamUrl);
       setIsLivestreamDialogOpen(false);
       toast.success('Link to livestream added successfully');
     } catch (error) {
@@ -266,44 +305,52 @@ const OrderPage = ({
       {(UserType === 'manufacturer' || UserType === 'admin') &&
         order.manufacturer &&
         currentStatus !== OrderStatus.Completed && (
-          <Card className="border-[#e87722] bg-orange-50/50">
-            <CardContent className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-[#e87722] flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">
-                    {Object.values(OrderStatus).indexOf(currentStatus) + 1}
-                  </span>
+          <Card className="border-[#e87722] bg-orange-50/50 dark:bg-orange-950/20">
+            <CardContent className="space-y-3 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-[#e87722] flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">
+                      {Object.values(OrderStatus).indexOf(currentStatus) + 1}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Current Status</p>
+                    <p className="font-semibold">{currentStatus}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Current Status</p>
-                  <p className="font-semibold">{currentStatus}</p>
-                </div>
+                {nextStatus && (
+                  <Button
+                    className="bg-[#e87722] hover:bg-[#d06a1e] text-white"
+                    disabled={blocksAssemblyStart}
+                    onClick={handleUpdateStatus}
+                  >
+                    {blocksAssemblyStart
+                      ? `Waiting on ${waitingOnPartsCount} shipped part${
+                          waitingOnPartsCount === 1 ? '' : 's'
+                        }`
+                      : `Advance to ${nextStatus}`}
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                )}
               </div>
-              {nextStatus && (
-                <Button
-                  className="bg-[#e87722] hover:bg-[#d06a1e] text-white"
-                  disabled={blocksAssemblyStart}
-                  onClick={handleUpdateStatus}
-                >
-                  {blocksAssemblyStart
-                    ? `Waiting on ${waitingOnPartsCount} shipped part${
-                        waitingOnPartsCount === 1 ? '' : 's'
-                      }`
-                    : `Advance to ${nextStatus}`}
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+              {MANUFACTURER_NEXT_STEP_HINT[currentStatus] && (
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Next step: </span>
+                  {MANUFACTURER_NEXT_STEP_HINT[currentStatus]}
+                </p>
               )}
             </CardContent>
           </Card>
         )}
 
       {order.manufacturer && waitingOnPartsCount > 0 && (
-        <Card className="border-amber-300 bg-amber-50/70">
+        <Card className={cn(TONE.amber)}>
           <CardContent className="py-3">
-            <p className="text-sm font-medium text-amber-900">
+            <p className="text-sm font-medium">
               Waiting on parts before assembly can begin
             </p>
-            <p className="text-xs text-amber-700 mt-0.5">
+            <p className="text-xs opacity-90 mt-0.5">
               {waitingOnPartsCount} assigned part
               {waitingOnPartsCount === 1 ? '' : 's'} still need to be marked as
               Shipped by their manufacturers.
@@ -312,22 +359,37 @@ const OrderPage = ({
         </Card>
       )}
 
-      <Tabs defaultValue="details" className="w-full">
-        <TabsList className="flex w-full">
-          <TabsTrigger value="details" className="flex-1">
+      <Tabs
+        value={tab}
+        onValueChange={(value) => setTab(value as OrderTab)}
+        className="w-full"
+      >
+        <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto sm:justify-between">
+          <TabsTrigger value="details" className="flex-1 shrink-0">
             Order Details
           </TabsTrigger>
-          <TabsTrigger value="model" className="flex-1">
+          <TabsTrigger value="model" className="flex-1 shrink-0">
             3D Model
           </TabsTrigger>
-          <TabsTrigger value="livestream" className="flex-1">
+          <TabsTrigger value="livestream" className="flex-1 shrink-0">
             Livestream View
+            {livestreamUrl && (
+              <span
+                className="ml-1.5 h-1.5 w-1.5 rounded-full bg-red-500"
+                aria-label="Livestream available"
+              />
+            )}
           </TabsTrigger>
-          <TabsTrigger value="timeline" className="flex-1">
+          <TabsTrigger value="timeline" className="flex-1 shrink-0">
             Timeline
           </TabsTrigger>
-          <TabsTrigger value="collaboration" className="flex-1">
-            Assembly & Collaboration
+          <TabsTrigger value="collaboration" className="flex-1 shrink-0">
+            Assembly &amp; Collaboration
+            {waitingOnPartsCount > 0 && (
+              <Badge className="ml-2 h-5 min-w-5 justify-center px-1.5 text-[10px]">
+                {waitingOnPartsCount}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -338,6 +400,18 @@ const OrderPage = ({
                 <CardTitle>{order.title}</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="flex flex-wrap gap-x-10 gap-y-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Quantity</p>
+                    <p className="font-medium">{order.quantity}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Due date</p>
+                    <p className="font-medium">
+                      {new Date(order.due_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
                 {/* <div className="flex gap-2">
                   {order.tags?.map((tagId) => {
                     // Find tag details from all tag types
@@ -471,6 +545,21 @@ const OrderPage = ({
             </div>
           </div>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>Parts &amp; Specifications</CardTitle>
+              <CardDescription>
+                Materials and processes the customer specified for each part.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OrderPartsOverview
+                orderId={order.id}
+                showMatch={UserType === 'manufacturer'}
+              />
+            </CardContent>
+          </Card>
+
           {order.cad_analysis && (
             <section className="space-y-4">
               <div className="space-y-1">
@@ -499,39 +588,6 @@ const OrderPage = ({
             </CardHeader>
             <CardContent className="h-full">
               <View3DModel order={order} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Model Specifications</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="dimensions">
-                  <AccordionTrigger>Dimensions</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Height: 15cm</p>
-                    <p>Width: 10cm</p>
-                    <p>Depth: 8cm</p>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="materials">
-                  <AccordionTrigger>Materials</AccordionTrigger>
-                  <AccordionContent>
-                    <p>PLA Plastic</p>
-                    <p>Hand-painted finish</p>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="colors">
-                  <AccordionTrigger>Colors</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Primary: Red</p>
-                    <p>Secondary: Gold</p>
-                    <p>Accents: Black</p>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
             </CardContent>
           </Card>
         </TabsContent>
@@ -563,20 +619,26 @@ const OrderPage = ({
                   size="sm"
                   onClick={() => setIsLivestreamDialogOpen(true)}
                 >
-                  {order.livestream_url ? 'Update URL' : 'Add URL'}
+                  {livestreamUrl ? 'Update URL' : 'Add URL'}
                 </Button>
               )}
             </CardHeader>
             <CardContent>
-              {order.livestream_url ? (
+              {livestreamUrl && parseYouTubeId(livestreamUrl) ? (
                 <iframe
-                  src={`https://www.youtube.com/embed/${order.livestream_url.substring(
-                    order.livestream_url.length - 11
+                  src={`https://www.youtube.com/embed/${parseYouTubeId(
+                    livestreamUrl
                   )}?autoplay=1`}
                   title="Live Stream"
                   className="w-full h-96"
                   allowFullScreen
                 />
+              ) : livestreamUrl ? (
+                <p className="text-sm text-muted-foreground">
+                  We couldn&apos;t read this livestream link.{' '}
+                  {(UserType === 'admin' || UserType === 'manufacturer') &&
+                    'Use "Update URL" to paste a YouTube link.'}
+                </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   No live stream available yet.
@@ -590,7 +652,7 @@ const OrderPage = ({
           <Card>
             <CardHeader>
               <CardTitle className="flex justify-between">
-                <p>OrdersSchema Status</p>
+                <p>Order Status</p>
                 <p className="text-base">
                   Due Date: {new Date(order.due_date).toLocaleDateString()}
                 </p>
@@ -598,15 +660,6 @@ const OrderPage = ({
               <CardDescription>
                 <div className="flex flex-row justify-between items-center">
                   Track the progress of your order
-                  {(UserType === 'manufacturer' || UserType === 'admin') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleUpdateStatus}
-                    >
-                      Update Status
-                    </Button>
-                  )}
                 </div>
               </CardDescription>
             </CardHeader>

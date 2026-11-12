@@ -12,7 +12,7 @@ export type SortOption = 'newest' | 'due-date' | 'fewest-offers' | 'most-offers'
 
 export type QuickFilter = 'all' | 'no-offers' | 'matching' | 'not-offered';
 
-const SELECTED_ORDER_STORAGE_KEY = 'manufacturer-browse-selected-order';
+export const SELECTED_ORDER_STORAGE_KEY = 'manufacturer-browse-selected-order';
 
 const BrowseOrdersCard = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -150,7 +150,7 @@ const BrowseOrdersCard = () => {
             <Wrench className="h-4 w-4 text-emerald-600" />
             <div>
               <p className="text-sm font-semibold leading-none">{stats.matching}</p>
-              <p className="text-xs text-muted-foreground">Match your shop</p>
+              <p className="text-xs text-muted-foreground">Matching tags</p>
             </div>
           </div>
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
@@ -183,6 +183,7 @@ const BrowseOrdersCard = () => {
       </div>
       <div className="flex items-start xl:sticky xl:top-6 xl:self-start">
         <OrderDetails
+          key={selectedOrder?.id ?? 'empty'}
           order={selectedOrder}
           browseEntry={selectedEntry}
           onOfferCreated={handleOfferCreated}

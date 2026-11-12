@@ -59,15 +59,15 @@ export default function CreatorOnboarding() {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-[#0c2340] mb-2">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           Creator Agreement
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Please review and accept our creator agreement to continue.
         </p>
       </div>
 
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+      <div className="bg-muted/40 border border-border rounded-lg p-6">
         <CreatorAgreement />
       </div>
 
